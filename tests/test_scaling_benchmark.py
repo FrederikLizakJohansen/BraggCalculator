@@ -1,8 +1,10 @@
+import numpy as np
 import pytest
 
 from benchmarks.benchmark_scaling import interleaved_timing_samples
 from benchmarks.scaling_cases import nacl_supercell, p1_structure, scaling_cases
 from braggcalculator import BraggCalculator
+from scripts.plot_scaling_benchmark import paired_speedup_samples
 
 
 @pytest.mark.parametrize("site_count", [4, 8, 16])
@@ -50,3 +52,23 @@ def test_interleaved_timings_collect_every_repeat_and_call():
     assert len(samples["second"]) == 4
     assert calls == {"first": 8, "second": 12}
     assert synchronizations == {"first": 8, "second": 8}
+
+
+def test_paired_speedups_preserve_repeat_variation():
+    result = {
+        "samples_seconds": {
+            "pymatgen": [8.0, 12.0, 10.0],
+            "cached": [2.0, 3.0, 5.0],
+        }
+    }
+    np.testing.assert_allclose(paired_speedup_samples(result, "cached"), [4.0, 4.0, 2.0])
+
+
+def test_paired_speedups_require_matching_positive_samples():
+    mismatched = {"samples_seconds": {"pymatgen": [1.0, 2.0], "cached": [1.0]}}
+    with pytest.raises(ValueError, match="same shape"):
+        paired_speedup_samples(mismatched, "cached")
+
+    nonpositive = {"samples_seconds": {"pymatgen": [1.0, 2.0], "cached": [1.0, 0.0]}}
+    with pytest.raises(ValueError, match="positive"):
+        paired_speedup_samples(nonpositive, "cached")

@@ -49,6 +49,26 @@ def _series_results(run: dict, series: str) -> list[dict]:
     )
 
 
+def paired_speedup_samples(result: dict, method: str) -> np.ndarray:
+    """Return per-repeat pymatgen-to-method runtime ratios."""
+    samples = result["samples_seconds"]
+    reference = np.asarray(samples["pymatgen"], dtype=float)
+    measured = np.asarray(samples[method], dtype=float)
+    if reference.shape != measured.shape:
+        raise ValueError("paired timing series must have the same shape")
+    if reference.ndim != 1 or not reference.size:
+        raise ValueError("paired timing series must be non-empty and one-dimensional")
+    if np.any(reference <= 0.0) or np.any(measured <= 0.0):
+        raise ValueError("timing samples must be positive")
+    return reference / measured
+
+
+def _jittered_positions(site_count: int, sample_count: int, offset: float) -> np.ndarray:
+    """Separate repeat samples slightly on a base-two logarithmic axis."""
+    spread = np.linspace(-0.012, 0.012, sample_count)
+    return site_count * np.power(2.0, offset + spread)
+
+
 def plot_scaling(
     runs: list[dict],
     *,
@@ -72,6 +92,7 @@ def plot_scaling(
             "legend.fontsize": 6,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
+            "svg.hashsalt": "braggcalculator-scaling",
             "svg.fonttype": "none",
             "xtick.labelsize": 6,
             "xtick.major.size": 2.5,
@@ -103,16 +124,29 @@ def plot_scaling(
                 continue
             marker = MARKERS[run_index]
             sites = np.asarray([result["input_sites"] for result in results])
-            for method, (_, color) in METHODS.items():
+            for method_index, (method, (_, color)) in enumerate(METHODS.items()):
                 samples_key = method
                 sample_sets = [result["samples_seconds"][samples_key] for result in results]
+                method_offset = (-0.052, 0.0, 0.052)[method_index]
+                for site_count, samples in zip(sites, sample_sets):
+                    runtime_axis.scatter(
+                        _jittered_positions(site_count, len(samples), method_offset),
+                        1e3 * np.asarray(samples),
+                        color=color,
+                        marker=marker,
+                        s=5.0,
+                        linewidths=0,
+                        alpha=0.24,
+                        zorder=1,
+                    )
                 medians = 1e3 * np.asarray([np.median(samples) for samples in sample_sets])
                 lower = medians - 1e3 * np.asarray(
                     [np.percentile(samples, 25) for samples in sample_sets]
                 )
-                upper = 1e3 * np.asarray(
-                    [np.percentile(samples, 75) for samples in sample_sets]
-                ) - medians
+                upper = (
+                    1e3 * np.asarray([np.percentile(samples, 75) for samples in sample_sets])
+                    - medians
+                )
                 runtime_axis.errorbar(
                     sites,
                     medians,
@@ -124,13 +158,43 @@ def plot_scaling(
                     capsize=1.5,
                     elinewidth=0.65,
                     markeredgewidth=0.5,
+                    zorder=3,
                 )
 
-            for method, speedup_key in (
-                ("end_to_end", "end_to_end_speedup"),
-                ("cached", "cached_speedup"),
+            for method_index, (method, speedup_key) in enumerate(
+                (
+                    ("end_to_end", "end_to_end_speedup"),
+                    ("cached", "cached_speedup"),
+                )
             ):
                 _, color = METHODS[method]
+                speedup_sets = [paired_speedup_samples(result, method) for result in results]
+                method_offset = (-0.032, 0.032)[method_index]
+                for site_count, samples in zip(sites, speedup_sets):
+                    speedup_axis.scatter(
+                        _jittered_positions(site_count, len(samples), method_offset),
+                        samples,
+                        color=color,
+                        marker=marker,
+                        s=5.0,
+                        linewidths=0,
+                        alpha=0.24,
+                        zorder=1,
+                    )
+                quartiles = np.asarray(
+                    [np.percentile(samples, (25, 75)) for samples in speedup_sets]
+                )
+                midpoints = quartiles.mean(axis=1)
+                speedup_axis.errorbar(
+                    sites,
+                    midpoints,
+                    yerr=(quartiles[:, 1] - quartiles[:, 0]) / 2.0,
+                    color=color,
+                    linestyle="none",
+                    capsize=1.5,
+                    elinewidth=0.65,
+                    zorder=2,
+                )
                 speedup_axis.plot(
                     sites,
                     [result[speedup_key] for result in results],
@@ -139,6 +203,7 @@ def plot_scaling(
                     markersize=3.2,
                     linewidth=0.9,
                     markeredgewidth=0.5,
+                    zorder=3,
                 )
 
         runtime_axis.set_xscale("log", base=2)
@@ -167,7 +232,7 @@ def plot_scaling(
     axes[0, 0].text(
         0.02,
         0.96,
-        "Points: median; bars: interquartile range",
+        "Large points: central values; small points: repeats; bars: IQR",
         transform=axes[0, 0].transAxes,
         ha="left",
         va="top",
@@ -204,7 +269,12 @@ def plot_scaling(
         pdf_path,
         metadata={"Title": "Diffraction runtime scaling and speedup", "CreationDate": None},
     )
-    figure.savefig(svg_path, metadata={"Title": "Diffraction runtime scaling and speedup"})
+    figure.savefig(
+        svg_path,
+        metadata={"Title": "Diffraction runtime scaling and speedup", "Date": None},
+    )
+    svg_text = svg_path.read_text()
+    svg_path.write_text("\n".join(line.rstrip() for line in svg_text.splitlines()) + "\n")
     plt.close(figure)
 
 

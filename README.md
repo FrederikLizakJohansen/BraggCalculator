@@ -103,6 +103,17 @@ unmaintained local table.
 
 ## Validation and performance
 
+BraggCalculator evaluates the same kinematic equations as pymatgen and does
+not prune the reciprocal set. In pymatgen 2026.5.4, each pattern rebuilds the
+reciprocal points and flattened site arrays, then a Python loop processes one
+reflection at a time; the site sum inside that reflection is vectorized.
+BraggCalculator reduces the primitive cell and constructs the exact reflection
+topology during `load()`. Its numerical kernel processes reflection-by-site
+chunks and merges equal-spacing lines with indexed reductions. Repeated calls
+reuse the topology, and reducible supercells perform numerical work on the
+primitive sites. These two savings are reported separately as cached and
+end-to-end timings.
+
 Run the unit and analytical test suite:
 
 ```bash

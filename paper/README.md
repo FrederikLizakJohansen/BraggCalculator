@@ -79,9 +79,11 @@ python scripts/plot_scaling_benchmark.py machine_a.json machine_b.json
 ```
 
 The primary publication outputs are editable vector PDF and SVG at Nature's
-183 mm two-column width. The PNG is a 450 dpi review preview. Runtime points
-are medians and error bars span the interquartile range of the seven retained
-repeat samples.
+183 mm two-column width. The PNG is a 450 dpi review preview. Faint points show
+all seven retained timing samples. Runtime bars span their interquartile range;
+speedup observations are paired by repeat and their bars span the interquartile
+range of those ratios. Large speedup points retain the reported ratio of
+median runtimes.
 
 ### CUDA machine
 
