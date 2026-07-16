@@ -18,10 +18,18 @@ instrumental wavelength distributions.
 
 ## Installation
 
+Install the latest release from [PyPI](https://pypi.org/project/braggcalculator/):
+
 ```bash
 python -m pip install braggcalculator
+```
+
+Optional dependencies are available as extras:
+
+```bash
 python -m pip install "braggcalculator[torch]"  # Torch/autograd/CUDA backend
 python -m pip install "braggcalculator[ase]"    # ASE structure input
+python -m pip install "braggcalculator[all]"    # All optional dependencies
 ```
 
 Python 3.12 and 3.13 are supported. To work from a source checkout, use
