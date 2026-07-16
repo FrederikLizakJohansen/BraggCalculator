@@ -18,6 +18,7 @@ import statistics
 import subprocess
 import sys
 import timeit
+from collections.abc import Callable
 from datetime import datetime, timezone
 from importlib.metadata import version
 from pathlib import Path
@@ -56,9 +57,22 @@ def git_revision() -> str:
     return result.stdout.strip()
 
 
-def timing_samples(function, *, number: int, repeat: int) -> list[float]:
-    """Return independent per-call timeit samples in seconds."""
-    return [sample / number for sample in timeit.repeat(function, number=number, repeat=repeat)]
+def interleaved_timing_samples(
+    functions: dict[str, Callable[[], object]],
+    *,
+    numbers: dict[str, int],
+    repeat: int,
+) -> dict[str, list[float]]:
+    """Time methods in a rotating order to limit thermal and frequency bias."""
+    names = tuple(functions)
+    samples = {name: [] for name in names}
+    for repeat_index in range(repeat):
+        offset = repeat_index % len(names)
+        order = names[offset:] + names[:offset]
+        for name in order:
+            elapsed = timeit.timeit(functions[name], number=numbers[name])
+            samples[name].append(elapsed / numbers[name])
+    return samples
 
 
 def benchmark_case(case, *, number: int, repeat: int) -> dict:
@@ -74,25 +88,22 @@ def benchmark_case(case, *, number: int, repeat: int) -> dict:
     np.testing.assert_allclose(actual_x, expected.x, rtol=0, atol=1e-10)
     np.testing.assert_allclose(actual_y, expected.y, rtol=1e-10, atol=1e-10)
 
-    cached_samples = timing_samples(
-        lambda: calculator.line_pattern(scaled=True),
-        number=number,
+    samples = interleaved_timing_samples(
+        {
+            "cached": lambda: calculator.line_pattern(scaled=True),
+            "end_to_end": lambda: BraggCalculator().load(structure).line_pattern(scaled=True),
+            "pymatgen": lambda: oracle.get_pattern(
+                structure,
+                two_theta_range=calculator.two_theta_range,
+                scaled=True,
+            ),
+        },
+        numbers={"cached": number, "end_to_end": max(1, number // 5), "pymatgen": number},
         repeat=repeat,
     )
-    end_to_end_samples = timing_samples(
-        lambda: BraggCalculator().load(structure).line_pattern(scaled=True),
-        number=max(1, number // 5),
-        repeat=repeat,
-    )
-    pymatgen_samples = timing_samples(
-        lambda: oracle.get_pattern(
-            structure,
-            two_theta_range=calculator.two_theta_range,
-            scaled=True,
-        ),
-        number=number,
-        repeat=repeat,
-    )
+    cached_samples = samples["cached"]
+    end_to_end_samples = samples["end_to_end"]
+    pymatgen_samples = samples["pymatgen"]
     medians = {
         "cached_seconds": statistics.median(cached_samples),
         "end_to_end_seconds": statistics.median(end_to_end_samples),

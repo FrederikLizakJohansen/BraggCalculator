@@ -1,5 +1,6 @@
 import pytest
 
+from benchmarks.benchmark_scaling import interleaved_timing_samples
 from benchmarks.scaling_cases import nacl_supercell, p1_structure, scaling_cases
 from braggcalculator import BraggCalculator
 
@@ -24,3 +25,19 @@ def test_nacl_scaling_structure_reduces_to_two_sites(factor, input_sites):
 def test_scaling_cases_require_increasing_control_values():
     with pytest.raises(ValueError, match="strictly increasing"):
         scaling_cases((8, 4), (1, 2))
+
+
+def test_interleaved_timings_collect_every_repeat_and_call():
+    calls = {"first": 0, "second": 0}
+
+    def count(name):
+        calls[name] += 1
+
+    samples = interleaved_timing_samples(
+        {"first": lambda: count("first"), "second": lambda: count("second")},
+        numbers={"first": 2, "second": 3},
+        repeat=4,
+    )
+    assert len(samples["first"]) == 4
+    assert len(samples["second"]) == 4
+    assert calls == {"first": 8, "second": 12}
