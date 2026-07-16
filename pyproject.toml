@@ -17,6 +17,11 @@ classifiers = [
 ]
 exclude = ["braggcalculator/_scattering_data.py"]
 
+[tool.poetry.urls]
+Repository = "https://github.com/FrederikLizakJohansen/BraggCalculator"
+Documentation = "https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md"
+Issues = "https://github.com/FrederikLizakJohansen/BraggCalculator/issues"
+
 [tool.poetry.dependencies]
 python = "^3.12,<3.14"
 pymatgen = ">=2025.6.14,<2027"

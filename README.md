@@ -1,30 +1,34 @@
+<p align="center">
+  <img src="assets/braggcalculator-logo.png" width="650" alt="BraggCalculator logo">
+</p>
+
 # BraggCalculator
 
 BraggCalculator is a fast, validated powder X-ray and neutron diffraction
-engine for ideal periodic crystals. It uses a crystallographic reciprocal-cell
-calculation rather than the pairwise Debye equation and provides NumPy and
-optional PyTorch kernels.
+engine for ideal periodic crystals. It evaluates reciprocal-space Bragg
+diffraction with NumPy or optional PyTorch kernels.
 
 The current scientific scope is monochromatic, kinematic powder diffraction.
 It includes neutral-atom X-ray form factors, coherent elemental neutron
 scattering lengths, occupancies, isotropic Debye-Waller factors, the standard
-unpolarized powder Lorentz-polarization correction, and area-normalized
-Gaussian profiles. It does not model diffuse scattering, finite-particle shape,
-preferred orientation, microstrain, absorption, background, anomalous X-ray
-terms, or instrumental wavelength distributions.
+powder Lorentz or Lorentz-polarization correction, and area-normalized Gaussian
+profiles. It does not model diffuse scattering, finite-particle shape, preferred
+orientation, microstrain, absorption, background, anomalous X-ray terms, or
+instrumental wavelength distributions.
 
 ## Installation
 
 ```bash
-python -m pip install .
-python -m pip install ".[torch]"  # optional Torch/autograd backend
-python -m pip install ".[ase]"    # optional ASE input
+python -m pip install braggcalculator
+python -m pip install "braggcalculator[torch]"  # Torch/autograd/CUDA backend
+python -m pip install "braggcalculator[ase]"    # ASE structure input
 ```
 
-Python 3.12 and 3.13 are supported.
+Python 3.12 and 3.13 are supported. To work from a source checkout, use
+`python -m pip install -e ".[all]"`.
 
-The [API reference](docs/api.md) documents the public configuration, methods,
-and result conventions.
+The [API reference](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md)
+documents the public configuration, methods, and result conventions.
 
 ## Quick start
 
@@ -32,20 +36,19 @@ and result conventions.
 from braggcalculator import BraggCalculator
 
 calculator = BraggCalculator(mode="xray", wavelength="CuKa1")
-calculator.load("examples/NaCl.cif")
+calculator.load("structure.cif")
 
 two_theta, integrated_intensity = calculator.line_pattern(scaled=True)
 grid, profile = calculator.pattern()
 ```
 
-`iq()` returns one line per reciprocal-lattice point. `line_pattern()` merges
-coincident powder lines and applies the conventional relative reporting
-threshold. `pattern()` broadens the individual reciprocal-point intensities so
-no intensity is lost through early grouping. When differentiating a lattice
-change that breaks its prepared metric symmetry, use `iq()` or `pattern()`;
-`line_pattern()` assumes the original coincident groups remain degenerate.
-`reflection_table()` exposes each point's integer HKL, d-spacing, Q, 2-theta,
-`|F|^2`, and corrected intensity without relying on private calculator state.
+`line_pattern()` returns the conventional merged powder lines. `pattern()`
+returns an area-normalized Gaussian profile on a regular grid.
+`reflection_table()` provides the corresponding HKLs, d-spacings, Q values,
+scattering angles, structure factors, and corrected intensities. The
+[API reference](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md)
+documents lower-level reciprocal-point output and the rules for differentiable
+lattice changes.
 
 The Q-space API uses inverse angstroms:
 
@@ -66,7 +69,7 @@ from braggcalculator import BraggCalculator
 from braggcalculator.backends import TorchBackend
 
 calculator = BraggCalculator(backend=TorchBackend(device="cpu")).load(
-    "examples/NaCl.cif"
+    "structure.cif"
 )
 parameters = calculator.tensor_parameters(
     requires_grad=["lattice", "frac_coords", "occupancies", "b_iso"]
@@ -75,6 +78,9 @@ grid, profile = calculator.pattern(parameters=parameters)
 loss = profile.square().sum()
 loss.backward()
 ```
+
+Use `TorchBackend(device="cuda")` with a CUDA-enabled PyTorch installation to
+run the continuous diffraction and profile kernels on a GPU.
 
 Species identities and reflection indices are intentionally not differentiable.
 Isotope-specific neutron samples can select a tabulated isotope through
@@ -136,13 +142,24 @@ python benchmarks/benchmark_against_pymatgen.py \
     --number 20 --repeat 7 --require-speedup 1 --json benchmark.json
 ```
 
-On the development environment (Python 3.13, NumPy 2.4.2, pymatgen 2026.5.4),
-all reference cases match to floating-point precision. On the original five
-small-cell cases, cached line calculations are 23–41 times faster and
-end-to-end calculations are 6–10 times faster than pymatgen; the larger P1 case
-is 21 times faster cached and 14 times faster end-to-end. Performance is
-machine- and dependency-version-specific, so the script records exact environment
-metadata with each JSON result.
+Performance is machine- and dependency-version-specific, so benchmark JSON
+records the exact environment and all timing samples. The versioned scaling
+data, plotting commands, and CPU/CUDA protocol are documented in
+[the paper README](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/paper/README.md).
+
+## Demonstration
+
+The [NaCl demonstration](https://github.com/FrederikLizakJohansen/BraggCalculator/tree/main/demo)
+loads a CIF, verifies the calculated powder lines against pymatgen, and writes
+an overlay with a residual panel:
+
+```bash
+python -m pip install -e . matplotlib
+python demo/compare_with_pymatgen.py
+```
+
+The script stops if either implementation departs from the stated numerical
+tolerances.
 
 ## Data and model references
 
