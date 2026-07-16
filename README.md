@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/braggcalculator-logo.png" width="650" alt="BraggCalculator logo">
+  <img src="https://raw.githubusercontent.com/FrederikLizakJohansen/BraggCalculator/main/assets/braggcalculator-logo.png" width="650" alt="BraggCalculator logo">
 </p>
 
 # BraggCalculator
