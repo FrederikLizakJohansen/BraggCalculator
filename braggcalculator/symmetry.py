@@ -1,59 +1,110 @@
-# braggcalculator/symmetry.py
-from typing import Dict, Any, List
+"""Consistent primitive-cell and symmetry preprocessing."""
+
+from __future__ import annotations
+
+from typing import Any, Dict, List
+
 import numpy as np
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 
+def _site_b_iso(site) -> float:
+    """Read a site-level isotropic displacement value when one is present."""
+    properties = site.properties
+    for key in ("B", "Biso", "B_iso", "b_iso"):
+        if key in properties and properties[key] is not None:
+            value = float(properties[key])
+            if value < 0 or not np.isfinite(value):
+                raise ValueError(f"invalid isotropic B value {value!r}")
+            return value
+    for key in ("U", "Uiso", "U_iso", "u_iso"):
+        if key in properties and properties[key] is not None:
+            value = 8.0 * np.pi**2 * float(properties[key])
+            if value < 0 or not np.isfinite(value):
+                raise ValueError(f"invalid isotropic U value {properties[key]!r}")
+            return value
+    return 0.0
+
+
 class SymmetryEngine:
+    """Prepare one internally consistent primitive cell.
+
+    Symmetry operations and ``equivalent_atoms`` are always obtained from the
+    exact structure returned here, never from a differently sized input cell.
+    All sites are retained; equivalence information is metadata rather than a
+    destructive reduction to asymmetric-unit representatives.
     """
-    Wraps spglib (via pymatgen) to:
-      - reduce to primitive
-      - expose unique sites and a symmetry-expansion mapping
-      - provide SG metadata
-    """
+
+    def __init__(
+        self,
+        symprec: float = 1e-3,
+        angle_tolerance: float = 5.0,
+        primitive: bool = True,
+    ):
+        self.symprec = float(symprec)
+        self.angle_tolerance = float(angle_tolerance)
+        self.primitive = bool(primitive)
 
     def reduce(self, pmg_structure) -> Dict[str, Any]:
-        sga = SpacegroupAnalyzer(pmg_structure, symprec=1e-3, angle_tolerance=5.0)
-        prim = sga.get_primitive_standard_structure()
-        dataset = sga.get_symmetry_dataset()
-
-        # All sites in primitive cell
-        frac_all = np.array([site.frac_coords for site in prim.sites], dtype=float)
-        Z_all = np.array([site.specie.Z for site in prim.sites], dtype=int)
-
-        # spglib equivalent atoms: index of representative for each atom
-        equiv = np.array(dataset["equivalent_atoms"], dtype=int)  # shape (Natoms,)
-        # Build mapping: unique index -> indices in orbit
-        unique_ids = np.unique(equiv)
-        orbits: List[np.ndarray] = [np.where(equiv == u)[0] for u in unique_ids]
-
-        # representative coords/Z for each unique site
-        rep_idx = np.array([orb[0] for orb in orbits], dtype=int)
-        frac_unique = frac_all[rep_idx]
-        Z_unique = Z_all[rep_idx]
-
-        # default occ & B (can be expanded per orbit later)
-        occ_unique = np.ones(len(rep_idx), dtype=float)
-        B_unique = np.zeros(len(rep_idx), dtype=float)
-
-        # store symmetry operations in direct space (rot, trans)
-        # dataset["rotations"]: (Nsym,3,3) integer; ["translations"]: (Nsym,3) float
-        R = np.array(dataset["rotations"], dtype=int)
-        t = np.array(dataset["translations"], dtype=float)
-
-        return dict(
-            lattice=np.array(prim.lattice.matrix, dtype=float),  # (3,3)
-            spacegroup_symbol=dataset["international"],  # e.g. "Fm-3m"
-            spacegroup_number=int(dataset["number"]),  # e.g. 225
-            pointgroup_symbol=dataset["pointgroup"],  # e.g. "m-3m"
-            frac_coords=frac_unique,  # (Nuniq,3)
-            Z=Z_unique,  # (Nuniq,)
-            occ=occ_unique,  # (Nuniq,)
-            B=B_unique,  # (Nuniq,)
-            # expansion mapping/orbits
-            orbit_indices=orbits,  # list of arrays of site indices in prim
-            equiv_all=equiv,  # (Natoms,)
-            # symmetry ops
-            symm_rot=R,  # (Nsym,3,3)
-            symm_trans=t,  # (Nsym,3)
+        input_analyzer = SpacegroupAnalyzer(
+            pmg_structure,
+            symprec=self.symprec,
+            angle_tolerance=self.angle_tolerance,
         )
+        structure = pmg_structure.copy()
+        input_dataset = input_analyzer.get_symmetry_dataset()
+        input_is_primitive = input_dataset is not None and len(
+            np.unique(input_dataset.mapping_to_primitive)
+        ) == len(pmg_structure)
+        if self.primitive and not input_is_primitive:
+            primitive = input_analyzer.find_primitive(keep_site_properties=True)
+            if primitive is not None:
+                structure = primitive
+            analyzer = SpacegroupAnalyzer(
+                structure,
+                symprec=self.symprec,
+                angle_tolerance=self.angle_tolerance,
+            )
+            dataset = analyzer.get_symmetry_dataset()
+        else:
+            dataset = input_dataset
+        if dataset is None:
+            raise ValueError("spglib could not determine symmetry for the structure")
+
+        equiv = np.asarray(dataset.equivalent_atoms, dtype=int)
+        unique_ids = np.unique(equiv)
+        orbits: List[np.ndarray] = [np.where(equiv == value)[0] for value in unique_ids]
+
+        frac = []
+        atomic_numbers = []
+        symbols = []
+        occupancies = []
+        b_iso = []
+        site_indices = []
+        for site_index, site in enumerate(structure):
+            site_b = _site_b_iso(site)
+            for species, occupancy in site.species.items():
+                frac.append(site.frac_coords)
+                atomic_numbers.append(species.Z)
+                symbols.append(species.symbol)
+                occupancies.append(float(occupancy))
+                b_iso.append(site_b)
+                site_indices.append(site_index)
+
+        return {
+            "structure": structure,
+            "lattice": np.asarray(structure.lattice.matrix, dtype=float),
+            "spacegroup_symbol": dataset.international,
+            "spacegroup_number": int(dataset.number),
+            "pointgroup_symbol": dataset.pointgroup,
+            "frac_coords": np.asarray(frac, dtype=float),
+            "Z": np.asarray(atomic_numbers, dtype=int),
+            "symbols": tuple(symbols),
+            "occ": np.asarray(occupancies, dtype=float),
+            "B": np.asarray(b_iso, dtype=float),
+            "site_indices": np.asarray(site_indices, dtype=int),
+            "orbit_indices": orbits,
+            "equiv_all": equiv,
+            "symm_rot": np.asarray(dataset.rotations, dtype=int),
+            "symm_trans": np.asarray(dataset.translations, dtype=float),
+        }
