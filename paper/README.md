@@ -15,8 +15,11 @@ Generate the initial X-ray oracle-comparison figure:
 python scripts/plot_pattern_comparison.py
 ```
 
-This writes PNG and vector PDF figures plus exact error metrics to
-`paper/figures/`. To inspect every deterministic reference case, run:
+This writes a 450 dpi PNG preview, editable vector PDF and SVG figures, plus
+exact error metrics to `paper/figures/`. Both implementations use the same
+0.9 pt stroke weight; solid orange and dashed blue profiles remain visible
+even when their values overlap exactly. To inspect every deterministic
+reference case, run:
 
 ```bash
 python scripts/plot_pattern_comparison.py \

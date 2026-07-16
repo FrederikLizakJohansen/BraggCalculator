@@ -28,6 +28,9 @@ from matplotlib import pyplot as plt  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+MM_PER_INCH = 25.4
+NATURE_DOUBLE_COLUMN_MM = 183.0
+
 from benchmarks.reference_cases import reference_structures  # noqa: E402
 from braggcalculator import BraggCalculator  # noqa: E402
 
@@ -159,6 +162,7 @@ def plot_comparisons(
     *,
     png_path: Path,
     pdf_path: Path,
+    svg_path: Path,
 ) -> None:
     """Render line patterns and profiles at every requested broadening."""
     fwhm_values = tuple(comparisons_by_fwhm)
@@ -169,21 +173,31 @@ def plot_comparisons(
     columns = 1 + len(fwhm_values)
     plt.rcParams.update(
         {
+            "axes.labelsize": 6.5,
+            "axes.linewidth": 0.6,
             "axes.spines.right": False,
             "axes.spines.top": False,
-            "axes.titleweight": "semibold",
-            "axes.labelsize": 9,
-            "axes.titlesize": 10,
-            "font.size": 9,
-            "legend.fontsize": 8.5,
-            "xtick.labelsize": 8.5,
-            "ytick.labelsize": 8.5,
+            "axes.titleweight": "normal",
+            "axes.titlesize": 7,
+            "font.family": "sans-serif",
+            "font.sans-serif": ("Arial", "Helvetica", "Liberation Sans", "DejaVu Sans"),
+            "font.size": 6.5,
+            "legend.fontsize": 6,
+            "pdf.fonttype": 42,
+            "ps.fonttype": 42,
+            "svg.fonttype": "none",
+            "xtick.labelsize": 6,
+            "xtick.major.size": 2.5,
+            "xtick.major.width": 0.6,
+            "ytick.labelsize": 6,
+            "ytick.major.size": 2.5,
+            "ytick.major.width": 0.6,
         }
     )
     figure, axes = plt.subplots(
         rows,
         columns,
-        figsize=(7.2, 1.9 * rows + 0.55),
+        figsize=(NATURE_DOUBLE_COLUMN_MM / MM_PER_INCH, 145.0 / MM_PER_INCH),
         sharex=True,
         layout="constrained",
     )
@@ -197,16 +211,17 @@ def plot_comparisons(
         "P1-40-atom": "40-site P1 cell",
     }
 
+    line_width = 0.9
     for index, line_comparison in enumerate(comparisons):
         line_axis = axes[index, 0]
 
-        line_axis.axhline(0.0, color="0.65", linewidth=0.7)
+        line_axis.axhline(0.0, color="0.6", linewidth=0.55)
         line_axis.vlines(
             line_comparison.pymatgen_positions,
             0.0,
             line_comparison.pymatgen_intensities,
             color="#D55E00",
-            linewidth=1.5,
+            linewidth=line_width,
             label="pymatgen",
         )
         line_axis.vlines(
@@ -214,53 +229,35 @@ def plot_comparisons(
             0.0,
             -line_comparison.braggcalculator_intensities,
             color="#0072B2",
-            linewidth=1.0,
+            linewidth=line_width,
             label="BraggCalculator",
         )
-        line_axis.set_ylim(-108, 108)
+        line_axis.set_ylim(-110, 110)
         line_axis.set_yticks((-100, -50, 0, 50, 100), ("100", "50", "0", "50", "100"))
         line_axis.set_ylabel("Relative intensity (%)")
         line_axis.text(
-            0.015,
-            0.92,
-            "pymatgen",
-            color="#D55E00",
-            transform=line_axis.transAxes,
-            ha="left",
-            va="top",
-            fontsize=7.5,
-        )
-        line_axis.text(
-            0.015,
-            0.08,
-            "BraggCalculator",
-            color="#0072B2",
-            transform=line_axis.transAxes,
-            ha="left",
-            va="bottom",
-            fontsize=7.5,
-        )
-        line_axis.text(
-            0.985,
-            0.07,
+            0.98,
+            0.06,
             f"max |Δ2θ| {line_comparison.metrics.max_position_error_deg:.1e}°\n"
             f"max |ΔI| {line_comparison.metrics.max_line_intensity_error_percent:.1e}",
             transform=line_axis.transAxes,
             ha="right",
             va="bottom",
-            fontsize=7.2,
-            color="0.3",
+            fontsize=5.2,
+            color="0.25",
         )
 
         case_name = display_names.get(line_comparison.metrics.case, line_comparison.metrics.case)
         line_axis.text(
-            0.5,
-            1.025,
-            f"{case_name} · {line_comparison.metrics.peaks} peaks",
+            0.02,
+            0.96,
+            f"{chr(ord('a') + index)}  {case_name} · {line_comparison.metrics.peaks} peaks",
             transform=line_axis.transAxes,
-            ha="center",
-            va="bottom",
-            fontweight="semibold",
+            ha="left",
+            va="top",
+            fontsize=7,
+            fontweight="bold",
+            color="0.1",
         )
 
         for column, fwhm_deg in enumerate(fwhm_values, start=1):
@@ -273,45 +270,38 @@ def plot_comparisons(
                 x,
                 expected,
                 color="#D55E00",
-                linewidth=2.4,
+                linewidth=line_width,
                 label="pymatgen",
+                zorder=2,
             )
             profile_axis.plot(
                 x,
                 actual,
                 color="#0072B2",
-                linewidth=1.25,
-                linestyle="--",
+                linewidth=line_width,
+                linestyle=(0, (3, 2)),
                 label="BraggCalculator",
+                zorder=3,
             )
-            profile_axis.set_ylim(-3, 105)
-            profile_axis.grid(axis="y", color="0.92", linewidth=0.6)
-            if column == 1:
-                profile_axis.set_ylabel("Relative intensity (%)")
+            profile_axis.set_ylim(-2, 104)
+            profile_axis.grid(axis="y", color="0.9", linewidth=0.45)
             profile_axis.text(
-                0.97,
-                0.92,
+                0.98,
+                0.94,
                 f"max |Δ| {comparison.metrics.max_profile_error_percent:.1e}",
                 transform=profile_axis.transAxes,
                 ha="right",
                 va="top",
-                fontsize=7.2,
-                color="0.3",
+                fontsize=5.2,
+                color="0.25",
             )
-            profile_axis.fill_between(
-                x,
-                np.minimum(actual, expected),
-                np.maximum(actual, expected),
-                color="#009E73",
-                alpha=0.5,
-                linewidth=0,
-            )
+            profile_axis.set_xlim(float(x[0]), float(x[-1]))
 
     for axis in axes[-1]:
         axis.set_xlabel(r"$2\theta$ (degrees)")
-    axes[0, 0].set_title("Lines · no broadening", pad=23)
+    axes[0, 0].set_title("Powder lines: no broadening", pad=8)
     for column, fwhm_deg in enumerate(fwhm_values, start=1):
-        axes[0, column].set_title(f"Shared FWHM {fwhm_deg:g}°", pad=23)
+        axes[0, column].set_title(f"Both profiles: FWHM {fwhm_deg:g}°", pad=8)
     legend_handles, legend_labels = axes[0, 1].get_legend_handles_labels()
     figure.legend(
         legend_handles,
@@ -319,13 +309,16 @@ def plot_comparisons(
         loc="outside upper center",
         ncols=2,
         frameon=False,
+        handlelength=2.6,
+        columnspacing=1.6,
     )
     png_path.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(png_path, dpi=300)
+    figure.savefig(png_path, dpi=450)
     figure.savefig(
         pdf_path,
         metadata={"Title": "Powder-pattern agreement with pymatgen", "CreationDate": None},
     )
+    figure.savefig(svg_path, metadata={"Title": "Powder-pattern agreement with pymatgen"})
     plt.close(figure)
 
 
@@ -380,8 +373,14 @@ def main() -> None:
     stem = f"pattern_comparison_{args.mode}"
     png_path = args.output_dir / f"{stem}.png"
     pdf_path = args.output_dir / f"{stem}.pdf"
+    svg_path = args.output_dir / f"{stem}.svg"
     json_path = args.output_dir / f"{stem}.json"
-    plot_comparisons(comparisons_by_fwhm, png_path=png_path, pdf_path=pdf_path)
+    plot_comparisons(
+        comparisons_by_fwhm,
+        png_path=png_path,
+        pdf_path=pdf_path,
+        svg_path=svg_path,
+    )
     metadata = {
         "python": sys.version,
         "platform": platform.platform(),
@@ -411,6 +410,7 @@ def main() -> None:
     json_path.write_text(json.dumps(metadata, indent=2) + "\n")
     print(f"wrote {png_path}")
     print(f"wrote {pdf_path}")
+    print(f"wrote {svg_path}")
     print(f"wrote {json_path}")
     for fwhm_deg, comparisons in comparisons_by_fwhm.items():
         for comparison in comparisons:
