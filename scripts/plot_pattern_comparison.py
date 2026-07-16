@@ -40,6 +40,7 @@ class PatternMetrics:
     mode: str
     sites: int
     peaks: int
+    gaussian_fwhm_deg: float
     max_position_error_deg: float
     max_line_intensity_error_percent: float
     max_profile_error_percent: float
@@ -51,6 +52,10 @@ class PatternComparison:
     """Arrays and summary metrics needed to render one comparison panel."""
 
     grid: np.ndarray
+    braggcalculator_positions: np.ndarray
+    braggcalculator_intensities: np.ndarray
+    pymatgen_positions: np.ndarray
+    pymatgen_intensities: np.ndarray
     braggcalculator_profile: np.ndarray
     pymatgen_profile: np.ndarray
     metrics: PatternMetrics
@@ -129,6 +134,7 @@ def compare_pattern(
         mode=mode,
         sites=len(structure),
         peaks=len(actual_x),
+        gaussian_fwhm_deg=fwhm_deg,
         max_position_error_deg=float(np.max(np.abs(actual_x - expected_x), initial=0.0)),
         max_line_intensity_error_percent=float(
             np.max(np.abs(actual_y - expected_y), initial=0.0)
@@ -136,67 +142,183 @@ def compare_pattern(
         max_profile_error_percent=float(np.max(np.abs(profile_difference), initial=0.0)),
         profile_rmse_percent=float(np.sqrt(np.mean(profile_difference**2))),
     )
-    return PatternComparison(grid, actual_profile, expected_profile, metrics)
+    return PatternComparison(
+        grid,
+        actual_x,
+        actual_y,
+        expected_x,
+        expected_y,
+        actual_profile,
+        expected_profile,
+        metrics,
+    )
 
 
 def plot_comparisons(
-    comparisons: list[PatternComparison],
+    comparisons_by_fwhm: dict[float, list[PatternComparison]],
     *,
-    fwhm_deg: float,
     png_path: Path,
     pdf_path: Path,
 ) -> None:
-    """Render publication-ready overlay and residual panels."""
+    """Render line patterns and profiles at every requested broadening."""
+    fwhm_values = tuple(comparisons_by_fwhm)
+    if not fwhm_values:
+        raise ValueError("at least one Gaussian FWHM is required")
+    comparisons = comparisons_by_fwhm[fwhm_values[0]]
     rows = len(comparisons)
-    figure = plt.figure(figsize=(7.2, 3.1 * rows), layout="constrained")
-    grid_spec = figure.add_gridspec(2 * rows, 1, height_ratios=[3.2, 1.0] * rows)
+    columns = 1 + len(fwhm_values)
+    plt.rcParams.update(
+        {
+            "axes.spines.right": False,
+            "axes.spines.top": False,
+            "axes.titleweight": "semibold",
+            "axes.labelsize": 9,
+            "axes.titlesize": 10,
+            "font.size": 9,
+            "legend.fontsize": 8.5,
+            "xtick.labelsize": 8.5,
+            "ytick.labelsize": 8.5,
+        }
+    )
+    figure, axes = plt.subplots(
+        rows,
+        columns,
+        figsize=(7.2, 1.9 * rows + 0.55),
+        sharex=True,
+        layout="constrained",
+    )
+    axes = np.asarray(axes).reshape(rows, columns)
+    display_names = {
+        "NaCl": "NaCl",
+        "Si": "Si",
+        "SrTiO3": r"SrTiO$_3$",
+        "triclinic-SiO2": r"triclinic SiO$_2$",
+        "NaKCl-disordered": r"Na$_{0.7}$K$_{0.3}$Cl",
+        "P1-40-atom": "40-site P1 cell",
+    }
 
-    for index, comparison in enumerate(comparisons):
-        pattern_axis = figure.add_subplot(grid_spec[2 * index])
-        residual_axis = figure.add_subplot(grid_spec[2 * index + 1], sharex=pattern_axis)
-        x = comparison.grid
-        expected = comparison.pymatgen_profile
-        actual = comparison.braggcalculator_profile
-        difference = actual - expected
+    for index, line_comparison in enumerate(comparisons):
+        line_axis = axes[index, 0]
 
-        pattern_axis.plot(x, expected, color="#D55E00", linewidth=2.4, label="pymatgen")
-        pattern_axis.plot(
-            x,
-            actual,
+        line_axis.axhline(0.0, color="0.65", linewidth=0.7)
+        line_axis.vlines(
+            line_comparison.pymatgen_positions,
+            0.0,
+            line_comparison.pymatgen_intensities,
+            color="#D55E00",
+            linewidth=1.5,
+            label="pymatgen",
+        )
+        line_axis.vlines(
+            line_comparison.braggcalculator_positions,
+            0.0,
+            -line_comparison.braggcalculator_intensities,
             color="#0072B2",
-            linewidth=1.25,
-            linestyle="--",
+            linewidth=1.0,
             label="BraggCalculator",
         )
-        pattern_axis.set_ylabel("Relative intensity (%)")
-        pattern_axis.set_ylim(bottom=0)
-        pattern_axis.set_title(
-            f"{comparison.metrics.case} ({comparison.metrics.sites} sites, "
-            f"{comparison.metrics.peaks} peaks)"
-        )
-        pattern_axis.legend(frameon=False, ncols=2, loc="upper right")
-        pattern_axis.tick_params(labelbottom=False)
-
-        residual_axis.axhline(0.0, color="0.65", linewidth=0.8)
-        residual_axis.plot(x, difference, color="#009E73", linewidth=1.0)
-        residual_limit = max(1e-12, 1.1 * float(np.max(np.abs(difference), initial=0.0)))
-        residual_axis.set_ylim(-residual_limit, residual_limit)
-        residual_axis.set_ylabel("Difference\n(% points)")
-        residual_axis.set_xlabel(r"$2\theta$ (degrees)")
-        residual_axis.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-        residual_axis.text(
-            0.995,
-            0.88,
-            f"max |Δ| = {comparison.metrics.max_profile_error_percent:.2e}",
-            transform=residual_axis.transAxes,
-            ha="right",
+        line_axis.set_ylim(-108, 108)
+        line_axis.set_yticks((-100, -50, 0, 50, 100), ("100", "50", "0", "50", "100"))
+        line_axis.set_ylabel("Relative intensity (%)")
+        line_axis.text(
+            0.015,
+            0.92,
+            "pymatgen",
+            color="#D55E00",
+            transform=line_axis.transAxes,
+            ha="left",
             va="top",
-            fontsize=8,
+            fontsize=7.5,
+        )
+        line_axis.text(
+            0.015,
+            0.08,
+            "BraggCalculator",
+            color="#0072B2",
+            transform=line_axis.transAxes,
+            ha="left",
+            va="bottom",
+            fontsize=7.5,
+        )
+        line_axis.text(
+            0.985,
+            0.07,
+            f"max |Δ2θ| {line_comparison.metrics.max_position_error_deg:.1e}°\n"
+            f"max |ΔI| {line_comparison.metrics.max_line_intensity_error_percent:.1e}",
+            transform=line_axis.transAxes,
+            ha="right",
+            va="bottom",
+            fontsize=7.2,
+            color="0.3",
         )
 
-    figure.suptitle(
-        f"Powder-pattern agreement with pymatgen (Gaussian FWHM {fwhm_deg:g}°)",
-        fontsize=12,
+        case_name = display_names.get(line_comparison.metrics.case, line_comparison.metrics.case)
+        line_axis.text(
+            0.5,
+            1.025,
+            f"{case_name} · {line_comparison.metrics.peaks} peaks",
+            transform=line_axis.transAxes,
+            ha="center",
+            va="bottom",
+            fontweight="semibold",
+        )
+
+        for column, fwhm_deg in enumerate(fwhm_values, start=1):
+            comparison = comparisons_by_fwhm[fwhm_deg][index]
+            profile_axis = axes[index, column]
+            x = comparison.grid
+            expected = comparison.pymatgen_profile
+            actual = comparison.braggcalculator_profile
+            profile_axis.plot(
+                x,
+                expected,
+                color="#D55E00",
+                linewidth=2.4,
+                label="pymatgen",
+            )
+            profile_axis.plot(
+                x,
+                actual,
+                color="#0072B2",
+                linewidth=1.25,
+                linestyle="--",
+                label="BraggCalculator",
+            )
+            profile_axis.set_ylim(-3, 105)
+            profile_axis.grid(axis="y", color="0.92", linewidth=0.6)
+            if column == 1:
+                profile_axis.set_ylabel("Relative intensity (%)")
+            profile_axis.text(
+                0.97,
+                0.92,
+                f"max |Δ| {comparison.metrics.max_profile_error_percent:.1e}",
+                transform=profile_axis.transAxes,
+                ha="right",
+                va="top",
+                fontsize=7.2,
+                color="0.3",
+            )
+            profile_axis.fill_between(
+                x,
+                np.minimum(actual, expected),
+                np.maximum(actual, expected),
+                color="#009E73",
+                alpha=0.5,
+                linewidth=0,
+            )
+
+    for axis in axes[-1]:
+        axis.set_xlabel(r"$2\theta$ (degrees)")
+    axes[0, 0].set_title("Lines · no broadening", pad=23)
+    for column, fwhm_deg in enumerate(fwhm_values, start=1):
+        axes[0, column].set_title(f"Shared FWHM {fwhm_deg:g}°", pad=23)
+    legend_handles, legend_labels = axes[0, 1].get_legend_handles_labels()
+    figure.legend(
+        legend_handles,
+        legend_labels,
+        loc="outside upper center",
+        ncols=2,
+        frameon=False,
     )
     png_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(png_path, dpi=300)
@@ -220,7 +342,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--two-theta-min", type=float, default=10.0)
     parser.add_argument("--two-theta-max", type=float, default=80.0)
     parser.add_argument("--step-deg", type=float, default=0.01)
-    parser.add_argument("--fwhm-deg", type=float, default=0.1)
+    parser.add_argument("--fwhm-deg", type=float, nargs="+", default=(0.1, 0.5))
     parser.add_argument("--position-atol", type=float, default=1e-10)
     parser.add_argument("--intensity-atol", type=float, default=1e-9)
     parser.add_argument("--profile-atol", type=float, default=1e-8)
@@ -233,26 +355,33 @@ def main() -> None:
     if args.two_theta_min >= args.two_theta_max:
         raise SystemExit("two-theta-min must be smaller than two-theta-max")
     structures = reference_structures()
-    comparisons = [
-        compare_pattern(
-            case,
-            structures[case],
-            mode=args.mode,
-            two_theta_range=(args.two_theta_min, args.two_theta_max),
-            step_deg=args.step_deg,
-            fwhm_deg=args.fwhm_deg,
-            position_atol=args.position_atol,
-            intensity_atol=args.intensity_atol,
-            profile_atol=args.profile_atol,
-        )
-        for case in args.cases
-    ]
+    if any(not np.isfinite(value) or value <= 0 for value in args.fwhm_deg):
+        raise SystemExit("every fwhm-deg value must be positive and finite")
+    if len(set(args.fwhm_deg)) != len(args.fwhm_deg):
+        raise SystemExit("fwhm-deg values must be unique")
+    comparisons_by_fwhm = {
+        fwhm_deg: [
+            compare_pattern(
+                case,
+                structures[case],
+                mode=args.mode,
+                two_theta_range=(args.two_theta_min, args.two_theta_max),
+                step_deg=args.step_deg,
+                fwhm_deg=fwhm_deg,
+                position_atol=args.position_atol,
+                intensity_atol=args.intensity_atol,
+                profile_atol=args.profile_atol,
+            )
+            for case in args.cases
+        ]
+        for fwhm_deg in args.fwhm_deg
+    }
 
     stem = f"pattern_comparison_{args.mode}"
     png_path = args.output_dir / f"{stem}.png"
     pdf_path = args.output_dir / f"{stem}.pdf"
     json_path = args.output_dir / f"{stem}.json"
-    plot_comparisons(comparisons, fwhm_deg=args.fwhm_deg, png_path=png_path, pdf_path=pdf_path)
+    plot_comparisons(comparisons_by_fwhm, png_path=png_path, pdf_path=pdf_path)
     metadata = {
         "python": sys.version,
         "platform": platform.platform(),
@@ -264,25 +393,34 @@ def main() -> None:
         "two_theta_range_deg": [args.two_theta_min, args.two_theta_max],
         "step_deg": args.step_deg,
         "gaussian_fwhm_deg": args.fwhm_deg,
+        "broadening": {
+            "applied_identically_to_both_line_patterns": True,
+            "kernel": "area-normalized Gaussian",
+        },
         "tolerances": {
             "position_atol_deg": args.position_atol,
             "intensity_atol_percent": args.intensity_atol,
             "profile_atol_percent": args.profile_atol,
         },
-        "results": [asdict(comparison.metrics) for comparison in comparisons],
+        "results": [
+            asdict(comparison.metrics)
+            for comparisons in comparisons_by_fwhm.values()
+            for comparison in comparisons
+        ],
     }
     json_path.write_text(json.dumps(metadata, indent=2) + "\n")
     print(f"wrote {png_path}")
     print(f"wrote {pdf_path}")
     print(f"wrote {json_path}")
-    for comparison in comparisons:
-        metrics = comparison.metrics
-        print(
-            f"{metrics.case}: {metrics.peaks} peaks, "
-            f"max Δ2θ={metrics.max_position_error_deg:.3e}°, "
-            f"max ΔI={metrics.max_line_intensity_error_percent:.3e}, "
-            f"max profile Δ={metrics.max_profile_error_percent:.3e}"
-        )
+    for fwhm_deg, comparisons in comparisons_by_fwhm.items():
+        for comparison in comparisons:
+            metrics = comparison.metrics
+            print(
+                f"{metrics.case}, FWHM {fwhm_deg:g}°: {metrics.peaks} peaks, "
+                f"max Δ2θ={metrics.max_position_error_deg:.3e}°, "
+                f"max ΔI={metrics.max_line_intensity_error_percent:.3e}, "
+                f"max profile Δ={metrics.max_profile_error_percent:.3e}"
+            )
 
 
 if __name__ == "__main__":
