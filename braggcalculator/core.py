@@ -106,6 +106,7 @@ class BraggCalculator:
             raise ValueError(f"{name} cannot end above {upper}")
 
     def load(self, structure_like: Any) -> "BraggCalculator":
+        """Load a CIF path, pymatgen Structure, or optional ASE Atoms object."""
         self._pmg_structure = to_pmg_structure(structure_like)
         engine = SymmetryEngine(
             symprec=self.symprec,
