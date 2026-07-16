@@ -29,15 +29,24 @@ def test_scaling_cases_require_increasing_control_values():
 
 def test_interleaved_timings_collect_every_repeat_and_call():
     calls = {"first": 0, "second": 0}
+    synchronizations = {"first": 0, "second": 0}
 
     def count(name):
         calls[name] += 1
+
+    def synchronize(name):
+        synchronizations[name] += 1
 
     samples = interleaved_timing_samples(
         {"first": lambda: count("first"), "second": lambda: count("second")},
         numbers={"first": 2, "second": 3},
         repeat=4,
+        synchronizers={
+            "first": lambda: synchronize("first"),
+            "second": lambda: synchronize("second"),
+        },
     )
     assert len(samples["first"]) == 4
     assert len(samples["second"]) == 4
     assert calls == {"first": 8, "second": 12}
+    assert synchronizations == {"first": 8, "second": 8}

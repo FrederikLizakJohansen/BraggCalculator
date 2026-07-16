@@ -23,6 +23,8 @@ METHODS = {
     "cached": ("BraggCalculator cached", "#009E73"),
 }
 MARKERS = ("o", "s", "^", "D", "P", "X")
+MM_PER_INCH = 25.4
+NATURE_DOUBLE_COLUMN_MM = 183.0
 
 
 def load_runs(paths: list[Path]) -> list[dict]:
@@ -47,22 +49,48 @@ def _series_results(run: dict, series: str) -> list[dict]:
     )
 
 
-def plot_scaling(runs: list[dict], *, png_path: Path, pdf_path: Path) -> None:
+def plot_scaling(
+    runs: list[dict],
+    *,
+    png_path: Path,
+    pdf_path: Path,
+    svg_path: Path,
+) -> None:
     if len(runs) > len(MARKERS):
         raise ValueError(f"at most {len(MARKERS)} hardware runs can be plotted")
     plt.rcParams.update(
         {
+            "axes.labelsize": 6.5,
+            "axes.linewidth": 0.6,
             "axes.spines.right": False,
             "axes.spines.top": False,
-            "axes.titleweight": "semibold",
-            "font.size": 9,
-            "legend.fontsize": 8,
+            "axes.titleweight": "normal",
+            "axes.titlesize": 7,
+            "font.family": "sans-serif",
+            "font.sans-serif": ("Arial", "Helvetica", "Liberation Sans", "DejaVu Sans"),
+            "font.size": 6.5,
+            "legend.fontsize": 6,
+            "pdf.fonttype": 42,
+            "ps.fonttype": 42,
+            "svg.fonttype": "none",
+            "xtick.labelsize": 6,
+            "xtick.major.size": 2.5,
+            "xtick.major.width": 0.6,
+            "ytick.labelsize": 6,
+            "ytick.major.size": 2.5,
+            "ytick.major.width": 0.6,
         }
     )
-    figure, axes = plt.subplots(2, 2, figsize=(7.2, 5.7), sharex="col", layout="constrained")
+    figure, axes = plt.subplots(
+        2,
+        2,
+        figsize=(NATURE_DOUBLE_COLUMN_MM / MM_PER_INCH, 122.0 / MM_PER_INCH),
+        sharex="col",
+        layout="constrained",
+    )
     series_info = {
-        "p1": "P1 cells · all sites irreducible",
-        "symmetry": "NaCl supercells · reduced to 2 sites",
+        "p1": "P1 cells: all sites irreducible",
+        "symmetry": "NaCl supercells: two-site primitive cell",
     }
 
     for column, (series, title) in enumerate(series_info.items()):
@@ -91,9 +119,11 @@ def plot_scaling(runs: list[dict], *, png_path: Path, pdf_path: Path) -> None:
                     yerr=np.vstack((lower, upper)),
                     color=color,
                     marker=marker,
-                    markersize=4.5,
-                    linewidth=1.25,
-                    capsize=2,
+                    markersize=3.2,
+                    linewidth=0.9,
+                    capsize=1.5,
+                    elinewidth=0.65,
+                    markeredgewidth=0.5,
                 )
 
             for method, speedup_key in (
@@ -106,24 +136,46 @@ def plot_scaling(runs: list[dict], *, png_path: Path, pdf_path: Path) -> None:
                     [result[speedup_key] for result in results],
                     color=color,
                     marker=marker,
-                    markersize=4.5,
-                    linewidth=1.25,
+                    markersize=3.2,
+                    linewidth=0.9,
+                    markeredgewidth=0.5,
                 )
 
         runtime_axis.set_xscale("log", base=2)
         runtime_axis.set_yscale("log")
         speedup_axis.set_xscale("log", base=2)
         speedup_axis.set_yscale("log")
-        speedup_axis.axhline(1.0, color="0.55", linestyle=":", linewidth=1.0)
-        speedup_axis.set_xlabel("Input sites")
-        runtime_axis.grid(which="both", color="0.92", linewidth=0.6)
-        speedup_axis.grid(which="both", color="0.92", linewidth=0.6)
+        speedup_axis.axhline(1.0, color="0.45", linestyle=(0, (2, 2)), linewidth=0.7)
+        speedup_axis.set_xlabel("Supplied sites (atoms)")
+        runtime_axis.grid(which="major", color="0.9", linewidth=0.45)
+        speedup_axis.grid(which="major", color="0.9", linewidth=0.45)
         speedup_axis.xaxis.set_major_formatter(ScalarFormatter())
 
     axes[0, 0].set_ylabel("Median runtime (ms)")
     axes[1, 0].set_ylabel("Speedup over pymatgen")
+    for label, axis in zip("abcd", axes.flat):
+        axis.text(
+            -0.13,
+            1.03,
+            label,
+            transform=axis.transAxes,
+            fontsize=8,
+            fontweight="bold",
+            ha="left",
+            va="bottom",
+        )
+    axes[0, 0].text(
+        0.02,
+        0.96,
+        "Points: median; bars: interquartile range",
+        transform=axes[0, 0].transAxes,
+        ha="left",
+        va="top",
+        fontsize=5.3,
+        color="0.25",
+    )
     method_handles = [
-        Line2D([0], [0], color=color, linewidth=1.5, label=label)
+        Line2D([0], [0], color=color, linewidth=1.1, label=label)
         for label, color in METHODS.values()
     ]
     hardware_handles = [
@@ -132,6 +184,7 @@ def plot_scaling(runs: list[dict], *, png_path: Path, pdf_path: Path) -> None:
             [0],
             color="0.25",
             marker=MARKERS[index],
+            markersize=3.5,
             linestyle="none",
             label=run["hardware"]["label"],
         )
@@ -142,13 +195,16 @@ def plot_scaling(runs: list[dict], *, png_path: Path, pdf_path: Path) -> None:
         loc="outside upper center",
         ncols=4 if len(method_handles) + len(hardware_handles) <= 4 else 3,
         frameon=False,
+        handlelength=2.2,
+        columnspacing=1.4,
     )
     png_path.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(png_path, dpi=300)
+    figure.savefig(png_path, dpi=450)
     figure.savefig(
         pdf_path,
         metadata={"Title": "Diffraction runtime scaling and speedup", "CreationDate": None},
     )
+    figure.savefig(svg_path, metadata={"Title": "Diffraction runtime scaling and speedup"})
     plt.close(figure)
 
 
@@ -164,9 +220,11 @@ def main() -> None:
     runs = load_runs(args.inputs)
     png_path = args.output_dir / "scaling_speedup.png"
     pdf_path = args.output_dir / "scaling_speedup.pdf"
-    plot_scaling(runs, png_path=png_path, pdf_path=pdf_path)
+    svg_path = args.output_dir / "scaling_speedup.svg"
+    plot_scaling(runs, png_path=png_path, pdf_path=pdf_path, svg_path=svg_path)
     print(f"wrote {png_path}")
     print(f"wrote {pdf_path}")
+    print(f"wrote {svg_path}")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ import platform
 import statistics
 import subprocess
 import sys
-import timeit
+import time
 from collections.abc import Callable
 from datetime import datetime, timezone
 from importlib.metadata import version
@@ -31,6 +31,7 @@ sys.path.insert(0, str(ROOT))
 
 from benchmarks.scaling_cases import scaling_cases  # noqa: E402
 from braggcalculator import BraggCalculator  # noqa: E402
+from braggcalculator.backends import NumpyBackend, TorchBackend  # noqa: E402
 
 
 def cpu_model() -> str:
@@ -62,24 +63,47 @@ def interleaved_timing_samples(
     *,
     numbers: dict[str, int],
     repeat: int,
+    synchronizers: dict[str, Callable[[], None]] | None = None,
 ) -> dict[str, list[float]]:
     """Time methods in a rotating order to limit thermal and frequency bias."""
     names = tuple(functions)
     samples = {name: [] for name in names}
+    synchronizers = synchronizers or {name: lambda: None for name in names}
     for repeat_index in range(repeat):
         offset = repeat_index % len(names)
         order = names[offset:] + names[:offset]
         for name in order:
-            elapsed = timeit.timeit(functions[name], number=numbers[name])
+            synchronizers[name]()
+            start = time.perf_counter()
+            for _ in range(numbers[name]):
+                functions[name]()
+            synchronizers[name]()
+            elapsed = time.perf_counter() - start
             samples[name].append(elapsed / numbers[name])
     return samples
 
 
-def benchmark_case(case, *, number: int, repeat: int) -> dict:
+def _as_numpy(value) -> np.ndarray:
+    if hasattr(value, "detach"):
+        return value.detach().cpu().numpy()
+    return np.asarray(value)
+
+
+def benchmark_case(
+    case,
+    *,
+    number: int,
+    repeat: int,
+    backend_factory: Callable[[], object] = NumpyBackend,
+    synchronize: Callable[[], None] = lambda: None,
+) -> dict:
     structure = case.structure
-    calculator = BraggCalculator().load(structure)
+    calculator = BraggCalculator(backend=backend_factory()).load(structure)
     oracle = XRDCalculator(wavelength=calculator.wavelength)
     actual_x, actual_y = calculator.line_pattern(scaled=True)
+    synchronize()
+    actual_x = _as_numpy(actual_x)
+    actual_y = _as_numpy(actual_y)
     expected = oracle.get_pattern(
         structure,
         two_theta_range=calculator.two_theta_range,
@@ -91,7 +115,9 @@ def benchmark_case(case, *, number: int, repeat: int) -> dict:
     samples = interleaved_timing_samples(
         {
             "cached": lambda: calculator.line_pattern(scaled=True),
-            "end_to_end": lambda: BraggCalculator().load(structure).line_pattern(scaled=True),
+            "end_to_end": lambda: BraggCalculator(backend=backend_factory())
+            .load(structure)
+            .line_pattern(scaled=True),
             "pymatgen": lambda: oracle.get_pattern(
                 structure,
                 two_theta_range=calculator.two_theta_range,
@@ -100,6 +126,11 @@ def benchmark_case(case, *, number: int, repeat: int) -> dict:
         },
         numbers={"cached": number, "end_to_end": max(1, number // 5), "pymatgen": number},
         repeat=repeat,
+        synchronizers={
+            "cached": synchronize,
+            "end_to_end": synchronize,
+            "pymatgen": lambda: None,
+        },
     )
     cached_samples = samples["cached"]
     end_to_end_samples = samples["end_to_end"]
@@ -119,10 +150,10 @@ def benchmark_case(case, *, number: int, repeat: int) -> dict:
         "symmetry_operations": len(calculator._symm["symm_rot"]),
         "peaks": len(actual_x),
         "max_position_error_deg": float(
-            np.max(np.abs(np.asarray(actual_x) - np.asarray(expected.x)), initial=0.0)
+            np.max(np.abs(actual_x - np.asarray(expected.x)), initial=0.0)
         ),
         "max_intensity_error_percent": float(
-            np.max(np.abs(np.asarray(actual_y) - np.asarray(expected.y)), initial=0.0)
+            np.max(np.abs(actual_y - np.asarray(expected.y)), initial=0.0)
         ),
         "samples_seconds": {
             "cached": cached_samples,
@@ -143,6 +174,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--series", choices=("p1", "symmetry", "both"), default="both")
     parser.add_argument("--number", type=int, default=10)
     parser.add_argument("--repeat", type=int, default=7)
+    parser.add_argument("--backend", choices=("numpy", "torch"), default="numpy")
+    parser.add_argument("--device")
     parser.add_argument("--hardware-label")
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
@@ -162,32 +195,89 @@ def main() -> None:
         raise SystemExit(str(error)) from error
 
     model = cpu_model()
+    device = args.device or ("cuda" if args.backend == "torch" else "cpu")
+    gpu_metadata = None
+
+    def synchronize() -> None:
+        return None
+
+    if args.backend == "numpy":
+        if device != "cpu":
+            raise SystemExit("the NumPy backend only supports --device cpu")
+        backend_factory = NumpyBackend
+        execution_label = model
+    else:
+        if TorchBackend is None:
+            raise SystemExit("install BraggCalculator with the torch extra")
+        import torch
+
+        torch_device = torch.device(device)
+        if torch_device.type == "cuda" and not torch.cuda.is_available():
+            raise SystemExit("CUDA was requested but torch.cuda.is_available() is false")
+        if torch_device.type == "cuda":
+            device_index = torch_device.index
+            if device_index is None:
+                device_index = torch.cuda.current_device()
+            properties = torch.cuda.get_device_properties(device_index)
+            gpu_metadata = {
+                "name": properties.name,
+                "total_memory_bytes": properties.total_memory,
+                "compute_capability": [properties.major, properties.minor],
+                "cuda_runtime": torch.version.cuda,
+            }
+            def synchronize() -> None:
+                torch.cuda.synchronize(torch_device)
+
+            execution_label = f"{properties.name} GPU; oracle on {model} CPU"
+        else:
+            execution_label = f"PyTorch {device}; oracle on {model} CPU"
+
+        def backend_factory():
+            return TorchBackend(device=device, dtype=torch.float64)
+
+    package_names = ["braggcalculator", "numpy", "pymatgen", "spglib"]
+    if args.backend == "torch":
+        package_names.append("torch")
     metadata = {
         "schema_version": 1,
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "git_revision": git_revision(),
         "hardware": {
-            "label": args.hardware_label or model,
+            "label": args.hardware_label or execution_label,
             "cpu_model": model,
             "logical_cpus": os.cpu_count(),
             "machine": platform.machine(),
             "platform": platform.platform(),
+            "gpu": gpu_metadata,
         },
+        "execution": {
+            "braggcalculator_backend": args.backend,
+            "braggcalculator_device": device,
+            "braggcalculator_dtype": "float64",
+            "pymatgen_device": "cpu",
+        },
+        "site_count_definition": (
+            "Number of crystallographic sites in the Structure supplied to both calculators "
+            "before BraggCalculator primitive-cell reduction"
+        ),
         "thread_environment": {
             name: os.environ.get(name)
             for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
         },
-        "versions": {
-            package: version(package)
-            for package in ("braggcalculator", "numpy", "pymatgen", "spglib")
-        },
+        "versions": {package: version(package) for package in package_names},
         "number": args.number,
         "repeat": args.repeat,
         "results": [],
     }
 
     for case in cases:
-        result = benchmark_case(case, number=args.number, repeat=args.repeat)
+        result = benchmark_case(
+            case,
+            number=args.number,
+            repeat=args.repeat,
+            backend_factory=backend_factory,
+            synchronize=synchronize,
+        )
         metadata["results"].append(result)
         print(
             f"{result['case']:<16} {result['input_sites']:>5} input sites, "
