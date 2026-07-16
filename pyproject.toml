@@ -1,21 +1,59 @@
 [tool.poetry]
 name = "braggcalculator"
 version = "0.1.0"
-description = ""
-authors = ["FrederikLizakJohansen <fupjohansen@gmail.com>"]
+description = "Fast, validated and differentiable Bragg powder diffraction"
+authors = ["Frederik Lizak Johansen <fupjohansen@gmail.com>"]
 readme = "README.md"
+license = "Apache-2.0"
+keywords = ["crystallography", "diffraction", "PXRD", "neutron", "PyTorch"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+exclude = ["braggcalculator/_scattering_data.py"]
+
+[tool.poetry.urls]
+Repository = "https://github.com/FrederikLizakJohansen/BraggCalculator"
+Documentation = "https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md"
+Issues = "https://github.com/FrederikLizakJohansen/BraggCalculator/issues"
 
 [tool.poetry.dependencies]
 python = "^3.12,<3.14"
-pymatgen = "^2025.6.14"
+pymatgen = ">=2025.6.14,<2027"
 numpy = "^2.3.2"
 spglib = "^2.6.0"
-notebook = "^7.4.5"
+torch = {version = ">=2.2,<3", optional = true}
+ase = {version = ">=3.23,<4", optional = true}
+
+[tool.poetry.extras]
+torch = ["torch"]
+ase = ["ase"]
+all = ["torch", "ase"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
 pytest-cov = "^6.2.1"
+notebook = "^7.4.5"
+matplotlib = ">=3.10,<4"
+ruff = ">=0.12,<1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+filterwarnings = [
+    "ignore:Set OLD_ERROR_HANDLING.*:DeprecationWarning:spglib.*",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["*.ipynb"]

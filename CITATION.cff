@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use BraggCalculator, please cite the software and the associated JOSS paper."
+title: "BraggCalculator: Fast and differentiable Bragg powder diffraction"
+type: software
+authors:
+  - family-names: "Johansen"
+    given-names: "Frederik Lizak"
+    orcid: "https://orcid.org/0000-0002-8049-8624"
+repository-code: "https://github.com/FrederikLizakJohansen/BraggCalculator"
+license: Apache-2.0
+version: 0.1.0
+keywords:
+  - crystallography
+  - powder diffraction
+  - PXRD
+  - neutron diffraction
+  - PyTorch

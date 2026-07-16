@@ -1,0 +1,98 @@
+{
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:09:02) [GCC 11.2.0]",
+  "platform": "Linux-6.17.0-40-generic-x86_64-with-glibc2.42",
+  "versions": {
+    "braggcalculator": "0.1.0",
+    "matplotlib": "3.10.8",
+    "numpy": "2.4.2",
+    "pymatgen": "2026.5.4",
+    "spglib": "2.7.0"
+  },
+  "mode": "xray",
+  "two_theta_range_deg": [
+    10.0,
+    80.0
+  ],
+  "step_deg": 0.01,
+  "gaussian_fwhm_deg": [
+    0.1,
+    0.5
+  ],
+  "broadening": {
+    "applied_identically_to_both_line_patterns": true,
+    "kernel": "area-normalized Gaussian"
+  },
+  "tolerances": {
+    "position_atol_deg": 1e-10,
+    "intensity_atol_percent": 1e-09,
+    "profile_atol_percent": 1e-08
+  },
+  "results": [
+    {
+      "case": "NaCl",
+      "mode": "xray",
+      "sites": 2,
+      "peaks": 8,
+      "gaussian_fwhm_deg": 0.1,
+      "max_position_error_deg": 2.842170943040401e-14,
+      "max_line_intensity_error_percent": 1.7763568394002505e-15,
+      "max_profile_error_percent": 1.0107470416187425e-11,
+      "profile_rmse_percent": 4.4639240991999823e-13
+    },
+    {
+      "case": "SrTiO3",
+      "mode": "xray",
+      "sites": 5,
+      "peaks": 9,
+      "gaussian_fwhm_deg": 0.1,
+      "max_position_error_deg": 1.4210854715202004e-14,
+      "max_line_intensity_error_percent": 3.552713678800501e-14,
+      "max_profile_error_percent": 1.0771827874123119e-11,
+      "profile_rmse_percent": 4.599969024977922e-13
+    },
+    {
+      "case": "triclinic-SiO2",
+      "mode": "xray",
+      "sites": 3,
+      "peaks": 155,
+      "gaussian_fwhm_deg": 0.1,
+      "max_position_error_deg": 4.263256414560601e-14,
+      "max_line_intensity_error_percent": 1.4210854715202004e-14,
+      "max_profile_error_percent": 1.290967333034132e-12,
+      "profile_rmse_percent": 1.1591857739511475e-13
+    },
+    {
+      "case": "NaCl",
+      "mode": "xray",
+      "sites": 2,
+      "peaks": 8,
+      "gaussian_fwhm_deg": 0.5,
+      "max_position_error_deg": 2.842170943040401e-14,
+      "max_line_intensity_error_percent": 1.7763568394002505e-15,
+      "max_profile_error_percent": 2.014388655879884e-12,
+      "profile_rmse_percent": 1.986994597559743e-13
+    },
+    {
+      "case": "SrTiO3",
+      "mode": "xray",
+      "sites": 5,
+      "peaks": 9,
+      "gaussian_fwhm_deg": 0.5,
+      "max_position_error_deg": 1.4210854715202004e-14,
+      "max_line_intensity_error_percent": 3.552713678800501e-14,
+      "max_profile_error_percent": 2.0605739337042905e-12,
+      "profile_rmse_percent": 2.0441854564685918e-13
+    },
+    {
+      "case": "triclinic-SiO2",
+      "mode": "xray",
+      "sites": 3,
+      "peaks": 155,
+      "gaussian_fwhm_deg": 0.5,
+      "max_position_error_deg": 4.263256414560601e-14,
+      "max_line_intensity_error_percent": 1.4210854715202004e-14,
+      "max_profile_error_percent": 3.801403636316536e-13,
+      "profile_rmse_percent": 5.418904058389473e-14
+    }
+  ]
+}
