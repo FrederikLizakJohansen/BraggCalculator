@@ -140,7 +140,7 @@ def plot_scaling(runs: list[dict], *, png_path: Path, pdf_path: Path) -> None:
     figure.legend(
         handles=method_handles + hardware_handles,
         loc="outside upper center",
-        ncols=min(3, len(method_handles) + len(hardware_handles)),
+        ncols=4 if len(method_handles) + len(hardware_handles) <= 4 else 3,
         frameon=False,
     )
     png_path.parent.mkdir(parents=True, exist_ok=True)
