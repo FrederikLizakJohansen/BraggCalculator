@@ -1,3 +1,15 @@
 **/.ipynb_checkpoints/
 **/__pycache__/
+.coverage
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
 poetry.lock
+paper/paper.aux
+paper/paper.bbl
+paper/paper.blg
+paper/paper.log
+paper/paper.out
+paper/paper.pdf

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 
@@ -52,7 +52,7 @@ class HKLEnumerator:
         self,
         lattice_matrix,
         pointgroup_symbol: str | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Return all HKLs within ``qmax`` and the Ewald limiting sphere.
 
         ``pointgroup_symbol`` is accepted for API compatibility.  No

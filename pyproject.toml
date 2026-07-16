@@ -2,7 +2,7 @@
 name = "braggcalculator"
 version = "0.1.0"
 description = "Fast, validated and differentiable Bragg powder diffraction"
-authors = ["FrederikLizakJohansen <fupjohansen@gmail.com>"]
+authors = ["Frederik Lizak Johansen <fupjohansen@gmail.com>"]
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["crystallography", "diffraction", "PXRD", "neutron", "PyTorch"]

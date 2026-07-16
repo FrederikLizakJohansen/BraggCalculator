@@ -89,6 +89,5 @@ class NumpyBackend:
         return 4.0 * np.pi * np.sin(two_theta / 2.0) / wavelength
 
     def two_theta_from_q(self, q, wavelength):
-        # Input and output angles are radians.
         theta = np.arcsin(np.clip(q * wavelength / (4.0 * np.pi), -1.0, 1.0))
         return 2.0 * theta

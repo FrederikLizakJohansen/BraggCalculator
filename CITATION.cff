@@ -5,6 +5,7 @@ type: software
 authors:
   - family-names: "Johansen"
     given-names: "Frederik Lizak"
+    orcid: "https://orcid.org/0000-0002-8049-8624"
 repository-code: "https://github.com/FrederikLizakJohansen/BraggCalculator"
 license: Apache-2.0
 version: 0.1.0

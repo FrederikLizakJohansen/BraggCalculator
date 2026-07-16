@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import pi, sqrt
+from math import log, pi, sqrt
+
+
+FWHM_TO_SIGMA = 1.0 / (2.0 * sqrt(2.0 * log(2.0)))
 
 
 def _render_gaussian(grid, centers, amplitudes, sigma, backend, max_entries):
@@ -33,7 +36,7 @@ class GaussianProfile:
     max_entries: int = 4_194_304
 
     def render(self, grid, centers, amplitudes, backend):
-        sigma = self.fwhm_deg / 2.3548200450309493
+        sigma = self.fwhm_deg * FWHM_TO_SIGMA
         return _render_gaussian(grid, centers, amplitudes, sigma, backend, self.max_entries)
 
 
@@ -45,5 +48,5 @@ class GaussianProfileQ:
     max_entries: int = 4_194_304
 
     def render(self, grid_q, centers_q, amplitudes, backend):
-        sigma = self.fwhm_q / 2.3548200450309493
+        sigma = self.fwhm_q * FWHM_TO_SIGMA
         return _render_gaussian(grid_q, centers_q, amplitudes, sigma, backend, self.max_entries)

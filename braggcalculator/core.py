@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, Literal, Mapping, Tuple
+from typing import Any, Iterable, Literal, Mapping
 
 import numpy as np
 
@@ -32,9 +32,9 @@ class BraggCalculator:
 
     mode: Literal["xray", "neutron"] = "xray"
     wavelength: float | str = 1.5406
-    two_theta_range: Tuple[float, float] = (10.0, 80.0)
+    two_theta_range: tuple[float, float] = (10.0, 80.0)
     two_theta_step: float = 0.01
-    q_range: Tuple[float, float] = (0.0, 10.0)
+    q_range: tuple[float, float] = (0.0, 10.0)
     q_step: float = 0.005
     qmax: float | None = None
     profile: Any = field(default_factory=GaussianProfile)
@@ -49,8 +49,8 @@ class BraggCalculator:
     phase_chunk_entries: int = 4_194_304
 
     _pmg_structure: Any = field(default=None, init=False, repr=False)
-    _symm: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
-    _hkl: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    _symm: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    _hkl: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self):
         if self.mode not in {"xray", "neutron"}:

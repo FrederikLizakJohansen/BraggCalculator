@@ -21,7 +21,6 @@ class TorchBackend:
         self.dtype = dtype
 
     def asarray(self, x, dtype=None):
-        # Convert input to torch tensor on this backend's device
         if isinstance(x, torch.Tensor):
             return x.to(device=self.device, dtype=dtype) if dtype else x.to(self.device)
         return torch.tensor(x, device=self.device, dtype=dtype)

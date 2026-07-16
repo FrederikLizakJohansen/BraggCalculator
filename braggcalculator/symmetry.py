@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
@@ -45,7 +45,7 @@ class SymmetryEngine:
         self.angle_tolerance = float(angle_tolerance)
         self.primitive = bool(primitive)
 
-    def reduce(self, pmg_structure) -> Dict[str, Any]:
+    def reduce(self, pmg_structure) -> dict[str, Any]:
         input_analyzer = SpacegroupAnalyzer(
             pmg_structure,
             symprec=self.symprec,
@@ -73,7 +73,7 @@ class SymmetryEngine:
 
         equiv = np.asarray(dataset.equivalent_atoms, dtype=int)
         unique_ids = np.unique(equiv)
-        orbits: List[np.ndarray] = [np.where(equiv == value)[0] for value in unique_ids]
+        orbits: list[np.ndarray] = [np.where(equiv == value)[0] for value in unique_ids]
 
         frac = []
         atomic_numbers = []

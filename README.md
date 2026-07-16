@@ -23,6 +23,9 @@ python -m pip install ".[ase]"    # optional ASE input
 
 Python 3.12 and 3.13 are supported.
 
+The [API reference](docs/api.md) documents the public configuration, methods,
+and result conventions.
+
 ## Quick start
 
 ```python

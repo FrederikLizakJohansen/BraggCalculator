@@ -17,6 +17,9 @@ from pymatgen.analysis.diffraction.xrd import ATOMIC_SCATTERING_PARAMS, WAVELENG
 from pymatgen.core import Element
 
 
+_XRAY_FORM_FACTOR_SCALE = 41.78214
+
+
 def resolve_wavelength(value: float | str) -> float:
     """Return a wavelength in angstroms from a number or radiation name."""
     if isinstance(value, str):
@@ -71,7 +74,9 @@ def xray_form_factors(Z, s, backend) -> Any:
     a = coeff[:, :, 0]
     b = coeff[:, :, 1]
     terms = a[None, :, :] * backend.exp(-s2[:, None, None] * b[None, :, :])
-    unique_factors = zs[None, :] - 41.78214 * s2[:, None] * backend.sum(terms, axis=2)
+    unique_factors = zs[None, :] - _XRAY_FORM_FACTOR_SCALE * s2[:, None] * backend.sum(
+        terms, axis=2
+    )
     backend_inverse = backend.asarray(inverse, dtype=backend.int64)
     return unique_factors[:, backend_inverse]
 

@@ -1,5 +1,11 @@
 # Contributing
 
+Use [GitHub issues](https://github.com/FrederikLizakJohansen/BraggCalculator/issues)
+for bug reports, scientific questions, and support. Include the package version,
+input structure, expected result, and a minimal reproducing example when
+possible. Pull requests should state the physical or software motivation and
+keep unrelated changes separate.
+
 Scientific changes must include an analytical test or an independently
 reviewable reference result. Changes to line positions or intensities must also
 run `python scripts/validate_against_pymatgen.py` and explain any intentional
