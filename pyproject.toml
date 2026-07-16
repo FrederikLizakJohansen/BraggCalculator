@@ -34,6 +34,7 @@ all = ["torch", "ase"]
 pytest = "^8.4.1"
 pytest-cov = "^6.2.1"
 notebook = "^7.4.5"
+matplotlib = ">=3.10,<4"
 ruff = ">=0.12,<1"
 
 [build-system]
