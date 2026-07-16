@@ -20,12 +20,12 @@ def test_io_rejects_non_cif_path():
 
 
 def test_cif_path_is_loaded():
-    structure = to_pmg_structure("examples/NaCl.cif")
+    structure = to_pmg_structure("demo/NaCl.cif")
     assert isinstance(structure, Structure)
     assert structure.composition.reduced_formula == "NaCl"
 
 
-@pytest.mark.parametrize("path", ["examples/NaCl.cif", Path("examples/NaCl.cif")])
+@pytest.mark.parametrize("path", ["demo/NaCl.cif", Path("demo/NaCl.cif")])
 def test_calculator_accepts_cif_paths(path):
     calculator = BraggCalculator().load(path)
     actual_x, actual_y = calculator.line_pattern(scaled=True)
