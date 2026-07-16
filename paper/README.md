@@ -1,7 +1,23 @@
-# Publication figures
+# JOSS paper and publication figures
 
-Every figure is generated from versioned structures and records the software
-environment and numerical results in JSON. The left column of the pattern
+`paper.md` and `paper.bib` are the canonical JOSS manuscript sources. This is
+required by the current JOSS publishing pipeline; the paper workflow builds
+them with the official Open Journals action. `paper.tex` is a matching LaTeX
+companion for local review and is not the submission source.
+
+Build the local LaTeX copy from this directory with:
+
+```bash
+pdflatex paper.tex
+bibtex paper
+pdflatex paper.tex
+pdflatex paper.tex
+```
+
+The two manuscript figures are generated from versioned structures and records
+of the software environment and numerical results in JSON.
+
+The left column of the pattern
 comparison mirrors the unbroadened powder lines. The other columns apply the
 same area-normalized Gaussian broadening to both sets of lines at FWHM 0.1° and
 at a deliberately stronger FWHM 0.5°, then overlay the resulting profiles.
@@ -54,7 +70,7 @@ python benchmarks/benchmark_scaling.py \
 The hardware label defaults to the detected CPU model. Use
 `--hardware-label` only when two machines report indistinguishable CPU names.
 Every case is checked against pymatgen before timing, and the JSON retains all
-repeat samples rather than only summary values.
+repeat samples together with summary values.
 
 Combine any number of returned runs into the scaling figure:
 
