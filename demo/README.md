@@ -188,3 +188,21 @@ python demo/general_structural_diagnostics.py
 It writes `demo/general_structural_diagnostics.png` and the self-contained
 `demo/general_structural_diagnostics_report.html`. The unrelated example
 deliberately reports no complex or `hkl`-phase metric.
+
+## Reference-validation matrix
+
+`reference_validation.py` runs the independent line oracle, verifies and loads
+the fixed public X-ray/neutron corpus, reruns the NIST certified-lattice check,
+recovers every implemented refinable parameter family, and exercises difficult
+overlap, weak-hydrogen, trace-phase and occupancy/Biso-correlation cases.
+
+```bash
+python demo/reference_validation.py
+```
+
+It writes `demo/reference_validation.png`, a self-contained
+`demo/reference_validation_report.html`, and the fully structured
+`demo/reference_validation_results.json`. The report deliberately remains
+`unsupported` overall while preferred orientation and TOF are absent, and it
+keeps direct GSAS-II final-profile reproduction and external expert sign-off as
+pending gates.

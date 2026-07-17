@@ -528,7 +528,7 @@ conditional on the declared count and background models.
 
 ## Milestone 6 -- Reference validation
 
-**Status: Planned**
+**Status: Engineering matrix implemented; external gates open**
 
 - profile and refined-parameter comparisons against established refinement
   software;
@@ -537,6 +537,55 @@ conditional on the declared count and background models.
 - difficult cases including overlap, weak scatterers, preferred orientation,
   multiple phases and occupancy/displacement correlation;
 - expert review of the generated diagnostic conclusions.
+
+Acceptance is now executable rather than narrative. `ValidationMetric` applies
+explicit maximum/minimum pass and warning limits; `ValidationCase` retains every
+metric; and `ValidationMatrix` fails missing required categories and never
+averages a failed or unsupported case into a successful aggregate. The JSON
+artifact records source provenance, units, thresholds, assumptions, warnings
+and case status.
+
+Implemented evidence:
+
+- 12 X-ray/neutron line-pattern cases across six structures match pymatgen with
+  maximum position and scaled-intensity errors below the declared tolerances;
+- five checksummed public profiles cover NIST laboratory X-ray data, GSAS-II
+  laboratory X-ray PbSO4 and fluoroapatite data, and constant-wavelength neutron
+  PbSO4 and yttrium iron garnet data;
+- the NIST SRM 660c full scan refines to `Rwp=0.120729` and a lattice error of
+  `+0.000142 A`; the fit-statistic gate passes but the lattice gate correctly
+  warns because the result remains outside the `0.000080 A` certified expanded
+  uncertainty;
+- synthetic gates pass for symmetry-allowed lattice and coordinate modes,
+  scale, background, zero shift, width, composition, Biso, anisotropic U,
+  rigid-body pose and positive phase fractions;
+- difficult-case gates demonstrate a 42.94-fold resolution-dependent
+  discrimination increase, 5.07-fold greater normalized hydrogen sensitivity
+  for the declared neutron example, a sub-threshold 0.03% trace phase, and a
+  detected 0.899 occupancy--Biso cross-group correlation with a warning;
+- preferred orientation and time-of-flight physics remain visibly
+  `unsupported`, rather than being approximated by the constant-wavelength
+  model.
+
+Current matrix: 28 pass, one warning, one pending software-review case, two
+unsupported cases and zero failures. Overall status remains `unsupported`
+because capability gaps are intentionally stronger than the passing numerical
+cases.
+
+Evidence artifacts:
+
+- `demo/reference_validation.png` is the six-panel visual matrix;
+- `demo/reference_validation_report.html` embeds the figure, all case gates,
+  public sources, SHA-256 values and the expert-review checklist;
+- `demo/reference_validation_results.json` is the machine-readable frozen run;
+- `data/reference_validation/manifest.json` is the immutable public-data
+  manifest;
+- `braggcalculator/validation.py` is the reusable validation API.
+
+Two release gates remain open. A frozen final GSAS-II project has not yet been
+reproduced profile-for-profile with covariance comparison, and no external
+crystallographer has signed the generated conclusion checklist. These are
+reported as pending; neither is claimed complete.
 
 ## Milestone 7 -- Scientist and agent interfaces
 
@@ -608,3 +657,11 @@ instrument, uncertainty and reference-validation milestones are complete.
 - Added bounds-aware parametric bootstrap intervals and demonstrated 88.0%
   empirical coverage for nominal 90% intervals over 200 synthetic experiments,
   plus a trace-phase boundary pile-up that rules out symmetric error bars.
+- Implemented the Milestone 6 validation record/gate API and a fixed public-data
+  manifest with native GSAS constant-step STD/ESD ingestion.
+- Ran 32 reference-validation cases: 28 pass, the NIST lattice comparison warns,
+  direct frozen GSAS-II profile reproduction is pending, preferred orientation
+  and TOF remain unsupported, and no case fails.
+- Generated the reference-validation figure, self-contained HTML report and
+  machine-readable JSON; retained external crystallographer review as an
+  explicit unsigned release gate.

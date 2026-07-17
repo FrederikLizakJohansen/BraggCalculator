@@ -1,0 +1,1332 @@
+{
+  "cases": [
+    {
+      "identifier": "line-oracle:xray:NaCl",
+      "category": "line_oracle",
+      "description": "xray line pattern against pymatgen for NaCl",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 2.842170943040401e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 1.7763568394002505e-15,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:xray:Si",
+      "category": "line_oracle",
+      "description": "xray line pattern against pymatgen for Si",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 2.842170943040401e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:xray:SrTiO3",
+      "category": "line_oracle",
+      "description": "xray line pattern against pymatgen for SrTiO3",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 3.552713678800501e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:xray:triclinic-SiO2",
+      "category": "line_oracle",
+      "description": "xray line pattern against pymatgen for triclinic-SiO2",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 4.263256414560601e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:xray:NaKCl-disordered",
+      "category": "line_oracle",
+      "description": "xray line pattern against pymatgen for NaKCl-disordered",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 3.552713678800501e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:xray:P1-40-atom",
+      "category": "line_oracle",
+      "description": "xray line pattern against pymatgen for P1-40-atom",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 5.684341886080802e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 2.842170943040401e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:neutron:NaCl",
+      "category": "line_oracle",
+      "description": "neutron line pattern against pymatgen for NaCl",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 2.842170943040401e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:neutron:Si",
+      "category": "line_oracle",
+      "description": "neutron line pattern against pymatgen for Si",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:neutron:SrTiO3",
+      "category": "line_oracle",
+      "description": "neutron line pattern against pymatgen for SrTiO3",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:neutron:triclinic-SiO2",
+      "category": "line_oracle",
+      "description": "neutron line pattern against pymatgen for triclinic-SiO2",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 4.263256414560601e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 2.1316282072803006e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:neutron:NaKCl-disordered",
+      "category": "line_oracle",
+      "description": "neutron line pattern against pymatgen for NaKCl-disordered",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 1.4210854715202004e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 7.105427357601002e-15,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "line-oracle:neutron:P1-40-atom",
+      "category": "line_oracle",
+      "description": "neutron line pattern against pymatgen for P1-40-atom",
+      "metrics": [
+        {
+          "name": "peak_count_delta",
+          "value": 0.0,
+          "unit": "peaks",
+          "direction": "maximum",
+          "pass_limit": 0.0,
+          "warn_limit": 0.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_position_error",
+          "value": 5.684341886080802e-14,
+          "unit": "degrees",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_scaled_intensity_error",
+          "value": 8.171241461241152e-14,
+          "unit": "%",
+          "direction": "maximum",
+          "pass_limit": 1e-09,
+          "warn_limit": 1.0000000000000001e-07,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "pymatgen is an independent line-pattern oracle, not a profile-refinement oracle"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "public-data:NIST-SRM-660c-scan-100a",
+      "category": "public_data",
+      "description": "Checksum and powder-data ingestion for NIST SRM 660c LaB6",
+      "metrics": [
+        {
+          "name": "checksum_match",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 1.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "point_count",
+          "value": 5332.0,
+          "unit": "points",
+          "direction": "minimum",
+          "pass_limit": 5332.0,
+          "warn_limit": 5332.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "finite_fraction",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 0.999,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [
+        "NIST-SRM-660c-scan-100a"
+      ],
+      "assumptions": [
+        "Uncertainty interpretation is documented in the vendored XYE header"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "public-data:gsas2-pbso4-lab-xray",
+      "category": "public_data",
+      "description": "Checksum and powder-data ingestion for PbSO4",
+      "metrics": [
+        {
+          "name": "checksum_match",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 1.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "point_count",
+          "value": 6001.0,
+          "unit": "points",
+          "direction": "minimum",
+          "pass_limit": 6001.0,
+          "warn_limit": 6001.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "finite_fraction",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 0.999,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [
+        "gsas2-pbso4-lab-xray"
+      ],
+      "assumptions": [
+        "Poisson approximation sqrt(max(I, 0) + 1); STD bank has no ESD"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "public-data:gsas2-pbso4-cw-neutron",
+      "category": "public_data",
+      "description": "Checksum and powder-data ingestion for PbSO4",
+      "metrics": [
+        {
+          "name": "checksum_match",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 1.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "point_count",
+          "value": 2919.0,
+          "unit": "points",
+          "direction": "minimum",
+          "pass_limit": 2919.0,
+          "warn_limit": 2919.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "finite_fraction",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 0.999,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [
+        "gsas2-pbso4-cw-neutron"
+      ],
+      "assumptions": [
+        "GSAS ESD field; non-positive padding/values replaced by 1"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "public-data:gsas2-fluoroapatite-lab-xray",
+      "category": "public_data",
+      "description": "Checksum and powder-data ingestion for fluoroapatite",
+      "metrics": [
+        {
+          "name": "checksum_match",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 1.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "point_count",
+          "value": 5753.0,
+          "unit": "points",
+          "direction": "minimum",
+          "pass_limit": 5753.0,
+          "warn_limit": 5753.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "finite_fraction",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 0.999,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [
+        "gsas2-fluoroapatite-lab-xray"
+      ],
+      "assumptions": [
+        "Poisson approximation sqrt(max(I, 0) + 1); STD bank has no ESD"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "public-data:gsas2-yig-cw-neutron",
+      "category": "public_data",
+      "description": "Checksum and powder-data ingestion for yttrium iron garnet",
+      "metrics": [
+        {
+          "name": "checksum_match",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 1.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "point_count",
+          "value": 2679.0,
+          "unit": "points",
+          "direction": "minimum",
+          "pass_limit": 2679.0,
+          "warn_limit": 2679.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "finite_fraction",
+          "value": 1.0,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 0.999,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [
+        "gsas2-yig-cw-neutron"
+      ],
+      "assumptions": [
+        "GSAS ESD field; non-positive padding/values replaced by 1"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "reference-parameter:nist-srm660c",
+      "category": "reference_parameter",
+      "description": "LaB6 lattice refined against NIST SRM 660c laboratory data",
+      "metrics": [
+        {
+          "name": "absolute_lattice_error",
+          "value": 0.00014232746777409488,
+          "unit": "A",
+          "direction": "maximum",
+          "pass_limit": 8e-05,
+          "warn_limit": 0.0004,
+          "declared_status": null,
+          "explanation": "Pass is the certificate's expanded uncertainty; warn allows model development",
+          "status": "warn"
+        },
+        {
+          "name": "Rwp",
+          "value": 0.12072874639517078,
+          "unit": "",
+          "direction": "maximum",
+          "pass_limit": 0.15,
+          "warn_limit": 0.25,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [
+        "NIST-SRM-660c-scan-100a"
+      ],
+      "assumptions": [
+        "The compact split pseudo-Voigt does not reproduce the graphite-analyzer passband or the complete NIST fundamental-parameters convolution."
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "warn"
+    },
+    {
+      "identifier": "recovery:lattice",
+      "category": "synthetic_recovery",
+      "description": "Two symmetry-allowed tetragonal metric modes",
+      "metrics": [
+        {
+          "name": "maximum_cell_error",
+          "value": 1.6957436868025866e-06,
+          "unit": "A or degrees",
+          "direction": "maximum",
+          "pass_limit": 5e-05,
+          "warn_limit": 0.0005,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "recovery:coordinates",
+      "category": "synthetic_recovery",
+      "description": "Symmetry-linked general-position coordinates",
+      "metrics": [
+        {
+          "name": "maximum_fractional_error",
+          "value": 6.323460298267303e-08,
+          "unit": "fractional",
+          "direction": "maximum",
+          "pass_limit": 1e-05,
+          "warn_limit": 0.0001,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "recovery:profile-nuisance",
+      "category": "synthetic_recovery",
+      "description": "Scale, background, zero shift and profile width in a staged joint fit",
+      "metrics": [
+        {
+          "name": "scale_error",
+          "value": 0.0,
+          "unit": "",
+          "direction": "maximum",
+          "pass_limit": 0.002,
+          "warn_limit": 0.02,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "background_error",
+          "value": 1.2719503814651034e-06,
+          "unit": "",
+          "direction": "maximum",
+          "pass_limit": 1.0,
+          "warn_limit": 10.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "zero_shift_error",
+          "value": 3.8163916471489756e-17,
+          "unit": "",
+          "direction": "maximum",
+          "pass_limit": 2e-05,
+          "warn_limit": 0.0002,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "fwhm_error",
+          "value": 1.3877787807814457e-17,
+          "unit": "",
+          "direction": "maximum",
+          "pass_limit": 0.0002,
+          "warn_limit": 0.002,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "recovery:occupancy-biso",
+      "category": "synthetic_recovery",
+      "description": "Staged shared-site composition and isotropic displacement recovery",
+      "metrics": [
+        {
+          "name": "Ca_fraction_error",
+          "value": 7.66053886991358e-15,
+          "unit": "fraction",
+          "direction": "maximum",
+          "pass_limit": 1e-05,
+          "warn_limit": 0.0001,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_Biso_error",
+          "value": 2.4424906541753444e-14,
+          "unit": "A^2",
+          "direction": "maximum",
+          "pass_limit": 1e-05,
+          "warn_limit": 0.0001,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "recovery:anisotropic-u",
+      "category": "synthetic_recovery",
+      "description": "Positive anisotropic displacement tensor from a whole profile",
+      "metrics": [
+        {
+          "name": "maximum_U_error",
+          "value": 5.5924679277971276e-05,
+          "unit": "A^2",
+          "direction": "maximum",
+          "pass_limit": 0.0001,
+          "warn_limit": 0.0005,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "Rwp",
+          "value": 0.00033821763387469647,
+          "unit": "",
+          "direction": "maximum",
+          "pass_limit": 0.001,
+          "warn_limit": 0.01,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "recovery:rigid-pose",
+      "category": "synthetic_recovery",
+      "description": "Six rigid-body translation/rotation modes with invariant internal distances",
+      "metrics": [
+        {
+          "name": "maximum_raw_pose_error",
+          "value": 3.858025010572419e-15,
+          "unit": "raw mode",
+          "direction": "maximum",
+          "pass_limit": 0.0002,
+          "warn_limit": 0.002,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "maximum_internal_distance_change",
+          "value": 8.881784197001252e-16,
+          "unit": "A",
+          "direction": "maximum",
+          "pass_limit": 1e-10,
+          "warn_limit": 1e-08,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "recovery:phase-fractions",
+      "category": "synthetic_recovery",
+      "description": "Positive two-phase profile-area fractions constrained to sum to one",
+      "metrics": [
+        {
+          "name": "maximum_fraction_error",
+          "value": 8.596586072512347e-05,
+          "unit": "fraction",
+          "direction": "maximum",
+          "pass_limit": 0.0005,
+          "warn_limit": 0.005,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "fraction_sum_error",
+          "value": 0.0,
+          "unit": "",
+          "direction": "maximum",
+          "pass_limit": 1e-12,
+          "warn_limit": 1e-09,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "difficult:overlap",
+      "category": "difficult_case",
+      "description": "Resolution-aware discrimination increases when nearby features are resolved",
+      "metrics": [
+        {
+          "name": "resolved_to_broad_information",
+          "value": 42.940449612810774,
+          "unit": "ratio",
+          "direction": "minimum",
+          "pass_limit": 2.0,
+          "warn_limit": 1.1,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "difficult:weak-hydrogen",
+      "category": "difficult_case",
+      "description": "Radiation choice changes sensitivity to a displaced hydrogen site",
+      "metrics": [
+        {
+          "name": "neutron_to_xray_profile_change",
+          "value": 5.073765025244697,
+          "unit": "ratio",
+          "direction": "minimum",
+          "pass_limit": 1.2,
+          "warn_limit": 1.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [
+        "Profiles are unit-norm; this is contrast sensitivity, not a count-time comparison"
+      ],
+      "warnings": [],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "difficult:trace-phase",
+      "category": "difficult_case",
+      "description": "A numerically present 0.03% phase remains below the declared detectability threshold",
+      "metrics": [
+        {
+          "name": "trace_phase_detectability",
+          "value": 2.0059897256705974,
+          "unit": "sigma-like norm",
+          "direction": "maximum",
+          "pass_limit": 3.0,
+          "warn_limit": 4.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [
+        "A recovered numerical phase fraction is not by itself evidence of detection"
+      ],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "difficult:occupancy-biso-correlation",
+      "category": "difficult_case",
+      "description": "The local Jacobian exposes occupancy/displacement ambiguity and emits a guardrail",
+      "metrics": [
+        {
+          "name": "maximum_cross_group_correlation",
+          "value": 0.8993757504627937,
+          "unit": "",
+          "direction": "minimum",
+          "pass_limit": 0.85,
+          "warn_limit": 0.75,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        },
+        {
+          "name": "warning_emitted",
+          "value": 1.0,
+          "unit": "boolean",
+          "direction": "minimum",
+          "pass_limit": 1.0,
+          "warn_limit": 1.0,
+          "declared_status": null,
+          "explanation": "",
+          "status": "pass"
+        }
+      ],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [
+        "Passing this case means detecting ambiguity, not identifying both parameters"
+      ],
+      "declared_status": null,
+      "status": "pass"
+    },
+    {
+      "identifier": "difficult:preferred-orientation",
+      "category": "difficult_case",
+      "description": "Preferred-orientation refinement is not implemented in the current forward model",
+      "metrics": [],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [
+        "Do not interpret systematic family-dependent residuals as structural until texture is modelled"
+      ],
+      "declared_status": "unsupported",
+      "status": "unsupported"
+    },
+    {
+      "identifier": "difficult:time-of-flight",
+      "category": "difficult_case",
+      "description": "Neutron time-of-flight peak positions and profiles require a separate instrument model",
+      "metrics": [],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [],
+      "declared_status": "unsupported",
+      "status": "unsupported"
+    },
+    {
+      "identifier": "reference-software:full-profile",
+      "category": "reference_software",
+      "description": "Direct final-profile and covariance reproduction from a frozen GSAS-II project",
+      "metrics": [],
+      "source_identifiers": [],
+      "assumptions": [],
+      "warnings": [
+        "The corpus is ingested and pymatgen line patterns are matched, but no frozen GSAS-II final project is yet reproduced."
+      ],
+      "declared_status": "pending_review",
+      "status": "pending_review"
+    }
+  ],
+  "sources": [
+    {
+      "identifier": "NIST-SRM-660c-scan-100a",
+      "relative_path": "data/nist_srm660c_100a_full.xye",
+      "sha256": "64dfe2d550196ca6deb5f27ebe55d7f50d6c6ff105ce1d0ac64d67da01082a55",
+      "source_url": "https://doi.org/10.18434/MDS2-2315",
+      "material": "NIST SRM 660c LaB6",
+      "instrument": "NIST laboratory Bragg-Brentano diffractometer with graphite analyzer",
+      "radiation": "xray",
+      "wavelength_angstrom": 1.5405925,
+      "data_format": "whitespace XYE; sigma converted from published weights",
+      "expected_points": 5332,
+      "notes": "Complete measured scan 100a from the NIST SRM 660c public data release."
+    },
+    {
+      "identifier": "gsas2-pbso4-lab-xray",
+      "relative_path": "data/reference_validation/PBSO4.XRA",
+      "sha256": "ca2da02fc7e17d2fc912de22a979f8101ba6140f2e8104f9d3aa64f030ca58bb",
+      "source_url": "https://advancedphotonsource.github.io/GSAS-II-tutorials/CWCombined/data/PBSO4.XRA",
+      "material": "PbSO4",
+      "instrument": "laboratory Cu K-alpha powder diffractometer",
+      "radiation": "xray",
+      "wavelength_angstrom": 1.5405,
+      "data_format": "GSAS constant-step STD bank",
+      "expected_points": 6001,
+      "notes": "GSAS-II combined X-ray/CW-neutron tutorial input; Cu K-alpha doublet is declared in the companion instrument file."
+    },
+    {
+      "identifier": "gsas2-pbso4-cw-neutron",
+      "relative_path": "data/reference_validation/PBSO4.CWN",
+      "sha256": "59462ba6d7c72c9800b0b6bf41903f9933ed5ac5adab101d27022d5d25cf18ba",
+      "source_url": "https://advancedphotonsource.github.io/GSAS-II-tutorials/CWCombined/data/PBSO4.CWN",
+      "material": "PbSO4",
+      "instrument": "D1A constant-wavelength neutron diffractometer",
+      "radiation": "neutron",
+      "wavelength_angstrom": 1.909,
+      "data_format": "GSAS constant-step ESD bank",
+      "expected_points": 2919,
+      "notes": "GSAS-II combined X-ray/CW-neutron tutorial input."
+    },
+    {
+      "identifier": "gsas2-fluoroapatite-lab-xray",
+      "relative_path": "data/reference_validation/FAP.XRA",
+      "sha256": "b567c0cc2b022143002976824b5ba544ac09119d67a40b0fc1cf2d52d562d304",
+      "source_url": "https://advancedphotonsource.github.io/GSAS-II-tutorials/LabData/data/FAP.XRA",
+      "material": "fluoroapatite",
+      "instrument": "laboratory Cu K-alpha powder diffractometer",
+      "radiation": "xray",
+      "wavelength_angstrom": 1.5405,
+      "data_format": "GSAS constant-step STD bank",
+      "expected_points": 5753,
+      "notes": "GSAS-II laboratory X-ray tutorial input."
+    },
+    {
+      "identifier": "gsas2-yig-cw-neutron",
+      "relative_path": "data/reference_validation/garnet.raw",
+      "sha256": "fda21f37e3b560913e6056637f6ea89dfc4c1683bb35ac7b4f1406440ac4c269",
+      "source_url": "https://advancedphotonsource.github.io/GSAS-II-tutorials/CWNeutron/data/garnet.raw",
+      "material": "yttrium iron garnet",
+      "instrument": "D1A constant-wavelength neutron diffractometer",
+      "radiation": "neutron",
+      "wavelength_angstrom": 1.909,
+      "data_format": "GSAS constant-step ESD bank",
+      "expected_points": 2679,
+      "notes": "GSAS-II CW neutron tutorial input."
+    }
+  ],
+  "required_categories": [
+    "line_oracle",
+    "public_data",
+    "reference_parameter",
+    "synthetic_recovery",
+    "difficult_case",
+    "reference_software"
+  ],
+  "expert_review_status": "pending_review",
+  "expert_review_checklist": [
+    "Check whether each generated conclusion is crystallographically justified by its cited metric.",
+    "Review the NIST mismatch and decide whether the compact profile model is fit for the intended claim.",
+    "Review weak-scatterer, overlap, trace-phase and occupancy/ADP warnings for false reassurance.",
+    "Sign and date the frozen JSON artifact without changing numerical results."
+  ],
+  "metadata": {
+    "scope": "constant-wavelength powder diffraction",
+    "nist_refined_a_angstrom": 4.156683672532226,
+    "nist_reference_a_angstrom": 4.156826,
+    "nist_rwp": 0.12072874639517078
+  },
+  "overall_status": "unsupported",
+  "missing_categories": [],
+  "status_counts": {
+    "pass": 28,
+    "warn": 1,
+    "pending_review": 1,
+    "unsupported": 2,
+    "fail": 0
+  }
+}

@@ -116,6 +116,84 @@ class DiffractionDataset:
             source_sha256=sha256(content).hexdigest(),
         )
 
+    @classmethod
+    def from_gsas_constant_step(
+        cls,
+        path,
+        *,
+        wavelength: float,
+        radiation: Literal["xray", "neutron"] = "xray",
+        metadata: Mapping[str, object] | None = None,
+    ) -> "DiffractionDataset":
+        """Read a constant-step GSAS powder-data bank.
+
+        Both ``STD`` banks (one eight-character intensity field per point) and
+        ``ESD``/``RRRR`` banks (a two-character standard deviation followed by
+        a six-character intensity) are supported. Coordinates are reconstructed
+        from the ``CONST`` start and step values, which GSAS stores in
+        centidegrees. Padding fields at the end of the final 80-column record
+        are ignored using the declared point count.
+        """
+        source_path = Path(path)
+        content = source_path.read_bytes()
+        lines = content.decode("ascii").splitlines()
+        if len(lines) < 3:
+            raise ValueError("GSAS constant-step file must contain a header and data records")
+        bank = lines[1].split()
+        if len(bank) < 7 or bank[0] != "BANK" or "CONST" not in bank:
+            raise ValueError("unsupported GSAS bank header; expected a constant-step BANK")
+        constant = bank.index("CONST")
+        point_count = int(bank[2])
+        start = float(bank[constant + 1]) / 100.0
+        step = float(bank[constant + 2]) / 100.0
+        standard = "STD" in bank
+        intensity = []
+        sigma = []
+        for line in lines[2:]:
+            for offset in range(0, len(line), 8):
+                field = line[offset : offset + 8]
+                if not field.strip():
+                    continue
+                if standard:
+                    intensity.append(float(field))
+                else:
+                    sigma.append(float(field[:2]))
+                    intensity.append(float(field[2:]))
+        if len(intensity) < point_count:
+            raise ValueError(
+                f"GSAS bank declares {point_count} points but only {len(intensity)} were read"
+            )
+        intensity_array = np.asarray(intensity[:point_count], dtype=np.float64)
+        if standard:
+            sigma_array = np.sqrt(np.maximum(intensity_array, 0.0) + 1.0)
+            uncertainty = "Poisson approximation sqrt(max(I, 0) + 1); STD bank has no ESD"
+        else:
+            sigma_array = np.asarray(sigma[:point_count], dtype=np.float64)
+            sigma_array = np.where(sigma_array > 0, sigma_array, 1.0)
+            uncertainty = "GSAS ESD field; non-positive padding/values replaced by 1"
+        coordinate = start + step * np.arange(point_count, dtype=np.float64)
+        supplied_metadata = {} if metadata is None else dict(metadata)
+        supplied_metadata.update(
+            {
+                "format": "GSAS constant-step bank",
+                "gsas_header": lines[0].strip(),
+                "gsas_bank": lines[1].strip(),
+                "uncertainty_interpretation": uncertainty,
+            }
+        )
+        return cls(
+            coordinate=coordinate,
+            intensity=intensity_array,
+            sigma=sigma_array,
+            mask=np.ones(point_count, dtype=bool),
+            domain="two_theta",
+            wavelength=wavelength,
+            radiation=radiation,
+            metadata=supplied_metadata,
+            source=str(source_path),
+            source_sha256=sha256(content).hexdigest(),
+        )
+
     def select_range(self, lower: float, upper: float) -> "DiffractionDataset":
         """Return a cropped immutable dataset."""
         selected = (self.coordinate >= lower) & (self.coordinate <= upper)

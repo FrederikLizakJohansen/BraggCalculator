@@ -29,6 +29,15 @@ from .optimization import (
 from .mixture import PhaseMixturePolicy, PhaseMixtureResult, PhaseMixtureSession
 from .radiation import nist_copper_ka_spectrum
 from .uncertainty import BootstrapResult, parametric_bootstrap
+from .validation import (
+    ReferenceSource,
+    ValidationCase,
+    ValidationMatrix,
+    ValidationMetric,
+    load_reference_sources,
+    validate_line_oracle,
+    validate_public_sources,
+)
 from .structural_diagnostics import (
     classify_structural_relationship,
     compare_pair_distributions,
@@ -101,6 +110,7 @@ __all__ = [
     "SymmetryLatticeParameterization",
     "SymmetryOccupancyParameterization",
     "ReleaseDecision",
+    "ReferenceSource",
     "StageOutcome",
     "StagedOptimizationResult",
     "StructuralDiagnosticsResult",
@@ -108,6 +118,9 @@ __all__ = [
     "StructuralRestraintSet",
     "SuperstructureResult",
     "SessionResult",
+    "ValidationCase",
+    "ValidationMatrix",
+    "ValidationMetric",
     "__version__",
     "lattice_parameters",
     "nist_copper_ka_spectrum",
@@ -118,10 +131,13 @@ __all__ = [
     "counterfactual_site_substitutions",
     "diagnose_structures",
     "identify_superstructure_reflections",
+    "load_reference_sources",
     "peak_group_attribution",
     "radial_pair_distribution",
     "recommend_parameter_groups",
     "staged_adam",
     "staged_optimize",
     "suggest_measurements",
+    "validate_line_oracle",
+    "validate_public_sources",
 ]

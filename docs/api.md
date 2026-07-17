@@ -318,6 +318,46 @@ intervals respect declared bounds, while lower/upper boundary-hit counts make
 truncation visible. The result includes all successful estimates, failed-draw
 count, seed and noise-model provenance.
 
+## Reference validation
+
+The validation API keeps numerical evidence separate from capability and review
+gates:
+
+```python
+from pathlib import Path
+
+from benchmarks.reference_cases import reference_structures
+from braggcalculator import (
+    ValidationMatrix,
+    load_reference_sources,
+    validate_line_oracle,
+    validate_public_sources,
+)
+
+root = Path.cwd()
+sources = load_reference_sources(root / "data/reference_validation/manifest.json")
+matrix = ValidationMatrix(
+    cases=(
+        *validate_line_oracle(reference_structures()),
+        *validate_public_sources(root, sources),
+    ),
+    sources=sources,
+    required_categories=("line_oracle", "public_data"),
+    expert_review_status="pending_review",
+)
+matrix.write_json("validation.json")
+```
+
+Metrics use explicit `maximum`, `minimum` or `informational` directions with
+pass and warning limits. A missing required category fails the matrix. Case
+statuses include `pass`, `warn`, `fail`, `unsupported` and `pending_review`;
+the last two are not converted into success by passing numerical cases.
+
+`DiffractionDataset.from_gsas_constant_step` reads 80-column constant-step GSAS
+`STD` and ESD-style banks. It uses the declared point count to remove record
+padding, reconstructs centidegree coordinates from the `CONST` header and
+records how uncertainties were obtained.
+
 ## Backends
 
 ```python

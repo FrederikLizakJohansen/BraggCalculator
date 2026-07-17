@@ -11,7 +11,8 @@ from braggcalculator import BraggCalculator, lattice_parameters
 from braggcalculator.backends import TorchBackend
 
 
-def main():
+def run_lattice_refinement(steps: int = 180):
+    """Recover two tetragonal metric modes and return numerical evidence."""
     structure = Structure(Lattice.tetragonal(4.0, 5.0), ["Si"], [[0, 0, 0]])
     calculator = BraggCalculator(
         primitive=False,
@@ -27,7 +28,8 @@ def main():
 
     modes = model.initial_values(calculator.backend, requires_grad=True)
     optimizer = torch.optim.Adam([modes], lr=0.08)
-    for _ in range(180):
+    history = []
+    for _ in range(steps):
         optimizer.zero_grad()
         parameters = calculator.tensor_parameters()
         parameters["lattice"] = model.expand(modes, calculator.backend)
@@ -35,6 +37,7 @@ def main():
         loss = torch.mean((positions - target_positions) ** 2)
         loss.backward()
         optimizer.step()
+        history.append(float(loss.detach()))
 
     recovered_lattice = model.expand(modes, calculator.backend).detach().cpu().numpy()
     target_cell = lattice_parameters(target_lattice.detach().cpu().numpy())
@@ -44,12 +47,30 @@ def main():
     assert model.independent_count == 2
     assert maximum_error < 5e-5
 
-    print(f"crystal system: {model.crystal_system}")
-    print(f"independent lattice modes: {model.independent_count}")
-    print(f"target cell: {target_cell}")
-    print(f"recovered cell: {recovered_cell}")
-    print(f"maximum cell-parameter error: {maximum_error:.3e}")
-    print(f"mode error norm: {np.linalg.norm(modes.detach().numpy() - target_modes.numpy()):.3e}")
+    return {
+        "crystal_system": model.crystal_system,
+        "independent_count": model.independent_count,
+        "target_modes": target_modes.numpy(),
+        "recovered_modes": modes.detach().numpy(),
+        "target_cell": target_cell,
+        "recovered_cell": recovered_cell,
+        "maximum_error": maximum_error,
+        "history": np.asarray(history),
+    }
+
+
+def main():
+    result = run_lattice_refinement()
+
+    print(f"crystal system: {result['crystal_system']}")
+    print(f"independent lattice modes: {result['independent_count']}")
+    print(f"target cell: {result['target_cell']}")
+    print(f"recovered cell: {result['recovered_cell']}")
+    print(f"maximum cell-parameter error: {result['maximum_error']:.3e}")
+    print(
+        "mode error norm: "
+        f"{np.linalg.norm(result['recovered_modes'] - result['target_modes']):.3e}"
+    )
 
 
 if __name__ == "__main__":

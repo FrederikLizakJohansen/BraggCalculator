@@ -1,0 +1,69 @@
+{
+  "sources": [
+    {
+      "identifier": "NIST-SRM-660c-scan-100a",
+      "relative_path": "data/nist_srm660c_100a_full.xye",
+      "sha256": "64dfe2d550196ca6deb5f27ebe55d7f50d6c6ff105ce1d0ac64d67da01082a55",
+      "source_url": "https://doi.org/10.18434/MDS2-2315",
+      "material": "NIST SRM 660c LaB6",
+      "instrument": "NIST laboratory Bragg-Brentano diffractometer with graphite analyzer",
+      "radiation": "xray",
+      "wavelength_angstrom": 1.5405925,
+      "data_format": "whitespace XYE; sigma converted from published weights",
+      "expected_points": 5332,
+      "notes": "Complete measured scan 100a from the NIST SRM 660c public data release."
+    },
+    {
+      "identifier": "gsas2-pbso4-lab-xray",
+      "relative_path": "data/reference_validation/PBSO4.XRA",
+      "sha256": "ca2da02fc7e17d2fc912de22a979f8101ba6140f2e8104f9d3aa64f030ca58bb",
+      "source_url": "https://advancedphotonsource.github.io/GSAS-II-tutorials/CWCombined/data/PBSO4.XRA",
+      "material": "PbSO4",
+      "instrument": "laboratory Cu K-alpha powder diffractometer",
+      "radiation": "xray",
+      "wavelength_angstrom": 1.5405,
+      "data_format": "GSAS constant-step STD bank",
+      "expected_points": 6001,
+      "notes": "GSAS-II combined X-ray/CW-neutron tutorial input; Cu K-alpha doublet is declared in the companion instrument file."
+    },
+    {
+      "identifier": "gsas2-pbso4-cw-neutron",
+      "relative_path": "data/reference_validation/PBSO4.CWN",
+      "sha256": "59462ba6d7c72c9800b0b6bf41903f9933ed5ac5adab101d27022d5d25cf18ba",
+      "source_url": "https://advancedphotonsource.github.io/GSAS-II-tutorials/CWCombined/data/PBSO4.CWN",
+      "material": "PbSO4",
+      "instrument": "D1A constant-wavelength neutron diffractometer",
+      "radiation": "neutron",
+      "wavelength_angstrom": 1.909,
+      "data_format": "GSAS constant-step ESD bank",
+      "expected_points": 2919,
+      "notes": "GSAS-II combined X-ray/CW-neutron tutorial input."
+    },
+    {
+      "identifier": "gsas2-fluoroapatite-lab-xray",
+      "relative_path": "data/reference_validation/FAP.XRA",
+      "sha256": "b567c0cc2b022143002976824b5ba544ac09119d67a40b0fc1cf2d52d562d304",
+      "source_url": "https://advancedphotonsource.github.io/GSAS-II-tutorials/LabData/data/FAP.XRA",
+      "material": "fluoroapatite",
+      "instrument": "laboratory Cu K-alpha powder diffractometer",
+      "radiation": "xray",
+      "wavelength_angstrom": 1.5405,
+      "data_format": "GSAS constant-step STD bank",
+      "expected_points": 5753,
+      "notes": "GSAS-II laboratory X-ray tutorial input."
+    },
+    {
+      "identifier": "gsas2-yig-cw-neutron",
+      "relative_path": "data/reference_validation/garnet.raw",
+      "sha256": "fda21f37e3b560913e6056637f6ea89dfc4c1683bb35ac7b4f1406440ac4c269",
+      "source_url": "https://advancedphotonsource.github.io/GSAS-II-tutorials/CWNeutron/data/garnet.raw",
+      "material": "yttrium iron garnet",
+      "instrument": "D1A constant-wavelength neutron diffractometer",
+      "radiation": "neutron",
+      "wavelength_angstrom": 1.909,
+      "data_format": "GSAS constant-step ESD bank",
+      "expected_points": 2679,
+      "notes": "GSAS-II CW neutron tutorial input."
+    }
+  ]
+}
