@@ -168,6 +168,15 @@ Only the named Torch leaf tensors are passed to each stage's optimizer. This
 makes the release policy explicit and records the stage associated with every
 loss value.
 
+For guarded refinement, `staged_optimize` additionally supports
+`optimizer="lbfgs"`, a per-stage `width_multiplier`, a stage-preparation
+callback and a held-out validation objective. Its result contains a
+`StageOutcome` for every stage and an explicit convergence classification.
+`damped_gauss_newton` is the residual-vector local solver; it reports damping,
+trust radius, gain ratio and accepted steps. `recommend_parameter_groups`
+returns machine-readable release decisions from sensitivity, residual support
+and cross-group correlation evidence.
+
 ```python
 table = calculator.reflection_table(domain="two_theta", parameters=None)
 ```

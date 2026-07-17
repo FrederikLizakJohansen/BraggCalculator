@@ -25,6 +25,23 @@ result = session.run(RefinementPolicy.cautious())
 session.write_html(result, "report.html")
 ```
 
+For raw non-negative counts, use the guarded Poisson recipe:
+
+```python
+policy = RefinementPolicy.robust(likelihood="poisson", restarts=3)
+result = session.run(policy)
+candidate = result.candidates[0]
+print(candidate.physical_parameters["mean_poisson_deviance"])
+print(candidate.convergence)
+```
+
+`robust()` broadens the calculated profile during early stages, returns to the
+physical width, performs an L-BFGS polish, gates each stage against held-out
+profile bins and records every deterministic restart. Poisson mode rejects
+negative observations and Gaussian covariance matrices. Optimizer convergence
+is numerical evidence only; structural interpretation still requires the
+reported sensitivity, correlation, restraints and model-comparison checks.
+
 The session reports observed/calculated/residual profiles, Rwp, weighted
 chi-squared, held-out Rwp, large standardized-residual regions, candidate
 ranking, pairwise expected discrimination, restart sensitivity, provenance and

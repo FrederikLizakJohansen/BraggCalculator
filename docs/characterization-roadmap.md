@@ -362,7 +362,7 @@ Evidence artifacts:
 
 ## Milestone 4 -- Robust refinement mechanics
 
-**Status: Planned**
+**Status: Done**
 
 - L-BFGS and damped Gauss--Newton/trust-region local solvers;
 - Poisson likelihood for raw count data;
@@ -370,6 +370,64 @@ Evidence artifacts:
 - adaptive parameter release based on residual support and correlations;
 - rollback when a release step worsens validation;
 - deterministic multistart policies and explicit convergence classifications.
+
+### Milestone 4 acceptance gate
+
+- one staged API must run Adam and L-BFGS while preserving declared parameter
+  groups, and an independently tested damped Gauss--Newton solver must expose
+  trust radius, damping, accepted steps and gain ratios;
+- convergence must be classified from gradient norm, relative loss change,
+  accepted steps or exhaustion, rather than from an optimizer return flag;
+- the Poisson objective must reject negative observations, keep expected counts
+  positive and report the mean deviance separately from Gaussian fit statistics;
+- continuation must record the peak-width multiplier used by every stage and
+  end at the physical multiplier of 1.0;
+- adaptive release must record sensitivity, residual support, correlations and
+  an explicit accepted/rejected reason for each candidate parameter group;
+- every guarded stage must snapshot its parameters and restore them if held-out
+  validation worsens beyond the declared tolerance;
+- multistart runs must use reproducible seed provenance and retain the
+  convergence classification and score of every attempt;
+- an executable figure and HTML report must show a low-count Poisson example,
+  continuation, damping/trust behavior, adaptive release, rollback and
+  deterministic restart classifications.
+
+### Milestone 4 measured result
+
+The optimization layer now runs declared Adam and strong-Wolfe L-BFGS stages,
+and provides a separate damped Gauss--Newton solver with gain-ratio trust
+updates. Stage results retain training/validation evidence, the declared width
+multiplier, gradient norm, acceptance reason and a convergence classification.
+Rejected stages restore an exact tensor snapshot. The refinement session adds
+a smooth-positive Poisson count objective, reports mean Poisson deviance,
+supports coarse-to-fine profile stages, records adaptive structural-group
+release decisions, and preserves the seed, score and classification of every
+restart.
+
+In the deterministic low-count gate, the generating peak amplitude is 3.0
+counts: Poisson deviance estimates 2.82 while observed-count-weighted Gaussian
+least squares estimates 1.86. Direct physical-width optimization remains at
+the deliberately distant starting peak centre of -1.80, whereas the 8x to 3x
+to 1x continuation reaches 2.00 and drives profile error below
+\(10^{-9}\). Damped Gauss--Newton recovers the nonlinear target
+\(a=1.000, p=2.000\) with a `gradient_converged` classification. The release
+gate accepts the supported lattice direction and explicitly rejects an
+unsupported occupancy, an insensitive ADP and a 0.995-correlated duplicate
+mode. A deliberately overfit training step increases held-out loss from zero
+to approximately four and is restored exactly. Six seeded non-convex restarts
+retain both local basins and distinguish gradient convergence from step-budget
+exhaustion.
+
+Evidence artifacts:
+
+- `demo/robust_refinement_mechanics.png` shows all six executable gates;
+- `demo/robust_refinement_mechanics_report.html` embeds the figure and the
+  machine-readable release/restart tables;
+- `demo/robust_refinement_mechanics.py` regenerates both artifacts
+  deterministically;
+- regression tests cover L-BFGS, Gauss--Newton, continuation callbacks,
+  validation restoration, adaptive release and a complete low-count Poisson
+  diffraction session.
 
 ## Milestone 5 -- General structural diagnostics
 

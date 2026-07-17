@@ -23,7 +23,11 @@ from .experimental_profile import (
     thompson_cox_hastings,
 )
 from .io import to_pmg_structure
-from .optimization import OptimizationStage, staged_adam
+from .optimization import (
+    OptimizationStage,
+    recommend_parameter_groups,
+    staged_optimize,
+)
 from .parameters import lattice_parameters
 from .restraints import StructuralRestraintSet
 from .sensitivity import analyze_jacobian
@@ -94,6 +98,13 @@ class RefinementPolicy:
     goniometer_radius_mm: float | None = None
     specimen_displacement_mm: float = 0.0
     refine_specimen_displacement: bool = False
+    likelihood: str = "gaussian"
+    validation_rollback_tolerance: float | None = None
+    adaptive_release: bool = False
+    minimum_relative_sensitivity: float = 0.02
+    minimum_residual_support: float = 0.1
+    maximum_release_correlation: float = 0.98
+    restart_seed: int = 1729
     stages: tuple[OptimizationStage, ...] | None = None
 
     def __post_init__(self):
@@ -149,6 +160,23 @@ class RefinementPolicy:
             raise ValueError("goniometer_radius_mm must be positive and finite")
         if not np.isfinite(self.specimen_displacement_mm):
             raise ValueError("specimen_displacement_mm must be finite")
+        if self.likelihood not in {"gaussian", "poisson"}:
+            raise ValueError("likelihood must be 'gaussian' or 'poisson'")
+        if self.validation_rollback_tolerance is not None and (
+            self.validation_rollback_tolerance < 0
+            or not np.isfinite(self.validation_rollback_tolerance)
+        ):
+            raise ValueError("validation_rollback_tolerance must be non-negative or None")
+        if not 0 <= self.minimum_relative_sensitivity <= 1:
+            raise ValueError("minimum_relative_sensitivity must be in [0, 1]")
+        if self.minimum_residual_support < 0:
+            raise ValueError("minimum_residual_support must be non-negative")
+        if not 0 <= self.maximum_release_correlation <= 1:
+            raise ValueError("maximum_release_correlation must be in [0, 1]")
+        if not isinstance(self.restart_seed, int) or self.restart_seed < 0:
+            raise ValueError("restart_seed must be a non-negative integer")
+        if self.stages and self.stages[-1].width_multiplier != 1.0:
+            raise ValueError("the final optimization stage must use the physical width multiplier 1.0")
 
     @classmethod
     def quick(
@@ -248,6 +276,70 @@ class RefinementPolicy:
             stages=tuple(stages),
         )
 
+    @classmethod
+    def robust(
+        cls,
+        *,
+        refine_coordinates: bool = False,
+        occupancy_mode: str = "fixed",
+        refine_b_iso: bool = False,
+        refine_u_aniso: bool = False,
+        rigid_bodies=None,
+        likelihood: str = "gaussian",
+        restarts: int = 3,
+    ) -> "RefinementPolicy":
+        """Guarded coarse-to-fine recipe ending in an L-BFGS polish."""
+        active = ["scale", "background", "zero_shift", "profile", "lattice"]
+        optional = []
+        if refine_coordinates:
+            optional.append("coordinates")
+        if occupancy_mode != "fixed":
+            optional.append("occupancies")
+        if refine_b_iso:
+            optional.append("b_iso")
+        if refine_u_aniso:
+            optional.append("u_aniso")
+        if rigid_bodies:
+            optional.append("rigid_bodies")
+        return cls(
+            refine_coordinates=refine_coordinates,
+            occupancy_mode=occupancy_mode,
+            refine_b_iso=refine_b_iso,
+            refine_u_aniso=refine_u_aniso,
+            rigid_bodies=rigid_bodies,
+            likelihood=likelihood,
+            restarts=restarts,
+            adaptive_release=bool(optional),
+            validation_rollback_tolerance=0.02,
+            stages=(
+                OptimizationStage(
+                    "wide profile", tuple(active), 100, 0.02, width_multiplier=2.5
+                ),
+                OptimizationStage(
+                    "intermediate profile",
+                    tuple(active + optional),
+                    140,
+                    0.01,
+                    width_multiplier=1.5,
+                ),
+                OptimizationStage(
+                    "physical profile",
+                    tuple(active + optional),
+                    120,
+                    0.006,
+                    width_multiplier=1.0,
+                ),
+                OptimizationStage(
+                    "L-BFGS polish",
+                    tuple(active + optional),
+                    60,
+                    0.5,
+                    optimizer="lbfgs",
+                    width_multiplier=1.0,
+                ),
+            ),
+        )
+
 
 @dataclass(frozen=True)
 class CandidateRefinementResult:
@@ -266,6 +358,7 @@ class CandidateRefinementResult:
     recommendation: str
     warnings: tuple[str, ...]
     provenance: dict[str, Any]
+    convergence: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -316,6 +409,11 @@ class RefinementSession:
         import torch
 
         policy = RefinementPolicy.quick() if policy is None else policy
+        if policy.likelihood == "poisson":
+            if np.any(self.dataset.intensity[self.dataset.mask] < 0):
+                raise ValueError("Poisson refinement requires non-negative observed counts")
+            if self.dataset.observation_covariance is not None:
+                raise ValueError("Poisson refinement does not accept a Gaussian covariance matrix")
         calculator = self._calculator(self.structures[index])
         components = _wavelength_components(self.dataset.metadata, self.dataset.wavelength)
         component_weights = np.asarray([item["normalized_weight"] for item in components])
@@ -356,8 +454,10 @@ class RefinementSession:
             held_out[np.flatnonzero(selected)[:: policy.holdout_stride]] = True
         training = selected & ~held_out
         training_tensor = torch.as_tensor(training, dtype=torch.bool, device=self.device)
+        held_out_tensor = torch.as_tensor(held_out, dtype=torch.bool, device=self.device)
         training_indices = np.flatnonzero(training)
         covariance_cholesky = None
+        held_out_cholesky = None
         if self.dataset.observation_covariance is not None:
             training_covariance = self.dataset.observation_covariance[
                 np.ix_(training_indices, training_indices)
@@ -365,6 +465,16 @@ class RefinementSession:
             covariance_cholesky = torch.linalg.cholesky(
                 torch.as_tensor(training_covariance, dtype=torch.float64, device=self.device)
             )
+            held_out_indices = np.flatnonzero(held_out)
+            if len(held_out_indices):
+                held_out_covariance = self.dataset.observation_covariance[
+                    np.ix_(held_out_indices, held_out_indices)
+                ]
+                held_out_cholesky = torch.linalg.cholesky(
+                    torch.as_tensor(
+                        held_out_covariance, dtype=torch.float64, device=self.device
+                    )
+                )
 
         def whiten_training(residual):
             selected_residual = residual[training_tensor]
@@ -372,6 +482,16 @@ class RefinementSession:
                 return selected_residual / sigma[training_tensor]
             return torch.linalg.solve_triangular(
                 covariance_cholesky,
+                selected_residual[:, None],
+                upper=False,
+            )[:, 0]
+
+        def whiten_validation(residual):
+            selected_residual = residual[held_out_tensor]
+            if held_out_cholesky is None:
+                return selected_residual / sigma[held_out_tensor]
+            return torch.linalg.solve_triangular(
+                held_out_cholesky,
                 selected_residual[:, None],
                 upper=False,
             )[:, 0]
@@ -434,8 +554,9 @@ class RefinementSession:
             if rigid_body_model is not None
             else None
         )
+        restart_seed = policy.restart_seed + restart_index
         if restart_index:
-            generator = np.random.default_rng(1729 + restart_index)
+            generator = np.random.default_rng(restart_seed)
             with torch.no_grad():
                 scale.copy_(
                     torch.tensor(
@@ -537,6 +658,8 @@ class RefinementSession:
         ) and goniometer_radius is None:
             raise ValueError("a goniometer radius is required for specimen-displacement correction")
 
+        continuation_width_multiplier = 1.0
+
         def structural_parameters():
             structural = dict(base_parameters)
             structural["lattice"] = lattice_model.expand(lattice, calculator.backend)
@@ -589,7 +712,10 @@ class RefinementSession:
                     u = 0.0025 * torch.exp(profile[0])
                     v = 1e-6 * torch.exp(profile[1])
                     w = 0.0064 * torch.exp(profile[2])
-                    widths = caglioti_fwhm(radians, u, v, w, calculator.backend)
+                    widths = (
+                        caglioti_fwhm(radians, u, v, w, calculator.backend)
+                        * continuation_width_multiplier
+                    )
                     eta = torch.sigmoid(profile[3])
                     peaks = peaks + render_pseudo_voigt(
                         grid,
@@ -624,6 +750,8 @@ class RefinementSession:
                     low_widths, high_widths = axial_divergence_widths(
                         widths, radians, asymmetry, calculator.backend
                     )
+                    low_widths = low_widths * continuation_width_multiplier
+                    high_widths = high_widths * continuation_width_multiplier
                     peaks = peaks + render_split_pseudo_voigt(
                         grid,
                         peak_centers,
@@ -633,12 +761,48 @@ class RefinementSession:
                         eta,
                         calculator.backend,
                     )
-            return peaks + background_basis @ background
+            calculated = peaks + background_basis @ background
+            return (
+                _positive_expected_counts(calculated)
+                if policy.likelihood == "poisson"
+                else calculated
+            )
+
+        adaptive_decisions = ()
+        optional_structural_groups = tuple(
+            name
+            for name in ("coordinates", "occupancies", "b_iso", "u_aniso", "rigid_bodies")
+            if name in groups
+        )
+        if policy.adaptive_release and optional_structural_groups:
+            sensitivity, support, correlation = _group_release_evidence(
+                calculate,
+                {name: groups[name] for name in optional_structural_groups},
+                self.dataset.intensity,
+                self.dataset.sigma,
+                training,
+                max_points=min(max(policy.diagnostic_points, 8), 32),
+            )
+            adaptive_decisions = recommend_parameter_groups(
+                sensitivity,
+                support,
+                correlation,
+                minimum_relative_sensitivity=policy.minimum_relative_sensitivity,
+                minimum_residual_support=policy.minimum_residual_support,
+                maximum_correlation=policy.maximum_release_correlation,
+            )
+            rejected = {decision.group for decision in adaptive_decisions if not decision.accepted}
+            groups = {name: value for name, value in groups.items() if name not in rejected}
 
         def objective():
             calculated = calculate()
-            standardized = whiten_training(calculated - observed)
-            loss = torch.mean(standardized**2)
+            if policy.likelihood == "poisson":
+                loss = torch.mean(
+                    _poisson_deviance_torch(observed[training_tensor], calculated[training_tensor])
+                )
+            else:
+                standardized = whiten_training(calculated - observed)
+                loss = torch.mean(standardized**2)
             negative_background = torch.relu(-(background_basis @ background))
             loss = loss + 0.01 * torch.mean(negative_background**2)
             if policy.refine_coordinates and coordinate_model.independent_count:
@@ -674,6 +838,15 @@ class RefinementSession:
                 loss = loss + policy.structural_restraint_weight * restraint_loss
             return loss
 
+        def validation_objective():
+            calculated = calculate()
+            if policy.likelihood == "poisson":
+                return torch.mean(
+                    _poisson_deviance_torch(observed[held_out_tensor], calculated[held_out_tensor])
+                )
+            standardized = whiten_validation(calculated - observed)
+            return torch.mean(standardized**2)
+
         stages = (
             policy.stages
             or RefinementPolicy.cautious(
@@ -690,6 +863,8 @@ class RefinementSession:
                 tuple(name for name in stage.active if name in groups),
                 stage.steps,
                 stage.learning_rate,
+                optimizer=stage.optimizer,
+                width_multiplier=stage.width_multiplier,
             )
             for stage in stages
             if any(name in groups for name in stage.active)
@@ -820,7 +995,22 @@ class RefinementSession:
                 values.append(factor * torch.stack(tuple(restraint_residuals.values())))
             return torch.cat(values)
 
-        trace = staged_adam(objective, groups, stages)
+        def prepare_stage(stage):
+            nonlocal continuation_width_multiplier
+            continuation_width_multiplier = stage.width_multiplier
+
+        trace = staged_optimize(
+            objective,
+            groups,
+            stages,
+            validation_objective=(
+                validation_objective
+                if np.any(held_out) and policy.validation_rollback_tolerance is not None
+                else None
+            ),
+            before_stage=prepare_stage,
+            validation_tolerance=policy.validation_rollback_tolerance or 0.0,
+        )
         calculated = calculate().detach().cpu().numpy()
         residual = self.dataset.intensity - calculated
         weights = self.dataset.weights
@@ -836,6 +1026,17 @@ class RefinementSession:
                 residual[training],
             )
         chi_squared = float(np.mean(whitened_residual**2))
+        poisson_deviance = (
+            float(
+                np.mean(
+                    _poisson_deviance_numpy(
+                        self.dataset.intensity[training], calculated[training]
+                    )
+                )
+            )
+            if policy.likelihood == "poisson"
+            else None
+        )
         held_out_r_wp = None
         if np.any(held_out):
             held_denominator = np.sum(weights[held_out] * self.dataset.intensity[held_out] ** 2)
@@ -915,6 +1116,19 @@ class RefinementSession:
             ),
             "structural_restraint_mean_chi_squared": float(restraint_loss.detach().cpu()),
             "structural_restraint_contributions": restraint_contributions,
+            "fit_objective": policy.likelihood,
+            "mean_poisson_deviance": poisson_deviance,
+            "adaptive_release": [
+                {
+                    "group": item.group,
+                    "accepted": item.accepted,
+                    "sensitivity": item.sensitivity,
+                    "residual_support": item.residual_support,
+                    "maximum_correlation": item.maximum_correlation,
+                    "reason": item.reason,
+                }
+                for item in adaptive_decisions
+            ],
         }
         warnings = []
         declared_limitations = self.dataset.metadata.get("model_limitations", ())
@@ -1065,11 +1279,36 @@ class RefinementSession:
                     "goniometer_radius_mm": goniometer_radius,
                     "specimen_displacement_mm": policy.specimen_displacement_mm,
                     "refine_specimen_displacement": policy.refine_specimen_displacement,
+                    "likelihood": policy.likelihood,
+                    "validation_rollback_tolerance": policy.validation_rollback_tolerance,
+                    "adaptive_release": policy.adaptive_release,
+                    "restart_seed": policy.restart_seed,
                     "released_parameter_groups": sorted(released_names),
                 },
                 "instrument": instrument_metadata,
                 "declared_model_limitations": list(declared_limitations),
                 "restart_index": restart_index,
+                "restart_seed": restart_seed,
+            },
+            convergence={
+                "classification": trace.convergence_classification,
+                "final_gradient_norm": trace.final_gradient_norm,
+                "relative_loss_change": trace.relative_loss_change,
+                "stages": [
+                    {
+                        "name": item.name,
+                        "optimizer": item.optimizer,
+                        "accepted": item.accepted,
+                        "reason": item.reason,
+                        "training_before": item.training_before,
+                        "training_after": item.training_after,
+                        "validation_before": item.validation_before,
+                        "validation_after": item.validation_after,
+                        "gradient_norm": item.gradient_norm,
+                        "width_multiplier": item.width_multiplier,
+                    }
+                    for item in trace.stage_outcomes
+                ],
             },
         )
 
@@ -1081,16 +1320,35 @@ class RefinementSession:
                 self.refine_candidate(index, policy=policy, restart_index=restart)
                 for restart in range(policy.restarts)
             )
-            best = min(attempts, key=lambda item: item.r_wp)
+            best = min(attempts, key=lambda item: _candidate_objective_score(item, policy))
             restart_rwp = [item.r_wp for item in attempts]
+            restart_scores = [_candidate_objective_score(item, policy) for item in attempts]
             extra_warnings = list(best.warnings)
             if len(attempts) > 1 and np.ptp(restart_rwp) > 0.02:
                 extra_warnings.append("Refinement is sensitive to starting values across restarts.")
             provenance = dict(best.provenance)
             provenance["restart_rwp"] = restart_rwp
+            provenance["restart_objective"] = {
+                "name": "mean_poisson_deviance" if policy.likelihood == "poisson" else "r_wp",
+                "values": restart_scores,
+            }
+            provenance["restart_attempts"] = [
+                {
+                    "restart_index": attempt.provenance["restart_index"],
+                    "seed": attempt.provenance["restart_seed"],
+                    "r_wp": attempt.r_wp,
+                    "classification": attempt.convergence["classification"],
+                }
+                for attempt in attempts
+            ]
             candidates.append(replace(best, warnings=tuple(extra_warnings), provenance=provenance))
         candidates = tuple(candidates)
-        ranking = tuple(result.name for result in sorted(candidates, key=lambda item: item.r_wp))
+        ranking = tuple(
+            result.name
+            for result in sorted(
+                candidates, key=lambda item: _candidate_objective_score(item, policy)
+            )
+        )
         pairwise = {}
         for left in range(len(candidates)):
             for right in range(left + 1, len(candidates)):
@@ -1111,8 +1369,9 @@ class RefinementSession:
         elif pairwise and max(pairwise.values()) < 9.0:
             conclusion = "The supplied experiment does not discriminate the refined candidates."
         else:
+            metric = "mean Poisson deviance" if policy.likelihood == "poisson" else "Rwp"
             conclusion = (
-                f"{ranking[0]} has the lowest Rwp; inspect robustness and residual evidence."
+                f"{ranking[0]} has the lowest {metric}; inspect robustness and residual evidence."
             )
         return SessionResult(self.dataset, candidates, ranking, pairwise, conclusion)
 
@@ -1120,6 +1379,106 @@ class RefinementSession:
         output = Path(path)
         output.write_text(_render_html(result), encoding="utf-8")
         return output
+
+
+def _poisson_deviance_torch(observed, calculated):
+    """Pointwise Poisson deviance for positive expected counts."""
+    import torch
+
+    expected = torch.clamp(calculated, min=1e-12)
+    logarithmic = torch.where(
+        observed > 0,
+        observed * torch.log(torch.clamp(observed, min=1e-12) / expected),
+        torch.zeros_like(observed),
+    )
+    return 2.0 * (expected - observed + logarithmic)
+
+
+def _candidate_objective_score(candidate, policy):
+    if policy.likelihood == "poisson":
+        return float(candidate.physical_parameters["mean_poisson_deviance"])
+    return candidate.r_wp
+
+
+def _poisson_deviance_numpy(observed, calculated):
+    observed = np.asarray(observed, dtype=np.float64)
+    calculated = np.asarray(calculated, dtype=np.float64)
+    expected = np.maximum(calculated, 1e-12)
+    logarithmic = np.zeros_like(observed)
+    positive = observed > 0
+    logarithmic[positive] = observed[positive] * np.log(
+        observed[positive] / expected[positive]
+    )
+    return 2.0 * (expected - observed + logarithmic)
+
+
+def _positive_expected_counts(calculated):
+    """Smoothly map an unconstrained profile to strictly positive count means."""
+    import torch
+
+    return torch.nn.functional.softplus(calculated, beta=20.0) + 1e-12
+
+
+def _group_release_evidence(
+    calculate,
+    groups,
+    observed,
+    sigma,
+    selected,
+    *,
+    max_points,
+):
+    """Compute compact whitened evidence for adaptive group release."""
+    import torch
+
+    available = np.flatnonzero(selected)
+    chosen = available[
+        np.linspace(0, len(available) - 1, min(max_points, len(available))).astype(int)
+    ]
+    profile = calculate()
+    residual = (
+        np.asarray(observed, dtype=np.float64)[chosen]
+        - profile[chosen].detach().cpu().numpy()
+    ) / np.asarray(sigma, dtype=np.float64)[chosen]
+    group_jacobians = {}
+    for name, tensor in groups.items():
+        rows = []
+        for point in chosen:
+            gradient = torch.autograd.grad(
+                profile[int(point)], tensor, retain_graph=True, allow_unused=True
+            )[0]
+            if gradient is None:
+                gradient = torch.zeros_like(tensor)
+            rows.append(gradient.reshape(-1).detach().cpu().numpy())
+        group_jacobians[name] = np.asarray(rows) / np.asarray(sigma)[chosen, None]
+
+    sensitivity = {}
+    support = {}
+    for name, jacobian in group_jacobians.items():
+        sensitivity[name] = float(np.linalg.norm(jacobian))
+        projection = jacobian.T @ residual
+        support[name] = float(np.linalg.norm(projection) / max(sensitivity[name], 1e-30))
+    correlation = {}
+    names = tuple(groups)
+    for left_index, left in enumerate(names):
+        left_q = _orthonormal_columns(group_jacobians[left])
+        for right in names[left_index + 1 :]:
+            right_q = _orthonormal_columns(group_jacobians[right])
+            value = (
+                0.0
+                if left_q.shape[1] == 0 or right_q.shape[1] == 0
+                else float(np.linalg.svd(left_q.T @ right_q, compute_uv=False)[0])
+            )
+            correlation[(left, right)] = value
+    return sensitivity, support, correlation
+
+
+def _orthonormal_columns(matrix):
+    if not np.any(matrix):
+        return np.empty((matrix.shape[0], 0))
+    left, singular, _ = np.linalg.svd(matrix, full_matrices=False)
+    keep = singular > np.finfo(float).eps * max(matrix.shape) * singular[0]
+    return left[:, keep]
 
 
 def _local_identifiability(
@@ -1349,6 +1708,7 @@ def _render_html(result: SessionResult) -> str:
             for item in candidate.informative_regions
         )
         identifiability = html.escape(json.dumps(candidate.identifiability))
+        convergence = html.escape(json.dumps(candidate.convergence or {}))
         sections.append(
             f"<section><h2>{html.escape(candidate.name)}</h2>"
             f"<p>Rwp={candidate.r_wp:.5f}; chi²={candidate.chi_squared:.3f}; "
@@ -1356,6 +1716,7 @@ def _render_html(result: SessionResult) -> str:
             f"{_svg_profile(result.dataset, candidate)}<p>Black: observed; blue: calculated; orange: residual.</p>"
             f"<p><strong>Recommended next action:</strong> {html.escape(candidate.recommendation)}</p>"
             f"<ul>{warnings}</ul><h3>Largest unexplained regions</h3><ol>{regions}</ol>"
+            f"<h3>Optimization and validation</h3><pre>{convergence}</pre>"
             f"<h3>Local identifiability</h3><pre>{identifiability}</pre>"
             f"<table>{rows}</table></section>"
         )

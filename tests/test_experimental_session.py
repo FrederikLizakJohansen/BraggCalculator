@@ -233,6 +233,52 @@ def test_candidate_session_ranks_generating_structure_and_writes_report(tmp_path
     assert "SHA-256" in text
 
 
+def test_poisson_session_records_continuation_convergence_and_seed(nacl):
+    generator = BraggCalculator(
+        two_theta_range=(20.0, 45.0), two_theta_step=0.25
+    ).load(nacl)
+    coordinate, profile = generator.pattern()
+    expected = 0.0002 * profile + 2.0
+    observed = np.random.default_rng(4).poisson(expected).astype(float)
+    dataset = DiffractionDataset(
+        coordinate=coordinate,
+        intensity=observed,
+        sigma=np.sqrt(observed + 1.0),
+        mask=np.ones(len(coordinate), dtype=bool),
+        domain="two_theta",
+        wavelength=generator.wavelength,
+    )
+    policy = RefinementPolicy(
+        likelihood="poisson",
+        refine_lattice=False,
+        background_degree=0,
+        diagnostic_points=0,
+        restart_seed=91,
+        stages=(
+            OptimizationStage(
+                "wide", ("scale", "background", "profile"), 3, 0.01, width_multiplier=2.0
+            ),
+            OptimizationStage(
+                "polish",
+                ("scale", "background", "profile"),
+                3,
+                0.5,
+                optimizer="lbfgs",
+                width_multiplier=1.0,
+            ),
+        ),
+    )
+
+    candidate = RefinementSession(dataset, [nacl]).run(policy).candidates[0]
+
+    assert candidate.physical_parameters["fit_objective"] == "poisson"
+    assert candidate.physical_parameters["mean_poisson_deviance"] >= 0
+    assert candidate.provenance["restart_seed"] == 91
+    assert candidate.provenance["restart_objective"]["name"] == "mean_poisson_deviance"
+    assert [item["width_multiplier"] for item in candidate.convergence["stages"]] == [2.0, 1.0]
+    assert candidate.convergence["stages"][-1]["optimizer"] == "lbfgs"
+
+
 def test_refinement_session_integrates_declared_rigid_body():
     structure = Structure(
         Lattice.from_parameters(8.2, 9.1, 10.3, 81, 87, 76),

@@ -15,7 +15,17 @@ from .parameters import (
     lattice_parameters,
 )
 from .experiment import ProfileNuisanceParameterization
-from .optimization import OptimizationStage, StagedOptimizationResult, staged_adam
+from .optimization import (
+    GaussNewtonResult,
+    OptimizationStage,
+    ReleaseDecision,
+    StageOutcome,
+    StagedOptimizationResult,
+    damped_gauss_newton,
+    recommend_parameter_groups,
+    staged_adam,
+    staged_optimize,
+)
 from .mixture import PhaseMixturePolicy, PhaseMixtureResult, PhaseMixtureSession
 from .radiation import nist_copper_ka_spectrum
 from .uncertainty import BootstrapResult, parametric_bootstrap
@@ -49,6 +59,7 @@ __all__ = [
     "MismatchDiskResult",
     "MinimumDistanceRestraint",
     "OriginAlignment",
+    "GaussNewtonResult",
     "OptimizationStage",
     "OrbitCoordinateSpec",
     "PhaseMixturePolicy",
@@ -68,6 +79,8 @@ __all__ = [
     "SymmetryIsotropicDisplacementParameterization",
     "SymmetryLatticeParameterization",
     "SymmetryOccupancyParameterization",
+    "ReleaseDecision",
+    "StageOutcome",
     "StagedOptimizationResult",
     "StructuralRestraintSet",
     "SessionResult",
@@ -75,5 +88,8 @@ __all__ = [
     "lattice_parameters",
     "nist_copper_ka_spectrum",
     "parametric_bootstrap",
+    "damped_gauss_newton",
+    "recommend_parameter_groups",
     "staged_adam",
+    "staged_optimize",
 ]

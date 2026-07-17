@@ -157,3 +157,18 @@ python demo/uncertainty_identifiability.py
 It writes `demo/uncertainty_identifiability.png` and the self-contained
 `demo/uncertainty_identifiability_report.html`. The report explicitly limits
 all intervals to the supplied forward, Gaussian noise, prior and bounds models.
+
+## Robust refinement mechanics
+
+`robust_refinement_mechanics.py` exercises the guarded optimization layer on
+small deterministic problems: low-count Poisson deviance, Adam-to-L-BFGS
+peak-width continuation, damped Gauss--Newton trust steps, evidence-based
+parameter release, validation rollback and seeded multistart classification.
+
+```bash
+python demo/robust_refinement_mechanics.py
+```
+
+It writes `demo/robust_refinement_mechanics.png` and the self-contained
+`demo/robust_refinement_mechanics_report.html`. These are numerical-mechanics
+gates; they do not claim that optimizer convergence proves structural truth.
