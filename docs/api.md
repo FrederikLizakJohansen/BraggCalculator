@@ -358,6 +358,59 @@ the last two are not converted into success by passing numerical cases.
 padding, reconstructs centidegree coordinates from the `CONST` header and
 records how uncertainties were obtained.
 
+## Portable projects and linked workspaces
+
+```python
+from braggcalculator import ProjectStore, RefinementPolicy
+
+project = ProjectStore.create(
+    "my-project",
+    dataset_path="pattern.xye",
+    model_paths=["model-a.cif", "model-b.cif"],
+    names=["A", "B"],
+    wavelength=1.5406,
+    policy=RefinementPolicy.cautious(refine_coordinates=True),
+)
+document, result = project.run()
+continued_document, continued_result = project.run(resume=True)
+```
+
+Creation copies and checksums every input. A resumed run restores all raw
+parameter groups from the latest result, starts a fresh optimizer and records a
+new trace segment with `parent_run_id`. It does not claim to preserve Adam or
+L-BFGS internal optimizer state.
+
+Each run exports:
+
+- `result.json` using `braggcalculator.session-result/v1`;
+- observed/calculated/residual `profiles.csv`;
+- flattened `parameters.csv`;
+- one refined CIF per candidate;
+- a linked self-contained `workspace.html`;
+- project-level `audit.json`.
+
+Project, result, audit and service-response JSON Schemas are distributed under
+`braggcalculator/schemas/v1/`.
+
+## Service and MCP operations
+
+`DiagnosticService(root).dispatch(operation, payload)` is the shared local API.
+Available operations are project create/run/resume/status/result, stored-run
+sensitivity analysis, pattern simulation, relationship-aware model comparison
+and measurement ranking.
+
+```bash
+bragg-service --root bragg-projects --port 8765
+bragg-mcp --root bragg-projects
+```
+
+The HTTP transport accepts JSON POST requests at
+`/v1/operations/<operation>`. The MCP stdio server publishes structured tools
+for the same scientific operations. MCP project creation requires
+`release_policy_acknowledged=true` whenever the declared policy releases any
+structural family; an agent cannot silently opt into broad structural
+refinement.
+
 ## Backends
 
 ```python

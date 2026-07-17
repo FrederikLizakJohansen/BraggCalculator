@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+from hashlib import sha256
 import json
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -405,6 +406,7 @@ class RefinementSession:
         policy: RefinementPolicy | None = None,
         *,
         restart_index: int = 0,
+        checkpoint: dict[str, Any] | None = None,
     ):
         import torch
 
@@ -644,6 +646,33 @@ class RefinementSession:
             groups["u_aniso"] = u_aniso
         if rigid_body_model is not None:
             groups["rigid_bodies"] = rigid_bodies
+        all_groups = dict(groups)
+        if checkpoint is not None:
+            if restart_index != 0:
+                raise ValueError("checkpoint continuation is only valid for restart index zero")
+            raw_groups = checkpoint.get("raw_groups")
+            if not isinstance(raw_groups, dict):
+                raise ValueError("checkpoint must contain a raw_groups mapping")
+            expected = set(all_groups)
+            supplied = set(raw_groups)
+            if supplied != expected:
+                missing = sorted(expected - supplied)
+                unknown = sorted(supplied - expected)
+                raise ValueError(
+                    f"checkpoint parameter groups do not match policy; missing={missing}, "
+                    f"unknown={unknown}"
+                )
+            with torch.no_grad():
+                for name, tensor in all_groups.items():
+                    restored = torch.as_tensor(
+                        raw_groups[name], dtype=torch.float64, device=self.device
+                    )
+                    if restored.shape != tensor.shape:
+                        raise ValueError(
+                            f"checkpoint group {name!r} has shape {tuple(restored.shape)}, "
+                            f"expected {tuple(tensor.shape)}"
+                        )
+                    tensor.copy_(restored)
 
         normalized_x = torch.linspace(-1.0, 1.0, len(grid), dtype=torch.float64, device=self.device)
         background_basis = torch.stack(
@@ -1289,6 +1318,23 @@ class RefinementSession:
                 "declared_model_limitations": list(declared_limitations),
                 "restart_index": restart_index,
                 "restart_seed": restart_seed,
+                "resumed_from_checkpoint": checkpoint is not None,
+                "resume_checkpoint_sha256": (
+                    sha256(
+                        json.dumps(
+                            checkpoint, sort_keys=True, separators=(",", ":")
+                        ).encode("utf-8")
+                    ).hexdigest()
+                    if checkpoint is not None
+                    else None
+                ),
+                "checkpoint": {
+                    "format": "braggcalculator.raw-parameter-state/v1",
+                    "raw_groups": {
+                        name: tensor.detach().cpu().numpy().tolist()
+                        for name, tensor in all_groups.items()
+                    },
+                },
             },
             convergence={
                 "classification": trace.convergence_classification,
@@ -1312,12 +1358,26 @@ class RefinementSession:
             },
         )
 
-    def run(self, policy: RefinementPolicy | None = None) -> SessionResult:
+    def run(
+        self,
+        policy: RefinementPolicy | None = None,
+        *,
+        checkpoints: dict[str, dict[str, Any]] | None = None,
+    ) -> SessionResult:
         policy = RefinementPolicy.quick() if policy is None else policy
+        checkpoints = {} if checkpoints is None else dict(checkpoints)
+        unknown = set(checkpoints) - set(self.names)
+        if unknown:
+            raise ValueError(f"checkpoint supplied for unknown candidates: {sorted(unknown)}")
         candidates = []
         for index in range(len(self.structures)):
             attempts = tuple(
-                self.refine_candidate(index, policy=policy, restart_index=restart)
+                self.refine_candidate(
+                    index,
+                    policy=policy,
+                    restart_index=restart,
+                    checkpoint=(checkpoints.get(self.names[index]) if restart == 0 else None),
+                )
                 for restart in range(policy.restarts)
             )
             best = min(attempts, key=lambda item: _candidate_objective_score(item, policy))

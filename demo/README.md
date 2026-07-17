@@ -206,3 +206,24 @@ It writes `demo/reference_validation.png`, a self-contained
 `unsupported` overall while preferred orientation and TOF are absent, and it
 keeps direct GSAS-II final-profile reproduction and external expert sign-off as
 pending gates.
+
+## Scientist workspace and agent-safe project lifecycle
+
+`scientist_agent_interface.py` builds a portable two-candidate project, runs it,
+continues from the first run's exact raw parameter checkpoint, and generates a
+linked offline workspace.
+
+```bash
+python demo/scientist_agent_interface.py
+```
+
+It writes `demo/scientist_agent_interface.png` and the complete
+`demo/scientist_workspace_project/` bundle. Open
+`runs/run-0002/workspace.html` to click between the structure projection,
+profile, resolution-defined peak groups, mismatch disk and optimizer trace.
+The right-hand table reports bounds, restraint weights, release state and
+provenance; adjacent JSON, CSV, CIF and audit artifacts are directly linked.
+
+The example is intentionally non-discriminating: the lower-Rwp model is not
+presented as structurally proven. Continuation restores raw parameter values but
+starts a fresh optimizer, so each run remains a separate trace segment.

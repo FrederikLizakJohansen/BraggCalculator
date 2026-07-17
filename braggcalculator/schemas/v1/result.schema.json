@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://braggcalculator.org/schemas/v1/result.schema.json",
+  "title": "BraggCalculator session result v1",
+  "type": "object",
+  "required": ["schema", "run_id", "dataset", "ranking", "conclusion", "candidates"],
+  "properties": {
+    "schema": {"const": "braggcalculator.session-result/v1"},
+    "run_id": {"type": "string"},
+    "dataset": {"type": "object"},
+    "ranking": {"type": "array", "items": {"type": "string"}},
+    "conclusion": {"type": "string"},
+    "candidates": {"type": "array", "minItems": 1}
+  },
+  "additionalProperties": true
+}

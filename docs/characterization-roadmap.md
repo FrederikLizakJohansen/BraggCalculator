@@ -589,7 +589,7 @@ reported as pending; neither is claimed complete.
 
 ## Milestone 7 -- Scientist and agent interfaces
 
-**Status: Planned**
+**Status: Implemented**
 
 - interactive linked structure, profile, peak-group and mismatch views;
 - parameter tables with bounds, restraints, release state and provenance;
@@ -597,6 +597,64 @@ reported as pending; neither is claimed complete.
 - versioned structured JSON schemas;
 - REST/service operations and MCP tools;
 - CIF, profile, table and audit-trail exports.
+
+The interface layer now shares one versioned project and service model across
+Python, the command line, HTTP and MCP. A project bundle copies and checksums
+its pattern and CIF inputs, freezes the refinement policy, records an append-only
+run lineage and writes one structured result per run. Continuation restores the
+exact raw parameter groups from the previous run and starts a fresh optimizer;
+optimizer moments are not serialized and every continuation is therefore a new,
+explicit trace segment rather than an invisible extension.
+
+The self-contained HTML workspace links:
+
+- candidate selection and fractional structure projections;
+- observed, calculated and residual profiles;
+- resolution-defined peak groups and their contributing reflections;
+- an origin-aligned mismatch disk when the starting models share a valid
+  lattice representation;
+- optimizer traces, informative regions and recommendations;
+- parameter values, physical bounds, restraint weights, active/fixed state and
+  provenance;
+- JSON, profile CSV, parameter CSV, refined CIF and audit exports.
+
+`ProjectStore` supplies create/run/resume/read/export behavior. The
+`bragg-project` command exposes that lifecycle to scientists. `DiagnosticService`
+provides versioned `simulate_pattern`, `compare_models`, `suggest_measurement`,
+project create/run/resume/status/result and sensitivity-analysis operations; `bragg-service` exposes
+them at `/v1/operations/<name>`. `bragg-mcp` provides the same operations as
+structured MCP tools. MCP refuses structural release unless the caller supplies
+`release_policy_acknowledged=true`.
+
+Versioned contracts are checked into `braggcalculator/schemas/v1/`, while every
+runtime document also carries a schema identifier. Project paths are confined
+to the declared service root and all copied inputs are rechecked before a run.
+
+The generated example contains two compatible candidate models and two linked
+runs. Run 2 names run 1 as its parent and resumes the stored raw parameters. The
+final candidates reach Rwp values of about 0.067, but expected pairwise
+separation remains below the discrimination threshold; the UI therefore reports
+that the synthetic experiment does not distinguish them instead of selecting a
+winner. Its starting-model mismatch disk has `D_SF=0.1354`.
+
+Evidence artifacts:
+
+- `demo/scientist_agent_interface.png` summarizes fit, mismatch, run lineage,
+  checkpoint trace segments, exports and shared operations;
+- `demo/scientist_workspace_project/runs/run-0002/workspace.html` is the linked
+  offline workspace;
+- `demo/scientist_workspace_project/project.json` and `audit.json` demonstrate
+  the portable project and audit formats;
+- both run directories contain structured results, tables and refined CIFs;
+- interface regression tests cover policy round trips, raw-parameter resume,
+  checksums, exports, workspace content, service scope and the MCP release gate.
+
+Current limitations are explicit. The workspace mismatch disk describes the
+origin-aligned starting models, because a general refined-structure alignment
+export is not yet available. Peak groups use a declared fixed `0.08 A^-1`
+resolution proxy. The dependency-free HTTP transport is intended for trusted
+local use and does not provide authentication or TLS. The MCP implementation is
+a compact stdio JSON-RPC server rather than a hosted multi-user service.
 
 ## Milestone 8 -- Publication package
 
@@ -665,3 +723,12 @@ instrument, uncertainty and reference-validation milestones are complete.
 - Generated the reference-validation figure, self-contained HTML report and
   machine-readable JSON; retained external crystallographer review as an
   explicit unsigned release gate.
+- Implemented Milestone 7 portable project bundles, versioned project/result
+  schemas, exact raw-parameter continuation with separate trace segments, and
+  refined-CIF/profile/parameter/audit exports.
+- Added the linked offline scientist workspace, local REST operations,
+  `bragg-project` lifecycle CLI and agent-safe MCP tools with an explicit
+  structural-release acknowledgement gate.
+- Generated a two-model, two-run interface project and companion six-panel
+  figure; the example correctly concludes that its candidate profiles are not
+  experimentally discriminated.

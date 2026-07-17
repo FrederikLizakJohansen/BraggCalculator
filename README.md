@@ -205,6 +205,21 @@ python demo/uncertainty_identifiability.py
 The complete implementation and validation sequence is tracked in
 [`docs/characterization-roadmap.md`](docs/characterization-roadmap.md).
 
+Portable refinement projects and a linked offline workspace are also available:
+
+```bash
+bragg-project create my-project \
+    --data pattern.xye --model model-a.cif --model model-b.cif \
+    --wavelength 1.5406
+bragg-project run my-project
+bragg-project resume my-project
+```
+
+Projects copy and checksum their inputs, freeze the policy, retain parent-linked
+run records and export result JSON, profile/parameter CSV, refined CIF, audit
+JSON and an interactive HTML workspace. Local REST and MCP transports use the
+same versioned operations through `bragg-service` and `bragg-mcp`.
+
 ## Data and model references
 
 - P. A. Doyle and P. S. Turner, *Acta Crystallographica A* **24**, 390–397

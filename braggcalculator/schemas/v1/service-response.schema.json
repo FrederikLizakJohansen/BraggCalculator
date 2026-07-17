@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://braggcalculator.org/schemas/v1/service-response.schema.json",
+  "title": "BraggCalculator service response v1",
+  "type": "object",
+  "required": ["schema", "operation", "result"],
+  "properties": {
+    "schema": {"const": "braggcalculator.service-response/v1"},
+    "operation": {"type": "string"},
+    "result": {}
+  },
+  "additionalProperties": false
+}

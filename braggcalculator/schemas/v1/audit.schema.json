@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://braggcalculator.org/schemas/v1/audit.schema.json",
+  "title": "BraggCalculator audit trail v1",
+  "type": "object",
+  "required": ["schema", "project_id", "events"],
+  "properties": {
+    "schema": {"const": "braggcalculator.audit/v1"},
+    "project_id": {"type": "string"},
+    "events": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": false
+}

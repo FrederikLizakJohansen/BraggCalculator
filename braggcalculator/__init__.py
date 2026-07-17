@@ -38,6 +38,19 @@ from .validation import (
     validate_line_oracle,
     validate_public_sources,
 )
+from .project import (
+    AUDIT_SCHEMA,
+    PROJECT_SCHEMA,
+    RESULT_SCHEMA,
+    ProjectStore,
+    policy_from_dict,
+    policy_to_dict,
+    refined_structure_from_candidate,
+    session_result_to_dict,
+    validate_project_document,
+)
+from .service import DiagnosticService
+from .workspace import WORKSPACE_SCHEMA, write_session_workspace
 from .structural_diagnostics import (
     classify_structural_relationship,
     compare_pair_distributions,
@@ -74,6 +87,7 @@ from ._version import __version__
 
 __all__ = [
     "AnisotropicDisplacementOrbitSpec",
+    "AUDIT_SCHEMA",
     "BondAngleRestraint",
     "BondLengthRestraint",
     "BootstrapResult",
@@ -81,6 +95,7 @@ __all__ = [
     "CompositionRestraint",
     "CounterfactualAttribution",
     "DiffractionDataset",
+    "DiagnosticService",
     "ExperimentRecommendation",
     "CandidateRefinementResult",
     "JacobianDiagnostics",
@@ -97,6 +112,8 @@ __all__ = [
     "PhaseMixtureSession",
     "ProfileDiscriminationResult",
     "ProfileNuisanceParameterization",
+    "PROJECT_SCHEMA",
+    "ProjectStore",
     "RefinementPolicy",
     "RefinementSession",
     "ReflectionMatch",
@@ -110,6 +127,7 @@ __all__ = [
     "SymmetryLatticeParameterization",
     "SymmetryOccupancyParameterization",
     "ReleaseDecision",
+    "RESULT_SCHEMA",
     "ReferenceSource",
     "StageOutcome",
     "StagedOptimizationResult",
@@ -121,10 +139,13 @@ __all__ = [
     "ValidationCase",
     "ValidationMatrix",
     "ValidationMetric",
+    "WORKSPACE_SCHEMA",
     "__version__",
     "lattice_parameters",
     "nist_copper_ka_spectrum",
     "parametric_bootstrap",
+    "policy_from_dict",
+    "policy_to_dict",
     "damped_gauss_newton",
     "classify_structural_relationship",
     "compare_pair_distributions",
@@ -134,10 +155,14 @@ __all__ = [
     "load_reference_sources",
     "peak_group_attribution",
     "radial_pair_distribution",
+    "refined_structure_from_candidate",
     "recommend_parameter_groups",
     "staged_adam",
     "staged_optimize",
     "suggest_measurements",
+    "session_result_to_dict",
     "validate_line_oracle",
     "validate_public_sources",
+    "validate_project_document",
+    "write_session_workspace",
 ]
