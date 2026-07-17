@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this diagnostics benchmark, cite BraggCalculator and the eventual diagnostics article."
+title: "Explaining structural ambiguity across the powder-diffraction information ladder"
+type: dataset
+version: 1.0.0
+date-released: 2026-07-17
+authors:
+  - family-names: Johansen
+    given-names: Frederik Lizak
+    orcid: "https://orcid.org/0000-0002-8049-8624"
+repository-code: "https://github.com/FrederikLizakJohansen/BraggCalculator"
+license: Apache-2.0
+abstract: >-
+  Frozen synthetic homometric, near-homometric, compatible-structure and
+  resolution-limited benchmarks for phase-aware powder-diffraction diagnostics.

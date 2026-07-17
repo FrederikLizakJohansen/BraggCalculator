@@ -233,6 +233,18 @@ amplitude/phase, peak-overlap, identifiability and experiment-design
 diagnostics in separate tabs. The bundled data are synthetic and explicitly
 labeled as a tutorial, not independent validation.
 
+The reproducible diagnostics-paper benchmark is also included:
+
+```bash
+python scripts/run_diagnostics_publication.py --verify
+```
+
+It freezes exact/near homometric and resolution-limited cases, compares four
+reflection-weighting declarations with four powder-profile similarity
+baselines, tests representation invariance and regenerates the manuscript
+figures and tables under `paper/diagnostics/`. Numerical gates pass; external
+crystallographer review remains explicitly pending.
+
 ## Data and model references
 
 - P. A. Doyle and P. S. Turner, *Acta Crystallographica A* **24**, 390–397

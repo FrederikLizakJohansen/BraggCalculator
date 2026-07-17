@@ -1,0 +1,627 @@
+{
+  "schema": "braggcalculator.diagnostics-publication/v1",
+  "benchmark_version": "1.0.0",
+  "input_hashes": {
+    "cases/homometric-a.cif": "4ffd135c85ec6a69f907650262d11a49bfebf9d2b54a9fcd48d98facf1923096",
+    "cases/homometric-b.cif": "8e634cab4584383d062e1c8b9948a7b16cf3e8914e55cc3f4ffe9f58491a22fc",
+    "cases/near-homometric-b.cif": "a1b2e0bb0843348eea261c430325bef3fcc10efa01cc8272018f0352ce5d14f1",
+    "cases/resolution-cubic.cif": "3c66f519ef197cdcd837b025442d0338b681d92b1126547742780fcfe0534d96",
+    "cases/resolution-strained.cif": "9f15725602cb950717f29ca537378aa86a04f0d28e26656a63bb6bd0dacab85f",
+    "cases/realistic-compatible-a.cif": "276d0603aa8a36e9ee1ec61704e200aadc20d891a3cfa09a8183f8794632b0ef",
+    "cases/realistic-compatible-b.cif": "616e1843187ca41a329baeb8ce064952e58a33c4806a1864b52ba2f667be8eb2"
+  },
+  "fixed_configuration": {
+    "radiation": "xray",
+    "wavelength_angstrom": 1.5406,
+    "q_range_inverse_angstrom": [
+      0.4,
+      6.0
+    ],
+    "q_step_inverse_angstrom": 0.005,
+    "shell_width_inverse_angstrom": 0.5
+  },
+  "cases": {
+    "exact_homometric": {
+      "structure_a": "data/publication_diagnostics/cases/homometric-a.cif",
+      "structure_b": "data/publication_diagnostics/cases/homometric-b.cif",
+      "profile_fwhm_q": 0.08,
+      "profile_metrics": {
+        "cosine": 0.9999999999999999,
+        "pearson": 0.9999999999999999,
+        "jensen_shannon": 0.9999999955987471,
+        "gaussian_cross_correlation": 1.0
+      },
+      "weighting": {
+        "uniform": {
+          "d_sf": 0.5199504081020819,
+          "d_amplitude": 0.11577391848541037,
+          "d_phase": 0.5068972545635408,
+          "origin_shift": [
+            0.0,
+            0.0,
+            0.25
+          ],
+          "identity_error": 5.551115123125783e-16,
+          "effective_reflections": 1464.0
+        },
+        "mean_intensity": {
+          "d_sf": 0.36034496241897457,
+          "d_amplitude": 6.200491279776871e-16,
+          "d_phase": 0.36034496241897457,
+          "origin_shift": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "identity_error": 4.440892098500626e-16,
+          "effective_reflections": 544.5937001998894
+        },
+        "sqrt_mean_intensity": {
+          "d_sf": 0.4614968487991594,
+          "d_amplitude": 4.130351407536555e-09,
+          "d_phase": 0.4614968487991594,
+          "origin_shift": [
+            0.0,
+            0.0,
+            0.000244140625
+          ],
+          "identity_error": 5.551115123125783e-16,
+          "effective_reflections": 1039.9103007260803
+        },
+        "shell_balanced_intensity": {
+          "d_sf": 0.37398577721515686,
+          "d_amplitude": 5.797823875051386e-16,
+          "d_phase": 0.37398577721515686,
+          "origin_shift": [
+            0.0,
+            0.0,
+            0.500244140625
+          ],
+          "identity_error": 4.440892098500626e-16,
+          "effective_reflections": 281.7278680325691
+        }
+      }
+    },
+    "near_homometric": {
+      "structure_a": "data/publication_diagnostics/cases/homometric-a.cif",
+      "structure_b": "data/publication_diagnostics/cases/near-homometric-b.cif",
+      "profile_fwhm_q": 0.08,
+      "profile_metrics": {
+        "cosine": 0.9999356974930591,
+        "pearson": 0.9999106073368685,
+        "jensen_shannon": 0.9893132585526886,
+        "gaussian_cross_correlation": 0.9999463023641001
+      },
+      "weighting": {
+        "uniform": {
+          "d_sf": 0.6168122409991024,
+          "d_amplitude": 0.3598201388722911,
+          "d_phase": 0.5009858364347838,
+          "origin_shift": [
+            0.0,
+            0.0,
+            0.2509765625
+          ],
+          "identity_error": 7.771561172376096e-16,
+          "effective_reflections": 1464.0
+        },
+        "mean_intensity": {
+          "d_sf": 0.36152176008194964,
+          "d_amplitude": 0.02689309536904503,
+          "d_phase": 0.36052010267698276,
+          "origin_shift": [
+            0.0,
+            0.0,
+            0.999267578125
+          ],
+          "identity_error": 5.551115123125783e-16,
+          "effective_reflections": 545.212757602188
+        },
+        "sqrt_mean_intensity": {
+          "d_sf": 0.4671875617942619,
+          "d_amplitude": 0.08255036967497134,
+          "d_phase": 0.45983655178964716,
+          "origin_shift": [
+            0.0,
+            0.0,
+            0.999267578125
+          ],
+          "identity_error": 5.551115123125783e-16,
+          "effective_reflections": 1052.0645051756264
+        },
+        "shell_balanced_intensity": {
+          "d_sf": 0.3749989454891062,
+          "d_amplitude": 0.025846692534526528,
+          "d_phase": 0.37410714722251337,
+          "origin_shift": [
+            0.0,
+            0.0,
+            0.998779296875
+          ],
+          "identity_error": 5.551115123125783e-16,
+          "effective_reflections": 281.52142066364763
+        }
+      }
+    },
+    "realistic_compatible": {
+      "structure_a": "data/publication_diagnostics/cases/realistic-compatible-a.cif",
+      "structure_b": "data/publication_diagnostics/cases/realistic-compatible-b.cif",
+      "profile_fwhm_q": 0.08,
+      "profile_metrics": {
+        "cosine": 0.9993645238879041,
+        "pearson": 0.9990407267024527,
+        "jensen_shannon": 0.9810155809486755,
+        "gaussian_cross_correlation": 0.9994378307921408
+      },
+      "weighting": {
+        "uniform": {
+          "d_sf": 0.10480271846782731,
+          "d_amplitude": 0.07657772019054088,
+          "d_phase": 0.07155041976582596,
+          "origin_shift": [
+            0.998779296875,
+            0.001220703125,
+            0.998779296875
+          ],
+          "identity_error": 2.220446049250313e-16,
+          "effective_reflections": 543.9999999999999
+        },
+        "mean_intensity": {
+          "d_sf": 0.041688917465393605,
+          "d_amplitude": 0.029924119222974763,
+          "d_phase": 0.029026073247437247,
+          "origin_shift": [
+            0.99853515625,
+            0.001220703125,
+            0.9990234375
+          ],
+          "identity_error": 2.220446049250313e-16,
+          "effective_reflections": 294.58012917440567
+        },
+        "sqrt_mean_intensity": {
+          "d_sf": 0.058701254310703416,
+          "d_amplitude": 0.04088500095766536,
+          "d_phase": 0.04212189400230691,
+          "origin_shift": [
+            0.998779296875,
+            0.001220703125,
+            0.9990234375
+          ],
+          "identity_error": 3.3306690738754696e-16,
+          "effective_reflections": 437.815214546525
+        },
+        "shell_balanced_intensity": {
+          "d_sf": 0.038463773722172495,
+          "d_amplitude": 0.02776187641943001,
+          "d_phase": 0.026622173213747657,
+          "origin_shift": [
+            0.99853515625,
+            0.00146484375,
+            0.9990234375
+          ],
+          "identity_error": 3.3306690738754696e-16,
+          "effective_reflections": 173.07320920840758
+        }
+      }
+    },
+    "resolution_broad": {
+      "structure_a": "data/publication_diagnostics/cases/resolution-cubic.cif",
+      "structure_b": "data/publication_diagnostics/cases/resolution-strained.cif",
+      "profile_fwhm_q": 0.2,
+      "profile_metrics": {
+        "cosine": 0.9996651656560984,
+        "pearson": 0.9994979948661843,
+        "jensen_shannon": 0.9839389346368439,
+        "gaussian_cross_correlation": 0.9998276311695296
+      },
+      "weighting": null
+    },
+    "resolution_high": {
+      "structure_a": "data/publication_diagnostics/cases/resolution-cubic.cif",
+      "structure_b": "data/publication_diagnostics/cases/resolution-strained.cif",
+      "profile_fwhm_q": 0.015,
+      "profile_metrics": {
+        "cosine": 0.9376735218069508,
+        "pearson": 0.9359757867538814,
+        "jensen_shannon": 0.7134106926761488,
+        "gaussian_cross_correlation": 0.9605528881746679
+      },
+      "weighting": null
+    }
+  },
+  "homometric_construction": {
+    "modulus": 8,
+    "set_a": [
+      0,
+      3,
+      4,
+      5
+    ],
+    "set_b": [
+      0,
+      1,
+      3,
+      4
+    ],
+    "directed_difference_multiset_a": {
+      "0": 4,
+      "1": 2,
+      "2": 1,
+      "3": 2,
+      "4": 2,
+      "5": 2,
+      "6": 1,
+      "7": 2
+    },
+    "directed_difference_multiset_b": {
+      "0": 4,
+      "1": 2,
+      "2": 1,
+      "3": 2,
+      "4": 2,
+      "5": 2,
+      "6": 1,
+      "7": 2
+    },
+    "difference_multisets_equal": true,
+    "dihedrally_equivalent": false
+  },
+  "invariance": {
+    "permuted_origin": {
+      "uniform": {
+        "d_sf": 2.118448205535033e-15,
+        "d_amplitude": 1.3496742683756513e-15,
+        "d_phase": 1.6328509328224825e-15,
+        "origin_shift": [
+          0.875,
+          0.75,
+          0.625
+        ],
+        "identity_error": 1.309203283836529e-30,
+        "effective_reflections": 543.9999999999999
+      },
+      "mean_intensity": {
+        "d_sf": 1.0488660519279934e-15,
+        "d_amplitude": 4.586629049860635e-16,
+        "d_phase": 9.432647213146272e-16,
+        "origin_shift": [
+          0.875,
+          0.75,
+          0.625
+        ],
+        "identity_error": 1.309203283836529e-30,
+        "effective_reflections": 294.5460143152918
+      },
+      "sqrt_mean_intensity": {
+        "d_sf": 1.2767348739023058e-15,
+        "d_amplitude": 6.53713322548106e-16,
+        "d_phase": 1.0966817360389716e-15,
+        "origin_shift": [
+          0.875,
+          0.75,
+          0.625
+        ],
+        "identity_error": 1.309203283836529e-30,
+        "effective_reflections": 437.1596776264723
+      },
+      "shell_balanced_intensity": {
+        "d_sf": 9.506939151770174e-16,
+        "d_amplitude": 4.192685747709969e-16,
+        "d_phase": 8.532483709706705e-16,
+        "origin_shift": [
+          0.875,
+          0.75,
+          0.625
+        ],
+        "identity_error": 1.309203283836529e-30,
+        "effective_reflections": 173.39899402581437
+      }
+    },
+    "wrapped": {
+      "uniform": {
+        "d_sf": 5.641530316578712e-15,
+        "d_amplitude": 4.5250959805782785e-15,
+        "d_phase": 3.369031118798253e-15,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "identity_error": 4.1969526614372916e-30,
+        "effective_reflections": 543.9999999999999
+      },
+      "mean_intensity": {
+        "d_sf": 2.241605494042347e-15,
+        "d_amplitude": 1.187675140236458e-15,
+        "d_phase": 1.901110978397933e-15,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "identity_error": 4.1969526614372916e-30,
+        "effective_reflections": 294.5460143152918
+      },
+      "sqrt_mean_intensity": {
+        "d_sf": 2.9090047909007356e-15,
+        "d_amplitude": 1.8259128196610517e-15,
+        "d_phase": 2.264586330542702e-15,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "identity_error": 4.1969526614372916e-30,
+        "effective_reflections": 437.15967762647233
+      },
+      "shell_balanced_intensity": {
+        "d_sf": 2.0435226267764982e-15,
+        "d_amplitude": 1.0683100545124021e-15,
+        "d_phase": 1.7420385625970591e-15,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "identity_error": 4.1969526614372916e-30,
+        "effective_reflections": 173.39899402581435
+      }
+    },
+    "rotated_cartesian_setting": {
+      "relationship": {
+        "regime": "I",
+        "classification": "equivalent",
+        "transformation": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "transformation_direction": "b_to_a",
+        "volume_ratio": 1.0000000000000002,
+        "complex_comparison_allowed": true,
+        "reason": "StructureMatcher found the same periodic decorated structure."
+      },
+      "d_sf": 1.2031739811627367e-16
+    }
+  },
+  "qmax_stability": {
+    "3.0": {
+      "uniform": {
+        "d_sf": 0.5982752362225793,
+        "d_amplitude": 0.3682393375185358,
+        "d_phase": 0.47152205524354096,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.005859375
+        ],
+        "identity_error": 6.661338147750939e-16,
+        "effective_reflections": 191.99999999999994
+      },
+      "mean_intensity": {
+        "d_sf": 0.34288377903721096,
+        "d_amplitude": 0.013884549653247534,
+        "d_phase": 0.342602546995444,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.002685546875
+        ],
+        "identity_error": 4.440892098500626e-16,
+        "effective_reflections": 76.6738803086665
+      },
+      "sqrt_mean_intensity": {
+        "d_sf": 0.4391688461076507,
+        "d_amplitude": 0.06625272438836753,
+        "d_phase": 0.4341426630759115,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.004150390625
+        ],
+        "identity_error": 7.771561172376096e-16,
+        "effective_reflections": 140.0135846224951
+      },
+      "shell_balanced_intensity": {
+        "d_sf": 0.3598852477511007,
+        "d_amplitude": 0.01467829213752149,
+        "d_phase": 0.35958578849670453,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.0009765625
+        ],
+        "identity_error": 5.551115123125783e-16,
+        "effective_reflections": 68.08307295862622
+      }
+    },
+    "4.0": {
+      "uniform": {
+        "d_sf": 0.5894456626183407,
+        "d_amplitude": 0.3386328652078505,
+        "d_phase": 0.48246654990858856,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.25048828125
+        ],
+        "identity_error": 6.661338147750939e-16,
+        "effective_reflections": 437.9999999999999
+      },
+      "mean_intensity": {
+        "d_sf": 0.3642474189770073,
+        "d_amplitude": 0.017840283541957103,
+        "d_phase": 0.36381026169495834,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.49951171875
+        ],
+        "identity_error": 4.440892098500626e-16,
+        "effective_reflections": 172.87465953398436
+      },
+      "sqrt_mean_intensity": {
+        "d_sf": 0.4703554922471456,
+        "d_amplitude": 0.06338084930137367,
+        "d_phase": 0.4660656145103297,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.499755859375
+        ],
+        "identity_error": 4.440892098500626e-16,
+        "effective_reflections": 320.3883049859261
+      },
+      "shell_balanced_intensity": {
+        "d_sf": 0.38156894582992085,
+        "d_amplitude": 0.017821868410931464,
+        "d_phase": 0.38115251727897653,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.50048828125
+        ],
+        "identity_error": 4.440892098500626e-16,
+        "effective_reflections": 122.10268608404601
+      }
+    },
+    "5.0": {
+      "uniform": {
+        "d_sf": 0.6109527083057458,
+        "d_amplitude": 0.3507070036655712,
+        "d_phase": 0.500267737682576,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.5009765625
+        ],
+        "identity_error": 5.551115123125783e-16,
+        "effective_reflections": 818.0000000000001
+      },
+      "mean_intensity": {
+        "d_sf": 0.35444649171343506,
+        "d_amplitude": 0.021413129930937212,
+        "d_phase": 0.35379908614144695,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.49951171875
+        ],
+        "identity_error": 5.551115123125783e-16,
+        "effective_reflections": 319.6443255954036
+      },
+      "sqrt_mean_intensity": {
+        "d_sf": 0.45941428539756135,
+        "d_amplitude": 0.07094946457968913,
+        "d_phase": 0.4539026978364497,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "identity_error": 7.771561172376096e-16,
+        "effective_reflections": 593.3561446753414
+      },
+      "shell_balanced_intensity": {
+        "d_sf": 0.3683708173615345,
+        "d_amplitude": 0.022028043505885053,
+        "d_phase": 0.3677116049064917,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.997802734375
+        ],
+        "identity_error": 6.661338147750939e-16,
+        "effective_reflections": 189.77081537403322
+      }
+    },
+    "6.0": {
+      "uniform": {
+        "d_sf": 0.6168122409991024,
+        "d_amplitude": 0.3598201388722911,
+        "d_phase": 0.5009858364347838,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.2509765625
+        ],
+        "identity_error": 7.771561172376096e-16,
+        "effective_reflections": 1464.0
+      },
+      "mean_intensity": {
+        "d_sf": 0.36152176008194964,
+        "d_amplitude": 0.02689309536904503,
+        "d_phase": 0.36052010267698276,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.999267578125
+        ],
+        "identity_error": 5.551115123125783e-16,
+        "effective_reflections": 545.212757602188
+      },
+      "sqrt_mean_intensity": {
+        "d_sf": 0.4671875617942619,
+        "d_amplitude": 0.08255036967497134,
+        "d_phase": 0.45983655178964716,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.999267578125
+        ],
+        "identity_error": 5.551115123125783e-16,
+        "effective_reflections": 1052.0645051756264
+      },
+      "shell_balanced_intensity": {
+        "d_sf": 0.3749989454891062,
+        "d_amplitude": 0.025846692534526528,
+        "d_phase": 0.37410714722251337,
+        "origin_shift": [
+          0.0,
+          0.0,
+          0.998779296875
+        ],
+        "identity_error": 5.551115123125783e-16,
+        "effective_reflections": 281.52142066364763
+      }
+    }
+  },
+  "qmax_stability_coefficient_of_variation": {
+    "uniform": 0.0177009873623051,
+    "mean_intensity": 0.023210346299317373,
+    "sqrt_mean_intensity": 0.026444904391481037,
+    "shell_balanced_intensity": 0.021634339962126846
+  },
+  "explanations": {
+    "exact_homometric": "The ideal powder profiles and all intensity-only baselines agree, while the phase-aware disk remains displaced vertically. The ambiguity is caused by phase loss, not peak broadening.",
+    "near_homometric": "A controlled site perturbation weakly breaks intensity equality, but ordinary profile metrics remain close to one. Complex mismatch exposes the larger model difference before powder information loss.",
+    "resolution_limited": "The strained model is almost indistinguishable with 0.20 inverse-angstrom FWHM, but its similarity falls at 0.015 inverse-angstrom FWHM. The ambiguity is therefore resolution-limited under the broad experiment.",
+    "weighting": "Uniform reflection weighting gives numerical extinctions undue influence in the exact homometric pair. Intensity-based weights suppress that artifact; shell balancing additionally prevents one resolution region from taking all weight. The benchmark reports every scheme rather than hiding this choice."
+  },
+  "gates": {
+    "input_manifest_verified": true,
+    "homometric_construction_verified": true,
+    "representation_invariance": true,
+    "rotated_setting_invariance": true,
+    "homometric_intensity_equality": true,
+    "homometric_phase_detection": true,
+    "extinction_stable_amplitude": true,
+    "resolution_transition": true,
+    "baseline_metrics_bounded": true,
+    "external_expert_review": null
+  },
+  "release_status": "pending_external_review",
+  "scope_warning": "Synthetic benchmark evidence only. External crystallographer review is unsigned, and the package does not validate arbitrary structure solution."
+}

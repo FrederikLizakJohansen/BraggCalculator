@@ -1,0 +1,51 @@
+{
+  "schema": "braggcalculator.diagnostics-publication/v1",
+  "dataset_version": "1.0.0",
+  "created": "2026-07-17",
+  "license": "Apache-2.0",
+  "scope": "Synthetic mathematical and instrument-resolution benchmark structures; not experimental validation",
+  "files": [
+    {
+      "path": "cases/homometric-a.cif",
+      "sha256": "4ffd135c85ec6a69f907650262d11a49bfebf9d2b54a9fcd48d98facf1923096",
+      "role": "exact_homometric_reference",
+      "provenance": "Si scatterers at cyclic Z8 subset {0,3,4,5}"
+    },
+    {
+      "path": "cases/homometric-b.cif",
+      "sha256": "8e634cab4584383d062e1c8b9948a7b16cf3e8914e55cc3f4ffe9f58491a22fc",
+      "role": "exact_homometric_candidate",
+      "provenance": "Si scatterers at non-congruent cyclic Z8 subset {0,1,3,4}"
+    },
+    {
+      "path": "cases/near-homometric-b.cif",
+      "sha256": "a1b2e0bb0843348eea261c430325bef3fcc10efa01cc8272018f0352ce5d14f1",
+      "role": "near_homometric_candidate",
+      "provenance": "Exact candidate with final x coordinate moved from 0.500 to 0.503"
+    },
+    {
+      "path": "cases/resolution-cubic.cif",
+      "sha256": "3c66f519ef197cdcd837b025442d0338b681d92b1126547742780fcfe0534d96",
+      "role": "resolution_reference",
+      "provenance": "Synthetic cubic SiO2 motif"
+    },
+    {
+      "path": "cases/resolution-strained.cif",
+      "sha256": "9f15725602cb950717f29ca537378aa86a04f0d28e26656a63bb6bd0dacab85f",
+      "role": "resolution_candidate",
+      "provenance": "Reference b cell length increased by 0.5 percent"
+    },
+    {
+      "path": "cases/realistic-compatible-a.cif",
+      "sha256": "276d0603aa8a36e9ee1ec61704e200aadc20d891a3cfa09a8183f8794632b0ef",
+      "role": "compatible_reference",
+      "provenance": "Synthetic NaSiO2 guided-UI reference model"
+    },
+    {
+      "path": "cases/realistic-compatible-b.cif",
+      "sha256": "616e1843187ca41a329baeb8ce064952e58a33c4806a1864b52ba2f667be8eb2",
+      "role": "compatible_candidate",
+      "provenance": "Synthetic NaSiO2 oxygen-shift candidate"
+    }
+  ]
+}

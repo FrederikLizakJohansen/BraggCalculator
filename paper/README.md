@@ -1,5 +1,16 @@
 # JOSS paper and publication figures
 
+The candidate-diagnostics publication is maintained separately under
+[`paper/diagnostics/`](diagnostics/README.md). Regenerate its frozen metric,
+invariance, homometry and resolution benchmark with:
+
+```bash
+python scripts/run_diagnostics_publication.py --verify
+```
+
+Its numerical gates pass, while external crystallographer review remains an
+explicit pending release gate.
+
 `paper.md` and `paper.bib` are the canonical JOSS manuscript sources. This is
 required by the current JOSS publishing pipeline; the paper workflow builds
 them with the official Open Journals action. `paper.tex` is a matching LaTeX

@@ -1,0 +1,9 @@
+{
+  "schema": "braggcalculator.diagnostics-publication/v1",
+  "mapping": {
+    "blind-01": "exact_homometric",
+    "blind-02": "near_homometric",
+    "blind-03": "resolution_limited",
+    "blind-04": "weighting"
+  }
+}

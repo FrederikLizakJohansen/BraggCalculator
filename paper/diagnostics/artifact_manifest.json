@@ -1,0 +1,76 @@
+{
+  "schema": "braggcalculator.diagnostics-publication/v1",
+  "benchmark_version": "1.0.0",
+  "generated_artifacts": [
+    {
+      "path": "results.json",
+      "sha256": "64dc4a47e6cbb0c4deb2bebb52201edc453d5fc3d446cb9b37a26d8aa951987a",
+      "bytes": 19542
+    },
+    {
+      "path": "metric_table.csv",
+      "sha256": "c0095995ccfbebb8657b2a189848cfb5f844c30659fa252bda8e1ff6c1a7adae",
+      "bytes": 774
+    },
+    {
+      "path": "expert_review_packet.json",
+      "sha256": "5a12af5068238d0f42db4604bf82a3219b3ef9210c4dc29d30174e9fd3aa3431",
+      "bytes": 2106
+    },
+    {
+      "path": "expert_review_key.json",
+      "sha256": "30ed130814d7e65e36bdf4f4f5a1d74976a886991bfc170dd84df92a085b6142",
+      "bytes": 218
+    },
+    {
+      "path": "requirements-lock.txt",
+      "sha256": "ee095a9660d5deeccc79545282bea3e1f0d2a7cfe5615aa58dbf01585bc45971",
+      "bytes": 139
+    },
+    {
+      "path": "figures/diagnostic_benchmark.png",
+      "sha256": "350473371ebf49bd17ea5b90a7bbd503ae57740d13e57c31dc1d81f13f6a8436",
+      "bytes": 362067
+    },
+    {
+      "path": "figures/diagnostic_benchmark.pdf",
+      "sha256": "7cb3eab75b1e8a8fb8b7b3b09d37e99bb39db841889693fb699cf8c4a5b8b6c3",
+      "bytes": 103310
+    },
+    {
+      "path": "figures/diagnostic_benchmark.svg",
+      "sha256": "44fab73513f4014e4f73d959d68878c105ed86d57c3cc7e5fa316033486f283f",
+      "bytes": 1148873
+    },
+    {
+      "path": "figures/weighting_invariance.png",
+      "sha256": "2b25aa5941ea5dee6a054a811e7b06f91aa3a75fb0e941044e2c28dd857cb380",
+      "bytes": 206608
+    },
+    {
+      "path": "figures/weighting_invariance.pdf",
+      "sha256": "85c5542f4168a750c34566f1252d23c0da76ea6d68636dd81725be1497ee262c",
+      "bytes": 21150
+    },
+    {
+      "path": "figures/weighting_invariance.svg",
+      "sha256": "1d76c8fedba0176caa058bb3169cdd777a80a8d03d810137514772c3a8ccd29c",
+      "bytes": 89674
+    }
+  ],
+  "analysis_sources": [
+    {
+      "path": "braggcalculator/publication.py",
+      "sha256": "4eebccd829dda52f67d3881fcd0a33b765072d10aae506fb97cb47754ac1e48e"
+    },
+    {
+      "path": "scripts/run_diagnostics_publication.py",
+      "sha256": "2627d73c91bb531920b2a673a6b6c4b759ac80e0bc9e1be18c707050891d3402"
+    },
+    {
+      "path": "data/publication_diagnostics/manifest.json",
+      "sha256": "551f31b8824697bcee56b4ea1ea45ea6b03c0a8eac1b991a021154696d61e424"
+    }
+  ],
+  "environment_excluded_from_hash_gate": "environment.json intentionally records the reproducing machine"
+}

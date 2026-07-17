@@ -1,0 +1,42 @@
+{
+  "schema": "braggcalculator.diagnostics-publication/v1",
+  "instructions": "For each explanation, score scientific correctness, usefulness and whether the claimed information-loss mechanism follows from the supplied evidence.",
+  "reviewer_identity": null,
+  "reviewer_affiliation": null,
+  "review_date": null,
+  "cases": [
+    {
+      "blind_id": "blind-01",
+      "explanation": "The ideal powder profiles and all intensity-only baselines agree, while the phase-aware disk remains displaced vertically. The ambiguity is caused by phase loss, not peak broadening.",
+      "scientific_correctness_1_to_5": null,
+      "diagnostic_usefulness_1_to_5": null,
+      "mechanism_supported": null,
+      "comments": null
+    },
+    {
+      "blind_id": "blind-02",
+      "explanation": "A controlled site perturbation weakly breaks intensity equality, but ordinary profile metrics remain close to one. Complex mismatch exposes the larger model difference before powder information loss.",
+      "scientific_correctness_1_to_5": null,
+      "diagnostic_usefulness_1_to_5": null,
+      "mechanism_supported": null,
+      "comments": null
+    },
+    {
+      "blind_id": "blind-03",
+      "explanation": "The strained model is almost indistinguishable with 0.20 inverse-angstrom FWHM, but its similarity falls at 0.015 inverse-angstrom FWHM. The ambiguity is therefore resolution-limited under the broad experiment.",
+      "scientific_correctness_1_to_5": null,
+      "diagnostic_usefulness_1_to_5": null,
+      "mechanism_supported": null,
+      "comments": null
+    },
+    {
+      "blind_id": "blind-04",
+      "explanation": "Uniform reflection weighting gives numerical extinctions undue influence in the exact homometric pair. Intensity-based weights suppress that artifact; shell balancing additionally prevents one resolution region from taking all weight. The benchmark reports every scheme rather than hiding this choice.",
+      "scientific_correctness_1_to_5": null,
+      "diagnostic_usefulness_1_to_5": null,
+      "mechanism_supported": null,
+      "comments": null
+    }
+  ],
+  "signature": null
+}

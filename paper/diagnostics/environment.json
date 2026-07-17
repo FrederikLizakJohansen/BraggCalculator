@@ -1,0 +1,16 @@
+{
+  "schema": "braggcalculator.diagnostics-publication/v1",
+  "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:09:02) [GCC 11.2.0]",
+  "platform": "Linux-6.17.0-40-generic-x86_64-with-glibc2.42",
+  "machine": "x86_64",
+  "packages": {
+    "braggcalculator": "0.1.0",
+    "numpy": "2.4.2",
+    "pymatgen": "2026.5.4",
+    "matplotlib": "3.10.8",
+    "scipy": "1.17.0",
+    "torch": "2.10.0"
+  },
+  "source_revision_at_generation": "395f6e7d79341a6810b11c5dfe89e6ab78234144",
+  "note": "The input manifest, results and analysis script are the reproducibility authority."
+}

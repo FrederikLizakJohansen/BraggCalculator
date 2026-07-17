@@ -706,7 +706,7 @@ Evidence artifacts:
 
 ## Milestone 8 -- Publication package
 
-**Status: Research**
+**Status: Implemented; external review pending**
 
 - benchmark mismatch-disk weighting choices and invariance;
 - curate homometric, near-homometric and resolution-limited examples;
@@ -717,6 +717,65 @@ Evidence artifacts:
 The first diagnostics paper should focus on explanation and experimental
 discriminability. A full refinement paper should remain separate unless the
 instrument, uncertainty and reference-validation milestones are complete.
+
+The first diagnostics-paper package is now frozen under `paper/diagnostics/`.
+One deterministic command verifies all input hashes, recalculates the full
+benchmark, applies numerical release gates and regenerates machine-readable
+results, tables, blinded review forms and publication figures:
+
+```bash
+python scripts/run_diagnostics_publication.py --verify
+```
+
+The curated synthetic matrix contains:
+
+- a verified exact periodic homometric pair constructed from non-congruent
+  cyclic Z8 subsets with equal directed difference multisets;
+- a controlled near-homometric site perturbation;
+- the lattice-compatible multi-element UI candidates;
+- a 0.5% strained-cell pair evaluated under broad and high-resolution profile
+  models;
+- representation-equivalent atom permutations, origin shifts, coordinate
+  wrapping and rotated Cartesian settings.
+
+Four mismatch weighting declarations are reported: uniform, mean intensity,
+square-root mean intensity and shell-balanced intensity. In the exact
+homometric case, uniform weights produce a spurious amplitude component of
+0.1158 from numerical extinctions. Mean-intensity and shell-balanced weights
+reduce that component below 7e-16. The declared shell-balanced score retains a
+phase component of 0.3740 while the ideal profile cosine is 1.000000. The
+weighting choice is therefore visible scientific metadata rather than a hidden
+plotting option.
+
+Baseline profile comparisons include cosine, Pearson, Jensen--Shannon and a
+transparent Gaussian-weighted cross-correlation metric. They all saturate for
+the exact homometric pair. The resolution case changes from cosine 0.999665 at
+FWHM 0.20 inverse angstrom to 0.937674 at FWHM 0.015 inverse angstrom, correctly
+identifying an experimentally recoverable distinction rather than fundamental
+phase-loss ambiguity.
+
+All software and mathematical gates pass, including the input manifest,
+homometric construction, representation invariance, phase detection,
+extinction-stable amplitude decomposition, resolution transition and metric
+bounds. The package status remains `pending_external_review`: no external
+crystallographer has signed the blinded explanation review. The review
+protocol requires at least two independent reviewers, per-case correctness and
+usefulness medians of at least four out of five, no unresolved unsupported
+mechanism judgment and a frozen response log.
+
+Evidence artifacts:
+
+- `paper/diagnostics/manuscript.md` is the working paper draft;
+- `paper/diagnostics/results.json` and `metric_table.csv` contain the complete
+  numerical result;
+- `paper/diagnostics/figures/diagnostic_benchmark.*` compares information
+  levels and profile baselines;
+- `paper/diagnostics/figures/weighting_invariance.*` reports invariance,
+  Q-range sensitivity and every release gate;
+- `paper/diagnostics/expert-review.md` and the generated blinded packet define
+  the remaining human gate;
+- `data/publication_diagnostics/manifest.json` freezes all case inputs and
+  provenance.
 
 ## Progress log
 
@@ -783,3 +842,8 @@ instrument, uncertainty and reference-validation milestones are complete.
 - Added the guided `bragg-ui` application with upload, declared release policy,
   run/resume controls, nine diagnostic tabs, theory/lay explanations, a bundled
   two-candidate tutorial and portable export links.
+- Implemented the Milestone 8 diagnostics publication package with frozen
+  homometric, near-homometric, compatible and resolution-limited cases; four
+  mismatch weighting policies; four profile-metric baselines; invariance and
+  Q-range sensitivity matrices; a working manuscript; one-command figure/data
+  regeneration; and an explicitly unsigned external-review gate.
