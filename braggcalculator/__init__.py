@@ -4,6 +4,9 @@ from .session import CandidateRefinementResult, RefinementPolicy, RefinementSess
 from .parameters import (
     AnisotropicDisplacementOrbitSpec,
     OrbitCoordinateSpec,
+    RigidBodyParameterization,
+    RigidBodySpec,
+    SimplexPhaseFractionParameterization,
     SymmetryAnisotropicDisplacementParameterization,
     SymmetryIsotropicDisplacementParameterization,
     SymmetryOccupancyParameterization,
@@ -13,6 +16,7 @@ from .parameters import (
 )
 from .experiment import ProfileNuisanceParameterization
 from .optimization import OptimizationStage, StagedOptimizationResult, staged_adam
+from .mixture import PhaseMixturePolicy, PhaseMixtureResult, PhaseMixtureSession
 from .radiation import nist_copper_ka_spectrum
 from .restraints import (
     BondAngleRestraint,
@@ -45,12 +49,18 @@ __all__ = [
     "OriginAlignment",
     "OptimizationStage",
     "OrbitCoordinateSpec",
+    "PhaseMixturePolicy",
+    "PhaseMixtureResult",
+    "PhaseMixtureSession",
     "ProfileDiscriminationResult",
     "ProfileNuisanceParameterization",
     "RefinementPolicy",
     "RefinementSession",
     "ReflectionMatch",
     "ReflectionTable",
+    "RigidBodyParameterization",
+    "RigidBodySpec",
+    "SimplexPhaseFractionParameterization",
     "SymmetryCoordinateParameterization",
     "SymmetryAnisotropicDisplacementParameterization",
     "SymmetryIsotropicDisplacementParameterization",

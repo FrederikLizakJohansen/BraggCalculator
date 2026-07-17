@@ -200,6 +200,48 @@ def test_candidate_session_ranks_generating_structure_and_writes_report(tmp_path
     assert "SHA-256" in text
 
 
+def test_refinement_session_integrates_declared_rigid_body():
+    structure = Structure(
+        Lattice.from_parameters(8.2, 9.1, 10.3, 81, 87, 76),
+        ["Si", "O", "O", "Na"],
+        [[0.32, 0.41, 0.52], [0.46, 0.40, 0.50], [0.28, 0.55, 0.48], [0.8, 0.1, 0.2]],
+    )
+    generator = BraggCalculator(
+        primitive=False, two_theta_range=(20.0, 50.0), two_theta_step=0.2
+    ).load(structure)
+    coordinate, profile = generator.pattern()
+    observed = 0.001 * profile + 3.0
+    dataset = DiffractionDataset(
+        coordinate=coordinate,
+        intensity=observed,
+        sigma=np.sqrt(np.maximum(observed, 1.0)),
+        mask=np.ones(len(coordinate), dtype=bool),
+        domain="two_theta",
+        wavelength=generator.wavelength,
+    )
+    policy = RefinementPolicy(
+        refine_lattice=False,
+        rigid_bodies=[{"name": "silicate", "sites": [0, 1, 2]}],
+        rigid_body_restraint=0.1,
+        background_degree=0,
+        profile_model="legacy",
+        diagnostic_points=4,
+        stages=(
+            OptimizationStage("scale/background", ("scale", "background"), 2, 0.01),
+            OptimizationStage("rigid bodies", ("rigid_bodies",), 2, 0.001),
+        ),
+    )
+    candidate = (
+        RefinementSession(dataset, [structure], names=["rigid model"]).run(policy).candidates[0]
+    )
+
+    group = candidate.physical_parameters["rigid_body_groups"][0]
+    assert group["name"] == "silicate"
+    assert group["sites"] == [0, 1, 2]
+    assert "rigid_bodies" in candidate.provenance["policy"]["released_parameter_groups"]
+    assert any("may break" in warning for warning in candidate.warnings)
+
+
 def test_nist_srm660c_real_data_regression():
     metadata = {
         "wavelength_components": nist_copper_ka_spectrum(),

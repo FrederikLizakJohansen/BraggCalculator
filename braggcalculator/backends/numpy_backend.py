@@ -81,6 +81,18 @@ class NumpyBackend:
         eigenvalues, eigenvectors = np.linalg.eigh(x)
         return (eigenvectors * np.exp(eigenvalues)) @ eigenvectors.T
 
+    def rotation_matrix(self, skew):
+        """Return the exponential of a 3 by 3 skew-symmetric matrix."""
+        vector = np.array([skew[2, 1], skew[0, 2], skew[1, 0]])
+        angle = np.linalg.norm(vector)
+        if angle < 1e-12:
+            return np.eye(3, dtype=self.dtype) + skew + 0.5 * (skew @ skew)
+        return (
+            np.eye(3, dtype=self.dtype)
+            + (np.sin(angle) / angle) * skew
+            + ((1.0 - np.cos(angle)) / angle**2) * (skew @ skew)
+        )
+
     def einsum(self, s, *ops):
         return np.einsum(s, *ops)
 

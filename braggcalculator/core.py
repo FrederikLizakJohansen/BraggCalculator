@@ -232,6 +232,23 @@ class BraggCalculator:
             symmetry_tolerance=symmetry_tolerance,
         )
 
+    def rigid_body_parameterization(
+        self,
+        bodies,
+        *,
+        translation_scale: float = 0.1,
+        rotation_scale_degrees: float = 5.0,
+    ):
+        """Return declared Cartesian rigid-body translation/rotation modes."""
+        from .parameters import RigidBodyParameterization
+
+        return RigidBodyParameterization.from_calculator(
+            self,
+            bodies,
+            translation_scale=translation_scale,
+            rotation_scale_degrees=rotation_scale_degrees,
+        )
+
     def _parameter_values(self, parameters: ParameterDict | None):
         parameters = {} if parameters is None else parameters
         allowed = {"lattice", "frac_coords", "occupancies", "b_iso", "u_cart"}

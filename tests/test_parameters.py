@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pymatgen.core import Lattice, Structure
 
-from braggcalculator import BraggCalculator
+from braggcalculator import BraggCalculator, SimplexPhaseFractionParameterization
 from braggcalculator.backends import TorchBackend
 
 
@@ -232,3 +232,68 @@ def test_anisotropic_isotropic_limit_matches_b_iso_exactly():
     parameters = calculator.tensor_parameters()
     parameters["u_cart"] = np.asarray([np.eye(3) * 0.8 / (8 * np.pi**2)])
     np.testing.assert_allclose(calculator.fq(parameters=parameters), reference, rtol=2e-14)
+
+
+def test_rigid_body_preserves_internal_distances_and_fixed_sites():
+    torch = pytest.importorskip("torch")
+    structure = Structure(
+        Lattice.from_parameters(8.2, 9.1, 10.3, 81, 87, 76),
+        ["Si", "O", "O", "Na"],
+        [[0.32, 0.41, 0.52], [0.46, 0.40, 0.50], [0.28, 0.55, 0.48], [0.8, 0.1, 0.2]],
+    )
+    calculator = BraggCalculator(primitive=False, backend=TorchBackend()).load(structure)
+    model = calculator.rigid_body_parameterization([{"name": "silicate", "sites": [0, 1, 2]}])
+    values = torch.tensor([0.6, -0.4, 0.2, 0.8, -0.5, 0.6], dtype=torch.float64)
+    expanded = model.expand(values, calculator.backend)
+    cartesian = expanded.detach().numpy() @ structure.lattice.matrix
+    starting = np.asarray(structure.cart_coords)
+
+    for left, right in ((0, 1), (0, 2), (1, 2)):
+        assert np.linalg.norm(cartesian[left] - cartesian[right]) == pytest.approx(
+            np.linalg.norm(starting[left] - starting[right]), abs=2e-12
+        )
+    np.testing.assert_allclose(expanded.detach().numpy()[3], structure.frac_coords[3])
+    physical = model.physical_groups(values.numpy())[0]
+    np.testing.assert_allclose(physical["translation_angstrom"], [0.06, -0.04, 0.02])
+    np.testing.assert_allclose(physical["rotation_vector_degrees"], [4.0, -2.5, 3.0])
+
+
+def test_rigid_body_has_finite_diffraction_gradients_and_rejects_overlap():
+    torch = pytest.importorskip("torch")
+    structure = Structure(
+        Lattice.from_parameters(8.2, 9.1, 10.3, 81, 87, 76),
+        ["Si", "O", "O", "Na"],
+        [[0.32, 0.41, 0.52], [0.46, 0.40, 0.50], [0.28, 0.55, 0.48], [0.8, 0.1, 0.2]],
+    )
+    calculator = BraggCalculator(primitive=False, backend=TorchBackend(), q_range=(0.5, 4.0)).load(
+        structure
+    )
+    with pytest.raises(ValueError, match="overlapping"):
+        calculator.rigid_body_parameterization([{"sites": [0, 1]}, {"sites": [1, 2]}])
+
+    model = calculator.rigid_body_parameterization([{"sites": [0, 1, 2]}])
+    values = model.initial_values(calculator.backend, requires_grad=True)
+    parameters = calculator.tensor_parameters()
+    parameters["frac_coords"] = model.expand(values, calculator.backend)
+    intensities = calculator.fq(parameters=parameters)
+    weighted_intensity = torch.sum(
+        intensities * torch.linspace(0.5, 1.5, len(intensities), dtype=torch.float64)
+    )
+    weighted_intensity.backward()
+    assert torch.all(torch.isfinite(values.grad))
+    assert torch.linalg.vector_norm(values.grad) > 0
+
+
+def test_phase_fraction_simplex_is_exact_positive_and_differentiable():
+    torch = pytest.importorskip("torch")
+    model = SimplexPhaseFractionParameterization.create(("alpha", "beta", "gamma"), (0.2, 0.5, 0.3))
+    backend = TorchBackend()
+    values = model.initial_values(backend, requires_grad=True)
+    fractions = model.expand(values, backend)
+    torch.testing.assert_close(fractions, torch.tensor([0.2, 0.5, 0.3], dtype=torch.float64))
+    torch.testing.assert_close(fractions.sum(), torch.tensor(1.0, dtype=torch.float64))
+    assert torch.all(fractions > 0)
+    loss = torch.sum(fractions * torch.tensor([1.0, 2.0, 4.0], dtype=torch.float64))
+    loss.backward()
+    assert torch.all(torch.isfinite(values.grad))
+    assert torch.linalg.vector_norm(values.grad) > 0

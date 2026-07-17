@@ -126,3 +126,19 @@ python demo/refine_anisotropic_restraints.py
 
 It writes `demo/anisotropic_restraint_refinement.png` and a self-contained
 `demo/anisotropic_restraint_report.html`.
+
+## Rigid-body and physical phase-mixture diagnostics
+
+`refine_rigid_multiphase.py` recovers a known three-dimensional translation
+and rotation of a declared SiO2 group while demonstrating that all internal
+distances remain invariant. It then refines a synthetic 72/28 NaCl/CsCl
+physical mixture with an exact positive simplex and evaluates a 0.03% trace
+phase whose signal falls below the declared approximate detectability threshold.
+
+```bash
+python demo/refine_rigid_multiphase.py
+```
+
+It writes `demo/rigid_multiphase_refinement.png` and the self-contained
+`demo/rigid_multiphase_report.html`. Fractions in this example are integrated
+profile-area fractions, not quantitative weight fractions.

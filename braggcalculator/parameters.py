@@ -717,6 +717,246 @@ class SymmetryAnisotropicDisplacementParameterization:
 
 
 @dataclass(frozen=True)
+class RigidBodySpec:
+    """One explicitly declared group of sites with six rigid-body modes."""
+
+    name: str
+    sites: np.ndarray
+    pivot_cartesian: np.ndarray
+    parameter_slice: slice
+
+
+@dataclass(frozen=True)
+class RigidBodyParameterization:
+    """Cartesian rigid-body translations and exponential-map rotations."""
+
+    base_site_fractional: np.ndarray
+    base_site_cartesian: np.ndarray
+    base_lattice: np.ndarray
+    contribution_site_indices: np.ndarray
+    site_bodies: np.ndarray
+    bodies: tuple[RigidBodySpec, ...]
+    labels: tuple[str, ...]
+    translation_scale: float
+    rotation_scale: float
+
+    @classmethod
+    def from_calculator(
+        cls,
+        calculator,
+        bodies,
+        *,
+        translation_scale: float = 0.1,
+        rotation_scale_degrees: float = 5.0,
+    ) -> "RigidBodyParameterization":
+        calculator._ensure_loaded()
+        if not np.isfinite(translation_scale) or translation_scale <= 0:
+            raise ValueError("translation_scale must be positive and finite")
+        if not np.isfinite(rotation_scale_degrees) or rotation_scale_degrees <= 0:
+            raise ValueError("rotation_scale_degrees must be positive and finite")
+        metadata = calculator._symm
+        structure = metadata["structure"]
+        fractional = np.asarray(structure.frac_coords, dtype=np.float64)
+        lattice = np.asarray(metadata["lattice"], dtype=np.float64)
+        cartesian = fractional @ lattice
+        site_bodies = np.full(len(structure), -1, dtype=np.int64)
+        specifications = []
+        labels = []
+        for body_index, item in enumerate(bodies):
+            item = dict(item)
+            unknown = set(item) - {"name", "sites", "pivot_cartesian"}
+            if unknown:
+                raise ValueError(f"unknown rigid-body fields: {sorted(unknown)}")
+            sites = np.asarray(item["sites"], dtype=np.int64)
+            if sites.ndim != 1 or len(sites) < 2 or len(np.unique(sites)) != len(sites):
+                raise ValueError("a rigid body requires at least two unique site indices")
+            if np.any(sites < 0) or np.any(sites >= len(structure)):
+                raise ValueError("rigid-body site index is outside the prepared structure")
+            if np.any(site_bodies[sites] >= 0):
+                raise ValueError("rigid bodies cannot contain overlapping sites")
+            site_bodies[sites] = body_index
+            name = str(item.get("name", f"body_{body_index}"))
+            if not name:
+                raise ValueError("rigid-body name cannot be empty")
+            pivot = item.get("pivot_cartesian")
+            pivot = np.mean(cartesian[sites], axis=0) if pivot is None else np.asarray(pivot)
+            if pivot.shape != (3,) or not np.all(np.isfinite(pivot)):
+                raise ValueError("pivot_cartesian must be a finite length-three vector")
+            start = 6 * body_index
+            specifications.append(
+                RigidBodySpec(
+                    name=name,
+                    sites=sites.copy(),
+                    pivot_cartesian=np.asarray(pivot, dtype=np.float64),
+                    parameter_slice=slice(start, start + 6),
+                )
+            )
+            labels.extend(
+                (
+                    f"{name}.translation_x",
+                    f"{name}.translation_y",
+                    f"{name}.translation_z",
+                    f"{name}.rotation_x",
+                    f"{name}.rotation_y",
+                    f"{name}.rotation_z",
+                )
+            )
+        if not specifications:
+            raise ValueError("at least one rigid body must be declared")
+        return cls(
+            base_site_fractional=fractional,
+            base_site_cartesian=cartesian,
+            base_lattice=lattice,
+            contribution_site_indices=np.asarray(metadata["site_indices"], dtype=np.int64),
+            site_bodies=site_bodies,
+            bodies=tuple(specifications),
+            labels=tuple(labels),
+            translation_scale=float(translation_scale),
+            rotation_scale=float(np.radians(rotation_scale_degrees)),
+        )
+
+    @property
+    def independent_count(self):
+        return 6 * len(self.bodies)
+
+    def initial_values(self, backend, *, requires_grad=False):
+        values = backend.zeros((self.independent_count,), dtype=backend.dtype)
+        if getattr(backend, "is_torch", False):
+            values = values.clone().detach().requires_grad_(requires_grad)
+        elif requires_grad:
+            raise TypeError("requires_grad is available only with TorchBackend")
+        return values
+
+    @staticmethod
+    def _skew(vector, backend):
+        basis = np.array(
+            [
+                [[0, 0, 0], [0, 0, -1], [0, 1, 0]],
+                [[0, 0, 1], [0, 0, 0], [-1, 0, 0]],
+                [[0, -1, 0], [1, 0, 0], [0, 0, 0]],
+            ],
+            dtype=np.float64,
+        )
+        return backend.einsum("k,kij->ij", vector, backend.asarray(basis, dtype=backend.dtype))
+
+    def expand(self, independent_values, backend, *, lattice=None):
+        if tuple(independent_values.shape) != (self.independent_count,):
+            raise ValueError(
+                f"independent_values must have shape ({self.independent_count},), "
+                f"got {tuple(independent_values.shape)}"
+            )
+        current_lattice = backend.asarray(
+            self.base_lattice if lattice is None else lattice, dtype=backend.dtype
+        )
+        inverse_lattice = backend.inverse(current_lattice)
+        transforms = []
+        for body in self.bodies:
+            values = independent_values[body.parameter_slice]
+            translation = self.translation_scale * values[:3]
+            rotation_vector = self.rotation_scale * values[3:]
+            rotation = backend.rotation_matrix(self._skew(rotation_vector, backend))
+            transforms.append((translation, rotation))
+        expanded = []
+        for site in self.contribution_site_indices:
+            body_index = int(self.site_bodies[int(site)])
+            if body_index < 0:
+                expanded.append(
+                    backend.asarray(self.base_site_fractional[int(site)], dtype=backend.dtype)
+                )
+                continue
+            body = self.bodies[body_index]
+            translation, rotation = transforms[body_index]
+            offset = backend.asarray(
+                self.base_site_cartesian[int(site)] - body.pivot_cartesian,
+                dtype=backend.dtype,
+            )
+            pivot = backend.asarray(body.pivot_cartesian, dtype=backend.dtype)
+            cartesian = backend.matmul(offset, rotation.T) + pivot + translation
+            expanded.append(backend.matmul(cartesian, inverse_lattice))
+        return backend.stack(expanded)
+
+    def physical_groups(self, independent_values):
+        values = np.asarray(independent_values, dtype=np.float64)
+        return tuple(
+            {
+                "name": body.name,
+                "sites": body.sites.tolist(),
+                "pivot_cartesian": body.pivot_cartesian.tolist(),
+                "translation_angstrom": (
+                    self.translation_scale * values[body.parameter_slice][:3]
+                ).tolist(),
+                "rotation_vector_degrees": np.degrees(
+                    self.rotation_scale * values[body.parameter_slice][3:]
+                ).tolist(),
+            }
+            for body in self.bodies
+        )
+
+
+@dataclass(frozen=True)
+class SimplexPhaseFractionParameterization:
+    """Positive phase profile-area fractions that sum exactly to one."""
+
+    names: tuple[str, ...]
+    initial_fractions: np.ndarray
+    reference_index: int
+    initial_raw_values: np.ndarray
+    labels: tuple[str, ...]
+
+    @classmethod
+    def create(cls, names, initial_fractions=None):
+        names = tuple(str(name) for name in names)
+        if len(names) < 2 or len(set(names)) != len(names):
+            raise ValueError("phase fractions require at least two uniquely named phases")
+        if initial_fractions is None:
+            fractions = np.full(len(names), 1.0 / len(names))
+        else:
+            fractions = np.asarray(initial_fractions, dtype=np.float64)
+        if (
+            fractions.shape != (len(names),)
+            or np.any(fractions <= 0)
+            or not np.all(np.isfinite(fractions))
+        ):
+            raise ValueError("initial phase fractions must be positive and match phase count")
+        fractions = fractions / fractions.sum()
+        reference = int(np.argmax(fractions))
+        selected = [index for index in range(len(names)) if index != reference]
+        raw = np.log(fractions[selected] / fractions[reference])
+        labels = tuple(f"{names[index]}_vs_{names[reference]}" for index in selected)
+        return cls(names, fractions, reference, raw, labels)
+
+    @property
+    def independent_count(self):
+        return len(self.names) - 1
+
+    def initial_values(self, backend, *, requires_grad=False):
+        values = backend.asarray(self.initial_raw_values, dtype=backend.dtype)
+        if getattr(backend, "is_torch", False):
+            values = values.clone().detach().requires_grad_(requires_grad)
+        elif requires_grad:
+            raise TypeError("requires_grad is available only with TorchBackend")
+        return values
+
+    def expand(self, independent_values, backend):
+        if tuple(independent_values.shape) != (self.independent_count,):
+            raise ValueError(
+                f"independent_values must have shape ({self.independent_count},), "
+                f"got {tuple(independent_values.shape)}"
+            )
+        selected = [index for index in range(len(self.names)) if index != self.reference_index]
+        design = np.zeros((len(self.names), self.independent_count), dtype=np.float64)
+        design[selected, np.arange(self.independent_count)] = 1.0
+        logits = backend.matmul(backend.asarray(design, dtype=backend.dtype), independent_values)
+        return backend.softmax(logits, axis=0)
+
+    def physical(self, independent_values):
+        from .backends import NumpyBackend
+
+        fractions = self.expand(np.asarray(independent_values), NumpyBackend())
+        return {name: float(value) for name, value in zip(self.names, fractions)}
+
+
+@dataclass(frozen=True)
 class OrbitCoordinateSpec:
     """Independent displacement subspace and member mappings for one orbit."""
 

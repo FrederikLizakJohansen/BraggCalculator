@@ -142,14 +142,14 @@ Implemented evidence:
 
 ## Milestone 2 -- Full crystallographic refinement parameters
 
-**Status: In progress**
+**Status: Done**
 
 - symmetry-constrained site occupancies and shared-site simplexes; **done**
 - positive isotropic displacement factors; **done**
 - positive-semidefinite anisotropic displacement tensors; **done**
 - composition, bond-length, angle and minimum-distance restraints; **done**
-- rigid-body translations and rotations;
-- multiple phases and simplex-constrained phase fractions.
+- rigid-body translations and rotations; **done**
+- multiple phases and simplex-constrained phase fractions; **done**
 
 Each parameter family requires a synthetic recovery example, physical-domain
 tests and an identifiability warning for a deliberately correlated case.
@@ -236,6 +236,51 @@ Evidence artifacts:
   restraint evidence;
 - CIF Uij/Bij ingestion, site-symmetry mode counts, positivity, autograd,
   isotropic equivalence and every restraint family have regression tests.
+
+### Milestone 2C acceptance gate
+
+Rigid bodies are explicitly declared, non-overlapping site groups. Their
+internal Cartesian coordinates and pair distances must remain invariant while
+three translation and three rotation coordinates remain differentiable. The
+prepared reciprocal topology is complete, so intentionally symmetry-breaking
+body motion remains calculable, but it must be reported as such.
+
+Multi-phase refinement must distinguish candidate comparison from a physical
+mixture. Phase contributions are combined in one calculated profile using a
+positive simplex. The first implementation reports integrated profile-area
+fractions, not uncalibrated mass fractions; conversion to quantitative weight
+fractions requires a validated Rietveld scale convention. A deliberately weak
+minor-phase example must emit a detectability/identifiability warning rather
+than overstate the recovered fraction.
+
+### Milestone 2C measured result
+
+A triclinic four-site synthetic model declares three sites as one rigid SiO2
+group and leaves a Na site fixed. From diffraction intensities alone, the six
+pose coordinates recover a target translation of (0.06, -0.04, 0.02) A and a
+rotation vector of (4.0, -2.5, 3.0) degrees to floating-point precision. All
+three internal distances change by less than 9e-16 A. This demonstrates the
+parameterization invariant and the differentiable recovery path; it is not a
+claim that arbitrary powder data determine six pose coordinates uniquely.
+
+A fixed-structure NaCl/CsCl physical mixture starts at 50/50 and is generated
+at profile-area fractions 0.72/0.28. The shared-profile refinement returns
+0.719914/0.280086 with Rwp=0.001035, while the softmax simplex sums to one to
+machine precision. In a separate deliberately weak case, a 0.03% CsCl trace
+component has standardized component norm 2.006, below the approximate
+three-sigma threshold. The session emits an explicit unsupported-fraction
+warning.
+
+Evidence artifacts:
+
+- `demo/rigid_multiphase_refinement.png` shows pose recovery, exact internal-
+  distance invariance, the two-phase profile, fraction recovery and the trace-
+  phase detection gate;
+- `demo/rigid_multiphase_report.html` embeds the figure and numerical evidence;
+- unit tests cover overlap rejection, exact rigid geometry, autograd, simplex
+  positivity/sum, phase-fraction recovery and the weak-phase warning;
+- the CLI separates alternative-candidate comparison from an explicitly
+  requested `--mixture` run.
 
 ## Milestone 3 -- Calibrated uncertainty and identifiability
 
@@ -344,3 +389,11 @@ instrument, uncertainty and reference-validation milestones are complete.
 - Demonstrated that sparse diffraction can fit chemically incorrect geometry
   essentially exactly and that explicit restraints resolve the null direction
   without being misreported as diffraction evidence.
+- Began Milestone 2C by defining exact rigid-body invariance and separating
+  profile-area phase fractions from unvalidated quantitative weight fractions.
+- Completed Milestone 2C with differentiable Cartesian rigid-body poses,
+  fixed-structure physical mixtures, exact positive phase simplexes, CLI/API
+  integration and profile-level trace-phase detectability warnings.
+- Demonstrated six-mode rigid-pose recovery with sub-femtometre numerical
+  distance invariance, 72/28 mixture recovery and an intentionally unsupported
+  0.03% trace component in a generated figure and HTML report.

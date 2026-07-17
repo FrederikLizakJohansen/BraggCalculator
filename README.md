@@ -177,12 +177,21 @@ six-line Cu K-alpha emission, natural line widths, Thompson--Cox--Hastings
 broadening, a compact low-angle asymmetry term and Bragg--Brentano specimen
 displacement. Structural refinement additionally supports symmetry-constrained
 occupancies, isotropic or anisotropic displacement parameters, and explicitly
-reported composition/bond/angle/minimum-distance restraints. See
+reported composition/bond/angle/minimum-distance restraints. Declared rigid
+bodies preserve internal Cartesian geometry while refining pose, and a separate
+mixture session combines fixed phase structures with positive profile-area
+fractions and trace-phase detectability warnings. See
 [`docs/experimental.md`](docs/experimental.md) and the public NIST SRM 660c
 example:
 
 ```bash
 python demo/characterize_nist_lab6.py
+```
+
+The rigid-body and physical-mixture visual gate is generated with:
+
+```bash
+python demo/refine_rigid_multiphase.py
 ```
 
 The complete implementation and validation sequence is tracked in

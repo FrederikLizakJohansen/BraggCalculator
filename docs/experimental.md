@@ -1,8 +1,8 @@
 # Experimental characterization workflow
 
-BraggCalculator's experimental layer is deliberately scoped to candidate-guided,
-single-phase powder characterization. It is not a general structure-solution or
-certification-grade Rietveld package.
+BraggCalculator's experimental layer is deliberately scoped to candidate-guided
+powder characterization and declared fixed-structure phase mixtures. It is not
+a general structure-solution or certification-grade Rietveld package.
 
 ## Python workflow
 
@@ -113,6 +113,53 @@ Every standardized squared contribution and their mean are reported separately
 from the diffraction statistics. These terms encode prior chemical
 information; they are not additional diffraction observations.
 
+### Rigid-body refinement
+
+Rigid bodies are opt-in, explicitly named, non-overlapping groups of prepared-
+structure site indices. Each group has three Cartesian translation modes and a
+three-component exponential-map rotation about its Cartesian centroid (or a
+declared pivot). Internal Cartesian distances are invariant by construction.
+
+```python
+rigid_bodies = [{"name": "tetrahedron", "sites": [0, 1, 2, 3, 4]}]
+policy = RefinementPolicy.cautious(rigid_bodies=rigid_bodies)
+result = session.run(policy)
+```
+
+Free symmetry-coordinate refinement and rigid-body refinement cannot be
+released together. A rigid body can intentionally leave the starting space
+group; the fixed complete reflection topology still evaluates that model, and
+the result records a symmetry-breaking warning. The current implementation
+does not automatically discover molecules, coordination polyhedra or symmetry-
+related rigid-body copies: the scientist must declare the groups.
+
+### Physical phase mixtures
+
+`PhaseMixtureSession` is distinct from candidate comparison. Candidate
+comparison fits alternative models independently; a phase mixture sums their
+contributions in one observed profile. A softmax parameterization keeps every
+fraction positive and makes the fractions sum exactly to one.
+
+```python
+from braggcalculator import PhaseMixturePolicy, PhaseMixtureSession
+
+mixture = PhaseMixtureSession(
+    dataset,
+    ["major-phase.cif", "minor-phase.cif"],
+    names=["major", "minor"],
+)
+result = mixture.run(PhaseMixturePolicy(initial_fractions=(0.9, 0.1)))
+mixture.write_html(result, "mixture-report.html")
+```
+
+Each fixed phase profile is normalized to unit integrated area over the fitted
+range before mixing. Consequently, the returned values are **profile-area
+fractions**, not weight, mole or volume fractions. Quantitative phase analysis
+requires a separately validated Rietveld scale convention, phase scattering
+powers and sample corrections. The result also reports each component's norm
+relative to the supplied uncertainty and warns below an approximate three-
+sigma profile-detectability threshold.
+
 ## CLI
 
 ```bash
@@ -159,6 +206,30 @@ Use `--u-aniso` for anisotropic tensors. A JSON file containing the dictionary
 shown above can be supplied with `--restraints restraints.json`; its global
 multiplier is controlled by `--structural-restraint-weight`.
 
+Rigid-body declarations can be supplied as JSON:
+
+```json
+[{"name": "tetrahedron", "sites": [0, 1, 2, 3, 4]}]
+```
+
+```bash
+bragg-diagnose sample.xye --model candidate.cif --wavelength 1.5405929 \
+  --rigid-bodies rigid-bodies.json --output rigid-report.html
+```
+
+Repeated models become physical phases only when `--mixture` is explicit:
+
+```bash
+bragg-diagnose sample.xye \
+  --model major.cif --name major \
+  --model minor.cif --name minor \
+  --mixture --initial-phase-fraction 0.9 --initial-phase-fraction 0.1 \
+  --wavelength 1.5405929 --output mixture-report.html
+```
+
+The initial mixture implementation keeps the phase structures fixed while
+refining their profile-area fractions and shared nuisance/profile parameters.
+
 ## Current experimental model
 
 - X-ray or neutron kinematic intensities from the existing forward engine;
@@ -174,6 +245,8 @@ multiplier is controlled by `--structural-restraint-weight`.
 - optional symmetry-constrained composition or vacancy occupancies;
 - optional positive, orbit-shared isotropic displacement parameters;
 - optional positive-definite, site-symmetry-compatible anisotropic tensors;
+- optional explicitly declared Cartesian rigid-body translations and rotations;
+- fixed-structure physical mixtures with simplex-constrained profile-area fractions;
 - explicit composition, bond, angle and minimum-distance restraints with
   separate contribution reporting;
 - weighted least squares, held-out bins, restraints and declared Adam stages.
@@ -193,6 +266,12 @@ multiplier is controlled by `--structural-restraint-weight`.
 - Periodic images used by geometry restraints are fixed from the starting
   topology. Large coordinate changes that alter bonding require rebuilding the
   restraint set rather than continuing the same local refinement.
+- Rigid-body membership and pivots are fixed from the starting model; rigid
+  bodies are not discovered automatically and may intentionally break its
+  starting crystallographic symmetry.
+- Multi-phase values are profile-area fractions over the fitted range. They
+  must not be labeled as quantitative weight fractions, and phase structures
+  are not yet refined jointly in a mixture run.
 - Rwp ranking is accompanied by discrimination and robustness diagnostics, but
   is not evidence that the winning structure is correct.
 

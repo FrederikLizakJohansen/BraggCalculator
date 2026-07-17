@@ -79,6 +79,9 @@ class TorchBackend:
     def matrix_exp(self, x):
         return torch.matrix_exp(x)
 
+    def rotation_matrix(self, skew):
+        return torch.matrix_exp(skew)
+
     def abs(self, x):
         return torch.abs(x)
 
