@@ -42,6 +42,39 @@ def test_rank_deficiency_is_reported_instead_of_claiming_covariance():
     assert np.isinf(result.condition_number)
     assert not result.covariance_is_identifiable
     assert abs(result.column_cosine[0, 1]) == pytest.approx(1.0)
+    assert result.null_space_vectors.shape == (1, 2)
+    assert np.all(np.isnan(result.standard_errors_physical))
+
+
+def test_prior_supplies_posterior_rank_without_claiming_data_identifiability():
+    jacobian = np.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
+    result = analyze_jacobian(
+        jacobian,
+        parameter_scales=[0.1, 2.0],
+        prior_precision=np.diag([0.0, 4.0]),
+        parameter_names=["occupancy", "Biso"],
+    )
+
+    assert result.rank == 1
+    assert not result.covariance_is_identifiable
+    assert result.prior_rank == 1
+    assert result.posterior_rank == 2
+    assert result.posterior_covariance_is_identifiable
+    assert np.all(np.isfinite(result.standard_errors_physical))
+    np.testing.assert_allclose(
+        result.generalized_covariance_scaled,
+        np.linalg.pinv(result.normal_matrix, hermitian=True),
+    )
+    assert not np.allclose(
+        result.posterior_covariance_scaled, result.generalized_covariance_scaled
+    )
+    null = result.null_space_vectors[0]
+    assert abs(np.dot(null, result.scaled_jacobian[0])) < 1e-12
+
+
+def test_invalid_prior_precision_is_rejected():
+    with pytest.raises(ValueError, match="positive semidefinite"):
+        analyze_jacobian(np.eye(2), prior_precision=np.diag([1.0, -1.0]))
 
 
 def test_full_covariance_jacobian_matches_manual_whitening():

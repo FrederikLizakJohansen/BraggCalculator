@@ -142,3 +142,18 @@ python demo/refine_rigid_multiphase.py
 It writes `demo/rigid_multiphase_refinement.png` and the self-contained
 `demo/rigid_multiphase_report.html`. Fractions in this example are integrated
 profile-area fractions, not quantitative weight fractions.
+
+## Calibrated uncertainty and identifiability
+
+`uncertainty_identifiability.py` separates diffraction-data rank from rank
+supplied by a prior, visualizes a data-null occupancy/Biso combination, honors
+a correlated observation covariance, and tests bounded parametric-bootstrap
+intervals across repeated synthetic phase-mixture experiments.
+
+```bash
+python demo/uncertainty_identifiability.py
+```
+
+It writes `demo/uncertainty_identifiability.png` and the self-contained
+`demo/uncertainty_identifiability_report.html`. The report explicitly limits
+all intervals to the supplied forward, Gaussian noise, prior and bounds models.

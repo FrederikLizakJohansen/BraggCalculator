@@ -24,7 +24,12 @@ from .experimental_profile import (
 from .io import to_pmg_structure
 from .optimization import OptimizationStage, staged_adam
 from .parameters import SimplexPhaseFractionParameterization
-from .session import _informative_regions, _local_identifiability, _wavelength_components
+from .session import (
+    _informative_regions,
+    _local_identifiability,
+    _wavelength_components,
+    _weighted_squared_norm,
+)
 
 
 @dataclass(frozen=True)
@@ -122,6 +127,25 @@ class PhaseMixtureSession:
         held_out[np.flatnonzero(selected)[:: policy.holdout_stride]] = True
         training = selected & ~held_out
         training_tensor = torch.as_tensor(training, dtype=torch.bool, device=self.device)
+        training_indices = np.flatnonzero(training)
+        covariance_cholesky = None
+        if self.dataset.observation_covariance is not None:
+            training_covariance = self.dataset.observation_covariance[
+                np.ix_(training_indices, training_indices)
+            ]
+            covariance_cholesky = torch.linalg.cholesky(
+                torch.as_tensor(training_covariance, dtype=torch.float64, device=self.device)
+            )
+
+        def whiten_training(residual):
+            selected_residual = residual[training_tensor]
+            if covariance_cholesky is None:
+                return selected_residual / sigma[training_tensor]
+            return torch.linalg.solve_triangular(
+                covariance_cholesky,
+                selected_residual[:, None],
+                upper=False,
+            )[:, 0]
 
         background0 = max(float(np.percentile(self.dataset.intensity[selected], 10)), 1e-6)
         signal_area = max(
@@ -213,9 +237,7 @@ class PhaseMixtureSession:
 
         def objective():
             calculated = calculate()
-            standardized = (calculated[training_tensor] - observed[training_tensor]) / sigma[
-                training_tensor
-            ]
+            standardized = whiten_training(calculated - observed)
             negative_background = torch.relu(-(background_basis @ background))
             return torch.mean(standardized**2) + 0.01 * torch.mean(negative_background**2)
 
@@ -244,6 +266,7 @@ class PhaseMixtureSession:
             for stage in stages
             if any(name in groups for name in stage.active)
         )
+        released_names = {name for stage in stages for name in stage.active}
         trace = staged_adam(objective, groups, stages)
         calculated_tensor, contribution_tensors = calculate(components_out=True)
         calculated = calculated_tensor.detach().cpu().numpy()
@@ -255,29 +278,57 @@ class PhaseMixtureSession:
         weights = self.dataset.weights
         denominator = np.sum(weights[selected] * self.dataset.intensity[selected] ** 2)
         r_wp = float(np.sqrt(np.sum(weights[selected] * residual[selected] ** 2) / denominator))
-        chi_squared = float(np.mean((residual[training] / self.dataset.sigma[training]) ** 2))
+        if self.dataset.observation_covariance is None:
+            whitened_residual = residual[training] / self.dataset.sigma[training]
+        else:
+            whitened_residual = np.linalg.solve(
+                np.linalg.cholesky(
+                    self.dataset.observation_covariance[np.ix_(training_indices, training_indices)]
+                ),
+                residual[training],
+            )
+        chi_squared = float(np.mean(whitened_residual**2))
         held_denominator = np.sum(weights[held_out] * self.dataset.intensity[held_out] ** 2)
         held_out_r_wp = (
             float(np.sqrt(np.sum(weights[held_out] * residual[held_out] ** 2) / held_denominator))
             if np.any(held_out)
             else None
         )
-        released = {name: value for name, value in groups.items()}
+        released = {name: value for name, value in groups.items() if name in released_names}
+        uncertainty_scales = {
+            "scale": 0.01,
+            "background": float(np.median(self.dataset.sigma)),
+            "phase_fractions": 0.1,
+            "profile": 0.1,
+            "zero_shift": 1.0,
+        }
+        uncertainty_descriptions = {
+            "scale": "0.01 log scale (about 1%)",
+            "background": "one median marginal observation sigma in intensity units",
+            "phase_fractions": "0.1 phase-fraction log ratio",
+            "profile": "0.1 profile raw/log coefficient",
+            "zero_shift": f"one profile bin ({self.dataset.step:.6g} degrees 2-theta)",
+        }
         identifiability = _local_identifiability(
             calculate,
             released,
             self.dataset.sigma,
             training,
             max_points=policy.diagnostic_points,
+            observation_covariance=self.dataset.observation_covariance,
+            group_scales=uncertainty_scales,
+            group_step_descriptions=uncertainty_descriptions,
             group_labels={"phase_fractions": fraction_model.labels},
         )
         fractions = fraction_model.physical(phase_values.detach().cpu().numpy())
         detectability = {
             name: float(
                 np.sqrt(
-                    np.sum(
-                        (contribution[self.dataset.mask] / self.dataset.sigma[self.dataset.mask])
-                        ** 2
+                    _weighted_squared_norm(
+                        contribution,
+                        self.dataset.mask,
+                        self.dataset.sigma,
+                        self.dataset.observation_covariance,
                     )
                 )
             )
@@ -293,8 +344,11 @@ class PhaseMixtureSession:
                     f"Phase {name} is below the approximate 3-sigma profile detectability "
                     "threshold; its fraction is not supported."
                 )
-        if identifiability and not identifiability["covariance_is_identifiable"]:
-            warnings.append("The released mixture parameter set is locally rank deficient.")
+        if identifiability and not identifiability["data_covariance_is_identifiable"]:
+            warnings.append(
+                "The released mixture data Jacobian is locally rank deficient; inspect "
+                "the null parameter combinations."
+            )
         if identifiability and identifiability["maximum_absolute_correlation"] > 0.98:
             warnings.append("At least one mixture parameter pair is extremely correlated.")
         return PhaseMixtureResult(
@@ -316,6 +370,14 @@ class PhaseMixtureSession:
             warnings=tuple(warnings),
             provenance={
                 "fraction_definition": "integrated profile area over fitted range",
+                "observation_uncertainty": {
+                    "model": (
+                        "full covariance"
+                        if self.dataset.observation_covariance is not None
+                        else "independent marginal sigma"
+                    ),
+                    "covariance_sha256": self.dataset.observation_covariance_sha256,
+                },
                 "phase_names": list(self.names),
                 "initial_fractions": fraction_model.initial_fractions.tolist(),
                 "wavelength_components": [dict(item) for item in components],
@@ -326,6 +388,7 @@ class PhaseMixtureSession:
                     "profile_model": policy.profile_model,
                     "axial_asymmetry": policy.axial_asymmetry,
                     "diagnostic_points": policy.diagnostic_points,
+                    "released_parameter_groups": sorted(released_names),
                 },
             },
         )

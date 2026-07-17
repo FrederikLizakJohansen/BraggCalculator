@@ -30,6 +30,60 @@ chi-squared, held-out Rwp, large standardized-residual regions, candidate
 ranking, pairwise expected discrimination, restart sensitivity, provenance and
 a recommended next action.
 
+### Observation covariance and uncertainty
+
+Independent `sigma` values remain the default. For correlated observations,
+provide a positive-definite covariance whose diagonal agrees with `sigma**2`:
+
+```python
+dataset = DiffractionDataset(
+    coordinate=two_theta,
+    intensity=intensity,
+    sigma=np.sqrt(np.diag(covariance)),
+    mask=np.ones(len(two_theta), dtype=bool),
+    domain="two_theta",
+    wavelength=1.5406,
+    observation_covariance=covariance,
+)
+```
+
+The full covariance is used to whiten the refinement residual, local Jacobian
+and model-discrimination norm. Its SHA-256 checksum is written to provenance.
+Marginal standardized residual plots are retained for localization because a
+whitened correlated residual is a mixture of profile bins.
+
+Session identifiability output now distinguishes `data_rank` from
+`posterior_rank`. Quadratic parameter priors and declared structural restraints
+contribute to the posterior normal matrix. If they repair a data-null
+direction, the report says so explicitly; posterior invertibility is not
+reported as diffraction identifiability. Characteristic Jacobian steps include
+physical descriptions such as 0.001 log strain, 0.01 mm specimen displacement,
+0.1 square-angstrom local Biso change and the declared rigid-body translation
+or rotation scale.
+
+For non-linear or bounded parameters, use the bounds-aware parametric
+bootstrap utility:
+
+```python
+from braggcalculator import parametric_bootstrap
+
+interval = parametric_bootstrap(
+    observed,
+    fitted_expected,
+    estimator,
+    covariance=covariance,
+    draws=1000,
+    bounds=[(0.0, 1.0)],
+    parameter_names=["minor profile-area fraction"],
+    seed=1729,
+)
+```
+
+The result records percentile bounds, empirical standard errors, failed draws,
+boundary hits, seed and noise model. The estimator must reproduce the intended
+refinement policy for every bootstrap replicate. These intervals are
+conditional on the supplied forward, noise, prior and bounds models.
+
 The session lattice is parameterized by point-group-invariant Cartesian
 log-strain modes. This gives one metric degree of freedom for cubic structures,
 two for tetragonal/hexagonal/trigonal structures, three for orthorhombic, four
@@ -249,6 +303,9 @@ refining their profile-area fractions and shared nuisance/profile parameters.
 - fixed-structure physical mixtures with simplex-constrained profile-area fractions;
 - explicit composition, bond, angle and minimum-distance restraints with
   separate contribution reporting;
+- independent-sigma or full-covariance Gaussian whitening;
+- separate diffraction-data and posterior ranks with null-direction reporting;
+- bounds-aware parametric-bootstrap intervals with boundary/failure provenance;
 - weighted least squares, held-out bins, restraints and declared Adam stages.
 
 ## Important limitations
@@ -258,8 +315,10 @@ refining their profile-area fractions and shared nuisance/profile parameters.
   not the full Finger--Cox--Jephcoat or fundamental-parameters convolution.
 - Transparency, absorption, preferred orientation and explicit crystallite
   size/microstrain models are not implemented.
-- Covariance tools exist, but session-level experimental uncertainties are not
-  yet calibrated and must not be reported as certification uncertainties.
+- Local Gaussian covariance is conditional on the supplied model and remains a
+  diagnostic approximation. Use repeated-synthetic or bootstrap coverage
+  before reporting parameter intervals, and do not label either result as a
+  certification uncertainty without an external validation chain.
 - Occupancy and displacement parameters often attenuate the same reflections;
   they must not be interpreted independently when the reported Jacobian
   correlation is large.

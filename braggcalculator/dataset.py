@@ -24,6 +24,7 @@ class DiffractionDataset:
     metadata: Mapping[str, object] = field(default_factory=dict)
     source: str | None = None
     source_sha256: str | None = None
+    observation_covariance: np.ndarray | None = None
 
     def __post_init__(self):
         coordinate = np.asarray(self.coordinate, dtype=np.float64)
@@ -41,6 +42,22 @@ class DiffractionDataset:
             raise ValueError("intensity must be finite")
         if np.any(sigma <= 0) or not np.all(np.isfinite(sigma)):
             raise ValueError("sigma must be positive and finite")
+        covariance = self.observation_covariance
+        if covariance is not None:
+            covariance = np.asarray(covariance, dtype=np.float64)
+            expected_shape = (len(coordinate), len(coordinate))
+            if covariance.shape != expected_shape or not np.all(np.isfinite(covariance)):
+                raise ValueError(
+                    f"observation_covariance must be a finite matrix with shape {expected_shape}"
+                )
+            if not np.allclose(covariance, covariance.T, rtol=1e-12, atol=1e-14):
+                raise ValueError("observation_covariance must be symmetric")
+            try:
+                np.linalg.cholesky(covariance)
+            except np.linalg.LinAlgError as error:
+                raise ValueError("observation_covariance must be positive definite") from error
+            if not np.allclose(np.diag(covariance), sigma**2, rtol=1e-6, atol=1e-12):
+                raise ValueError("sigma squared must match the diagonal of observation_covariance")
         if not np.any(mask):
             raise ValueError("dataset mask excludes every observation")
         if self.domain not in {"two_theta", "q"}:
@@ -54,6 +71,7 @@ class DiffractionDataset:
         object.__setattr__(self, "sigma", sigma)
         object.__setattr__(self, "mask", mask)
         object.__setattr__(self, "metadata", dict(self.metadata))
+        object.__setattr__(self, "observation_covariance", covariance)
 
     @classmethod
     def from_xye(
@@ -109,6 +127,11 @@ class DiffractionDataset:
             intensity=self.intensity[selected],
             sigma=self.sigma[selected],
             mask=self.mask[selected],
+            observation_covariance=(
+                self.observation_covariance[np.ix_(selected, selected)]
+                if self.observation_covariance is not None
+                else None
+            ),
         )
 
     def exclude(self, ranges) -> "DiffractionDataset":
@@ -125,3 +148,10 @@ class DiffractionDataset:
     @property
     def weights(self) -> np.ndarray:
         return np.where(self.mask, 1.0 / self.sigma**2, 0.0)
+
+    @property
+    def observation_covariance_sha256(self) -> str | None:
+        if self.observation_covariance is None:
+            return None
+        content = np.ascontiguousarray(self.observation_covariance).tobytes()
+        return sha256(content).hexdigest()

@@ -31,9 +31,17 @@ def analyze_jacobian(
     covariance=None,
     parameter_scales=None,
     parameter_names=None,
+    prior_precision=None,
+    prior_jacobian=None,
     rcond: float | None = None,
 ) -> JacobianDiagnostics:
-    """Analyze a profile Jacobian in declared characteristic parameter units."""
+    """Analyze data and posterior information in characteristic parameter units.
+
+    ``prior_precision`` and ``prior_jacobian`` are expressed in the unscaled
+    input-parameter coordinates. Priors may make the posterior full rank, but
+    ``rank`` and ``covariance_is_identifiable`` continue to describe the data
+    Jacobian alone.
+    """
     matrix = np.asarray(jacobian, dtype=np.float64)
     if matrix.ndim != 2 or not np.all(np.isfinite(matrix)):
         raise ValueError("jacobian must be a finite two-dimensional matrix")
@@ -47,8 +55,10 @@ def analyze_jacobian(
         scales = np.ones(parameter_count, dtype=np.float64)
     else:
         scales = np.asarray(parameter_scales, dtype=np.float64)
-        if scales.shape != (parameter_count,) or np.any(scales <= 0) or not np.all(
-            np.isfinite(scales)
+        if (
+            scales.shape != (parameter_count,)
+            or np.any(scales <= 0)
+            or not np.all(np.isfinite(scales))
         ):
             raise ValueError("parameter_scales must be one positive value per parameter")
     if parameter_names is None:
@@ -99,6 +109,31 @@ def analyze_jacobian(
         )
 
     normal = whitened_jacobian.T @ whitened_jacobian
+    prior_scaled = np.zeros((parameter_count, parameter_count), dtype=np.float64)
+    if prior_precision is not None:
+        precision = np.asarray(prior_precision, dtype=np.float64)
+        if precision.shape != (parameter_count, parameter_count) or not np.all(
+            np.isfinite(precision)
+        ):
+            raise ValueError("prior_precision must be a finite square parameter matrix")
+        if not np.allclose(precision, precision.T, rtol=1e-12, atol=1e-14):
+            raise ValueError("prior_precision must be symmetric")
+        if np.linalg.eigvalsh(precision).min() < -1e-12 * max(
+            1.0, np.linalg.norm(precision, ord=2)
+        ):
+            raise ValueError("prior_precision must be positive semidefinite")
+        prior_scaled += scales[:, None] * precision * scales[None, :]
+    if prior_jacobian is not None:
+        prior_matrix = np.asarray(prior_jacobian, dtype=np.float64)
+        if (
+            prior_matrix.ndim != 2
+            or prior_matrix.shape[1] != parameter_count
+            or not np.all(np.isfinite(prior_matrix))
+        ):
+            raise ValueError("prior_jacobian must be finite with one column per parameter")
+        scaled_prior_jacobian = prior_matrix * scales[None, :]
+        prior_scaled += scaled_prior_jacobian.T @ scaled_prior_jacobian
+    posterior_normal = normal + prior_scaled
     sensitivity = np.sqrt(np.maximum(np.diag(normal), 0.0))
     denominator = sensitivity[:, None] * sensitivity[None, :]
     column_cosine = np.divide(
@@ -124,10 +159,17 @@ def analyze_jacobian(
         raise ValueError("rcond must be finite and non-negative")
     cutoff = cutoff_ratio * singular_values[0] if len(singular_values) else 0.0
     rank = int(np.count_nonzero(singular_values > cutoff))
-    condition_number = (
-        float(singular_values[0] / singular_values[-1])
-        if rank == parameter_count and singular_values[-1] > 0
-        else float("inf")
+    condition_number = _condition_number(singular_values, rank, parameter_count)
+    prior_singular_values = np.sqrt(np.maximum(np.linalg.eigvalsh(prior_scaled)[::-1], 0.0))
+    prior_cutoff = cutoff_ratio * prior_singular_values[0] if len(prior_singular_values) else 0.0
+    prior_rank = int(np.count_nonzero(prior_singular_values > prior_cutoff))
+    posterior_singular_values = np.sqrt(np.maximum(np.linalg.eigvalsh(posterior_normal)[::-1], 0.0))
+    posterior_cutoff = (
+        cutoff_ratio * posterior_singular_values[0] if len(posterior_singular_values) else 0.0
+    )
+    posterior_rank = int(np.count_nonzero(posterior_singular_values > posterior_cutoff))
+    posterior_condition_number = _condition_number(
+        posterior_singular_values, posterior_rank, parameter_count
     )
     generalized_scaled = np.linalg.pinv(normal, rcond=cutoff_ratio, hermitian=True)
     generalized_physical = scales[:, None] * generalized_scaled * scales[None, :]
@@ -139,6 +181,30 @@ def analyze_jacobian(
         out=np.full_like(generalized_scaled, np.nan),
         where=covariance_denominator > 0,
     )
+    posterior_covariance_scaled = np.linalg.pinv(
+        posterior_normal, rcond=cutoff_ratio, hermitian=True
+    )
+    posterior_covariance_physical = (
+        scales[:, None] * posterior_covariance_scaled * scales[None, :]
+    )
+    posterior_diagonal = np.diag(posterior_covariance_scaled)
+    posterior_denominator = np.sqrt(
+        np.maximum(posterior_diagonal[:, None] * posterior_diagonal[None, :], 0.0)
+    )
+    posterior_correlation = np.divide(
+        posterior_covariance_scaled,
+        posterior_denominator,
+        out=np.full_like(posterior_covariance_scaled, np.nan),
+        where=posterior_denominator > 0,
+    )
+    if posterior_rank == parameter_count:
+        standard_errors_scaled = np.sqrt(
+            np.maximum(np.diag(posterior_covariance_scaled), 0.0)
+        )
+        standard_errors_physical = scales * standard_errors_scaled
+    else:
+        standard_errors_scaled = np.full(parameter_count, np.nan)
+        standard_errors_physical = np.full(parameter_count, np.nan)
 
     return JacobianDiagnostics(
         parameter_names=names,
@@ -158,6 +224,18 @@ def analyze_jacobian(
         rank=rank,
         condition_number=condition_number,
         covariance_is_identifiable=rank == parameter_count,
+        prior_precision_scaled=prior_scaled,
+        posterior_normal_matrix=posterior_normal,
+        prior_rank=prior_rank,
+        posterior_rank=posterior_rank,
+        posterior_condition_number=posterior_condition_number,
+        posterior_covariance_is_identifiable=posterior_rank == parameter_count,
+        posterior_covariance_scaled=posterior_covariance_scaled,
+        posterior_covariance_physical=posterior_covariance_physical,
+        posterior_correlation=posterior_correlation,
+        null_space_vectors=right_vectors[rank:].copy(),
+        standard_errors_scaled=standard_errors_scaled,
+        standard_errors_physical=standard_errors_physical,
     )
 
 
@@ -173,6 +251,14 @@ def _svd_diagnostics(whitened_jacobian):
         whitened_jacobian, full_matrices=True
     )
     return singular_values, right_vectors
+
+
+def _condition_number(singular_values, rank, parameter_count):
+    return (
+        float(singular_values[0] / singular_values[-1])
+        if rank == parameter_count and len(singular_values) and singular_values[-1] > 0
+        else float("inf")
+    )
 
 
 def torch_profile_jacobian(calculator, parameters, paths, *, domain: str = "q"):

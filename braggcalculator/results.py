@@ -111,3 +111,15 @@ class JacobianDiagnostics:
     rank: int
     condition_number: float
     covariance_is_identifiable: bool
+    prior_precision_scaled: np.ndarray
+    posterior_normal_matrix: np.ndarray
+    prior_rank: int
+    posterior_rank: int
+    posterior_condition_number: float
+    posterior_covariance_is_identifiable: bool
+    posterior_covariance_scaled: np.ndarray
+    posterior_covariance_physical: np.ndarray
+    posterior_correlation: np.ndarray
+    null_space_vectors: np.ndarray
+    standard_errors_scaled: np.ndarray
+    standard_errors_physical: np.ndarray

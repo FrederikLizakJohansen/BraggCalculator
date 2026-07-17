@@ -218,14 +218,12 @@ class StructuralRestraintSet:
         cartesian = backend.matmul(delta, lattice)
         return backend.sqrt(backend.sum(cartesian**2))
 
-    def loss(self, lattice, frac_coords, occupancies, backend):
-        """Return mean standardized penalty and named squared contributions."""
+    def residuals(self, lattice, frac_coords, occupancies, backend):
+        """Return named standardized restraint residuals before squaring."""
         if self.count == 0:
-            zero = backend.sum(frac_coords) * 0.0
-            return zero, {}
+            return {}
         site_coordinates = self._site_coordinates(frac_coords)
-        contributions = {}
-        terms = []
+        residuals = {}
         for index, restraint in enumerate(self.composition):
             selected = [
                 position
@@ -235,9 +233,9 @@ class StructuralRestraintSet:
             if not selected:
                 raise ValueError(f"composition species {restraint.species!r} is absent")
             value = backend.sum(occupancies[backend.asarray(selected, dtype=backend.int64)])
-            term = ((value - restraint.target) / restraint.sigma) ** 2
-            contributions[f"composition[{index}].{restraint.species}"] = term
-            terms.append(term)
+            residuals[f"composition[{index}].{restraint.species}"] = (
+                value - restraint.target
+            ) / restraint.sigma
         for index, restraint in enumerate(self.bonds):
             value = self._distance(
                 site_coordinates,
@@ -246,9 +244,7 @@ class StructuralRestraintSet:
                 restraint.image,
                 backend,
             )
-            term = ((value - restraint.target) / restraint.sigma) ** 2
-            contributions[f"bond[{index}]"] = term
-            terms.append(term)
+            residuals[f"bond[{index}]"] = (value - restraint.target) / restraint.sigma
         for index, restraint in enumerate(self.angles):
             center = site_coordinates[restraint.sites[1]]
             vectors = []
@@ -265,9 +261,7 @@ class StructuralRestraintSet:
             angle = backend.arccos(backend.clip(cosine, -1.0 + 1e-12, 1.0 - 1e-12))
             target = np.radians(restraint.target_degrees)
             sigma = np.radians(restraint.sigma_degrees)
-            term = ((angle - target) / sigma) ** 2
-            contributions[f"angle[{index}]"] = term
-            terms.append(term)
+            residuals[f"angle[{index}]"] = (angle - target) / sigma
         for index, restraint in enumerate(self.minimum_distances):
             value = self._distance(
                 site_coordinates,
@@ -279,9 +273,17 @@ class StructuralRestraintSet:
             violation = (restraint.minimum - value) / restraint.sigma
             zero = violation * 0.0
             penalty = backend.where(violation > 0, violation, zero)
-            term = penalty**2
-            contributions[f"minimum_distance[{index}]"] = term
-            terms.append(term)
+            residuals[f"minimum_distance[{index}]"] = penalty
+        return residuals
+
+    def loss(self, lattice, frac_coords, occupancies, backend):
+        """Return mean standardized penalty and named squared contributions."""
+        residuals = self.residuals(lattice, frac_coords, occupancies, backend)
+        if not residuals:
+            zero = backend.sum(frac_coords) * 0.0
+            return zero, {}
+        contributions = {name: value**2 for name, value in residuals.items()}
+        terms = list(contributions.values())
         return backend.sum(backend.stack(terms)) / len(terms), contributions
 
     def specification(self):

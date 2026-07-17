@@ -38,6 +38,39 @@ def test_xye_ingestion_preserves_uncertainty_mask_and_provenance(tmp_path):
     np.testing.assert_array_equal(excluded.mask, [True, False, True])
 
 
+def test_dataset_validates_and_crops_correlated_observation_covariance():
+    coordinate = np.arange(5.0)
+    indices = np.arange(len(coordinate))
+    covariance = 4.0 * 0.4 ** np.abs(indices[:, None] - indices[None, :])
+    dataset = DiffractionDataset(
+        coordinate=coordinate,
+        intensity=np.arange(10.0, 15.0),
+        sigma=np.sqrt(np.diag(covariance)),
+        mask=np.ones(len(coordinate), dtype=bool),
+        domain="two_theta",
+        wavelength=1.54,
+        observation_covariance=covariance,
+    )
+    cropped = dataset.select_range(1.0, 3.0)
+    assert dataset.observation_covariance_sha256 is not None
+    np.testing.assert_allclose(
+        cropped.observation_covariance, covariance[np.ix_([1, 2, 3], [1, 2, 3])]
+    )
+
+    invalid = covariance.copy()
+    invalid[0, 0] = 5.0
+    with pytest.raises(ValueError, match="sigma squared"):
+        DiffractionDataset(
+            coordinate=coordinate,
+            intensity=np.arange(10.0, 15.0),
+            sigma=np.sqrt(np.diag(covariance)),
+            mask=np.ones(len(coordinate), dtype=bool),
+            domain="two_theta",
+            wavelength=1.54,
+            observation_covariance=invalid,
+        )
+
+
 def test_pseudo_voigt_is_area_normalized():
     backend = NumpyBackend()
     grid = np.linspace(-5, 5, 20001)
@@ -211,13 +244,18 @@ def test_refinement_session_integrates_declared_rigid_body():
     ).load(structure)
     coordinate, profile = generator.pattern()
     observed = 0.001 * profile + 3.0
+    sigma = np.sqrt(np.maximum(observed, 1.0))
+    indices = np.arange(len(coordinate))
+    correlation = 0.25 ** np.abs(indices[:, None] - indices[None, :])
+    covariance = sigma[:, None] * correlation * sigma[None, :]
     dataset = DiffractionDataset(
         coordinate=coordinate,
         intensity=observed,
-        sigma=np.sqrt(np.maximum(observed, 1.0)),
+        sigma=sigma,
         mask=np.ones(len(coordinate), dtype=bool),
         domain="two_theta",
         wavelength=generator.wavelength,
+        observation_covariance=covariance,
     )
     policy = RefinementPolicy(
         refine_lattice=False,
@@ -239,6 +277,12 @@ def test_refinement_session_integrates_declared_rigid_body():
     assert group["name"] == "silicate"
     assert group["sites"] == [0, 1, 2]
     assert "rigid_bodies" in candidate.provenance["policy"]["released_parameter_groups"]
+    training = np.ones(len(coordinate), dtype=bool)
+    training[:: policy.holdout_stride] = False
+    training_covariance = covariance[np.ix_(training, training)]
+    whitened = np.linalg.solve(np.linalg.cholesky(training_covariance), candidate.residual[training])
+    assert candidate.chi_squared == pytest.approx(np.mean(whitened**2))
+    assert candidate.provenance["observation_uncertainty"]["model"] == "full covariance"
     assert any("may break" in warning for warning in candidate.warnings)
 
 

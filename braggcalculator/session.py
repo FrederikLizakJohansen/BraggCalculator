@@ -356,6 +356,25 @@ class RefinementSession:
             held_out[np.flatnonzero(selected)[:: policy.holdout_stride]] = True
         training = selected & ~held_out
         training_tensor = torch.as_tensor(training, dtype=torch.bool, device=self.device)
+        training_indices = np.flatnonzero(training)
+        covariance_cholesky = None
+        if self.dataset.observation_covariance is not None:
+            training_covariance = self.dataset.observation_covariance[
+                np.ix_(training_indices, training_indices)
+            ]
+            covariance_cholesky = torch.linalg.cholesky(
+                torch.as_tensor(training_covariance, dtype=torch.float64, device=self.device)
+            )
+
+        def whiten_training(residual):
+            selected_residual = residual[training_tensor]
+            if covariance_cholesky is None:
+                return selected_residual / sigma[training_tensor]
+            return torch.linalg.solve_triangular(
+                covariance_cholesky,
+                selected_residual[:, None],
+                upper=False,
+            )[:, 0]
 
         with torch.no_grad():
             component_areas = [
@@ -618,9 +637,7 @@ class RefinementSession:
 
         def objective():
             calculated = calculate()
-            standardized = (calculated[training_tensor] - observed[training_tensor]) / sigma[
-                training_tensor
-            ]
+            standardized = whiten_training(calculated - observed)
             loss = torch.mean(standardized**2)
             negative_background = torch.relu(-(background_basis @ background))
             loss = loss + 0.01 * torch.mean(negative_background**2)
@@ -681,13 +698,144 @@ class RefinementSession:
         released_groups = {
             name: tensor for name, tensor in groups.items() if name in released_names
         }
+
+        uncertainty_scales = {}
+        uncertainty_step_descriptions = {}
+        for group_name, tensor in released_groups.items():
+            if group_name == "scale":
+                uncertainty_scales[group_name] = 0.01
+                uncertainty_step_descriptions[group_name] = "0.01 log scale (about 1%)"
+            elif group_name == "background":
+                uncertainty_scales[group_name] = float(np.median(self.dataset.sigma))
+                uncertainty_step_descriptions[group_name] = (
+                    "one median marginal observation sigma in intensity units"
+                )
+            elif group_name == "zero_shift":
+                uncertainty_scales[group_name] = 1.0
+                uncertainty_step_descriptions[group_name] = (
+                    f"one profile bin ({self.dataset.step:.6g} degrees 2-theta)"
+                )
+            elif group_name == "profile":
+                uncertainty_scales[group_name] = 0.1
+                uncertainty_step_descriptions[group_name] = "0.1 profile raw/log coefficient"
+            elif group_name == "lattice":
+                uncertainty_scales[group_name] = 0.1
+                uncertainty_step_descriptions[group_name] = "0.001 Cartesian log strain"
+            elif group_name == "specimen_displacement":
+                uncertainty_scales[group_name] = 0.2
+                uncertainty_step_descriptions[group_name] = "0.01 mm specimen displacement"
+            elif group_name == "coordinates":
+                uncertainty_scales[group_name] = 0.01
+                uncertainty_step_descriptions[group_name] = "0.01 fractional-coordinate mode"
+            elif group_name == "occupancies":
+                uncertainty_scales[group_name] = 0.1
+                uncertainty_step_descriptions[group_name] = "0.1 occupancy log-ratio"
+            elif group_name == "b_iso":
+                local_derivative = torch.sigmoid(tensor).detach().cpu().numpy()
+                uncertainty_scales[group_name] = 0.1 / np.maximum(local_derivative, 1e-8)
+                uncertainty_step_descriptions[group_name] = "local 0.1 square-angstrom Biso change"
+            elif group_name == "u_aniso":
+                uncertainty_scales[group_name] = 0.1
+                uncertainty_step_descriptions[group_name] = "0.025 Cartesian log-U mode"
+            elif group_name == "rigid_bodies":
+                descriptions = []
+                for _ in rigid_body_model.bodies:
+                    descriptions.extend(
+                        [f"{rigid_body_model.translation_scale:.6g} angstrom translation"] * 3
+                    )
+                    descriptions.extend(
+                        [f"{np.degrees(rigid_body_model.rotation_scale):.6g} degree rotation"] * 3
+                    )
+                uncertainty_scales[group_name] = 1.0
+                uncertainty_step_descriptions[group_name] = descriptions
+
+        structural_restraint_released = any(
+            name in released_groups
+            for name in ("lattice", "coordinates", "occupancies", "rigid_bodies")
+        )
+        prior_is_active = any(
+            (
+                name == "coordinates"
+                and policy.coordinate_restraint > 0
+                or name == "occupancies"
+                and policy.occupancy_restraint > 0
+                or name == "b_iso"
+                and policy.b_iso_restraint > 0
+                or name == "u_aniso"
+                and policy.u_aniso_restraint > 0
+                or name == "rigid_bodies"
+                and policy.rigid_body_restraint > 0
+            )
+            for name in released_groups
+        ) or (
+            structural_restraint_released
+            and restraint_set.count
+            and policy.structural_restraint_weight > 0
+        )
+
+        def uncertainty_prior_residuals():
+            values = []
+            observation_count = max(len(training_indices), 1)
+
+            def append_quadratic(name, tensor, target, weight):
+                if name not in released_groups or weight <= 0:
+                    return
+                factor = np.sqrt(observation_count * weight / tensor.numel())
+                values.append(factor * (tensor - target).reshape(-1))
+
+            append_quadratic("coordinates", coordinates, 0.0, policy.coordinate_restraint)
+            if occupancy_model is not None:
+                occupancy_initial = torch.as_tensor(
+                    occupancy_model.initial_raw_values,
+                    dtype=torch.float64,
+                    device=self.device,
+                )
+                append_quadratic(
+                    "occupancies", occupancies, occupancy_initial, policy.occupancy_restraint
+                )
+            if b_iso_model is not None:
+                b_iso_initial = torch.as_tensor(
+                    b_iso_model.initial_raw_values,
+                    dtype=torch.float64,
+                    device=self.device,
+                )
+                append_quadratic("b_iso", b_iso, b_iso_initial, policy.b_iso_restraint)
+            append_quadratic("u_aniso", u_aniso, 0.0, policy.u_aniso_restraint)
+            append_quadratic("rigid_bodies", rigid_bodies, 0.0, policy.rigid_body_restraint)
+            if (
+                structural_restraint_released
+                and restraint_set.count
+                and policy.structural_restraint_weight > 0
+            ):
+                structural = structural_parameters()
+                restraint_residuals = restraint_set.residuals(
+                    structural["lattice"],
+                    structural["frac_coords"],
+                    structural["occupancies"],
+                    calculator.backend,
+                )
+                factor = np.sqrt(
+                    observation_count * policy.structural_restraint_weight / restraint_set.count
+                )
+                values.append(factor * torch.stack(tuple(restraint_residuals.values())))
+            return torch.cat(values)
+
         trace = staged_adam(objective, groups, stages)
         calculated = calculate().detach().cpu().numpy()
         residual = self.dataset.intensity - calculated
         weights = self.dataset.weights
         denominator = np.sum(weights[selected] * self.dataset.intensity[selected] ** 2)
         r_wp = float(np.sqrt(np.sum(weights[selected] * residual[selected] ** 2) / denominator))
-        chi_squared = float(np.mean((residual[training] / self.dataset.sigma[training]) ** 2))
+        if self.dataset.observation_covariance is None:
+            whitened_residual = residual[training] / self.dataset.sigma[training]
+        else:
+            whitened_residual = np.linalg.solve(
+                np.linalg.cholesky(
+                    self.dataset.observation_covariance[np.ix_(training_indices, training_indices)]
+                ),
+                residual[training],
+            )
+        chi_squared = float(np.mean(whitened_residual**2))
         held_out_r_wp = None
         if np.any(held_out):
             held_denominator = np.sum(weights[held_out] * self.dataset.intensity[held_out] ** 2)
@@ -824,6 +972,10 @@ class RefinementSession:
             self.dataset.sigma,
             training,
             max_points=policy.diagnostic_points,
+            observation_covariance=self.dataset.observation_covariance,
+            group_scales=uncertainty_scales,
+            group_step_descriptions=uncertainty_step_descriptions,
+            prior_residuals=uncertainty_prior_residuals if prior_is_active else None,
             group_labels={
                 "lattice": lattice_model.labels,
                 "occupancies": (occupancy_model.labels if occupancy_model is not None else ()),
@@ -837,8 +989,20 @@ class RefinementSession:
                 ),
             },
         )
-        if identifiability and not identifiability["covariance_is_identifiable"]:
-            warnings.append("The released parameter set is locally rank deficient.")
+        if identifiability and not identifiability["data_covariance_is_identifiable"]:
+            warnings.append(
+                "The diffraction data Jacobian is locally rank deficient; inspect the "
+                "reported null parameter combinations."
+            )
+        if (
+            identifiability
+            and not identifiability["data_covariance_is_identifiable"]
+            and identifiability["posterior_covariance_is_identifiable"]
+        ):
+            warnings.append(
+                "Restraints or priors make the posterior finite, but they do not make "
+                "the corresponding directions identifiable from diffraction data."
+            )
         if identifiability and identifiability["maximum_absolute_correlation"] > 0.98:
             warnings.append("At least one released parameter pair is extremely correlated.")
         occupancy_b_correlation = _maximum_cross_group_correlation(
@@ -866,6 +1030,14 @@ class RefinementSession:
             warnings=tuple(warnings),
             provenance={
                 "dataset_sha256": self.dataset.source_sha256,
+                "observation_uncertainty": {
+                    "model": (
+                        "full covariance"
+                        if self.dataset.observation_covariance is not None
+                        else "independent marginal sigma"
+                    ),
+                    "covariance_sha256": self.dataset.observation_covariance_sha256,
+                },
                 "wavelength_components": [dict(item) for item in components],
                 "policy": {
                     "background_degree": policy.background_degree,
@@ -924,8 +1096,11 @@ class RefinementSession:
             for right in range(left + 1, len(candidates)):
                 difference = candidates[left].calculated - candidates[right].calculated
                 score = float(
-                    np.sum(
-                        (difference[self.dataset.mask] / self.dataset.sigma[self.dataset.mask]) ** 2
+                    _weighted_squared_norm(
+                        difference,
+                        self.dataset.mask,
+                        self.dataset.sigma,
+                        self.dataset.observation_covariance,
                     )
                 )
                 pairwise[f"{candidates[left].name} vs {candidates[right].name}"] = score
@@ -947,14 +1122,28 @@ class RefinementSession:
         return output
 
 
-def _local_identifiability(calculate, groups, sigma, training, *, max_points, group_labels=None):
-    """Estimate a subsampled local Gauss-Newton matrix for released raw parameters."""
+def _local_identifiability(
+    calculate,
+    groups,
+    sigma,
+    training,
+    *,
+    max_points,
+    group_labels=None,
+    group_scales=None,
+    group_step_descriptions=None,
+    observation_covariance=None,
+    prior_residuals=None,
+):
+    """Estimate local data and posterior Gauss--Newton information."""
     if max_points == 0:
         return {}
     import torch
 
     tensors = tuple(groups.values())
     labels = []
+    scales = []
+    step_descriptions = []
     for name, tensor in groups.items():
         declared = None if group_labels is None else group_labels.get(name)
         if declared is not None:
@@ -967,10 +1156,34 @@ def _local_identifiability(calculate, groups, sigma, training, *, max_points, gr
                 if tensor.numel() == 1
                 else [f"{name}[{index}]" for index in range(tensor.numel())]
             )
-    selected = np.flatnonzero(training)
-    selected = selected[
-        np.linspace(0, len(selected) - 1, min(max_points, len(selected))).astype(int)
+        declared_scale = None if group_scales is None else group_scales.get(name)
+        if declared_scale is None:
+            scales.extend([1.0] * tensor.numel())
+        else:
+            values = np.asarray(declared_scale, dtype=np.float64)
+            if values.ndim == 0:
+                values = np.full(tensor.numel(), float(values))
+            if values.shape != (tensor.numel(),):
+                raise ValueError(f"group_scales for {name} do not match its parameter count")
+            scales.extend(values.tolist())
+        declared_description = (
+            None if group_step_descriptions is None else group_step_descriptions.get(name)
+        )
+        if declared_description is None:
+            step_descriptions.extend(["one raw parameter unit"] * tensor.numel())
+        elif isinstance(declared_description, str):
+            step_descriptions.extend([declared_description] * tensor.numel())
+        else:
+            if len(declared_description) != tensor.numel():
+                raise ValueError(
+                    f"group_step_descriptions for {name} do not match its parameter count"
+                )
+            step_descriptions.extend(str(item) for item in declared_description)
+    available = np.flatnonzero(training)
+    selected = available[
+        np.linspace(0, len(available) - 1, min(max_points, len(available))).astype(int)
     ]
+    sampling_factor = len(available) / len(selected)
     profile = calculate()
     rows = []
     for point in selected:
@@ -982,10 +1195,29 @@ def _local_identifiability(calculate, groups, sigma, training, *, max_points, gr
             value = torch.zeros_like(tensor) if gradient is None else gradient
             flattened.append(value.reshape(-1))
         rows.append(torch.cat(flattened).detach().cpu().numpy())
+    prior_rows = []
+    if prior_residuals is not None:
+        residual_vector = prior_residuals()
+        for residual in residual_vector.reshape(-1):
+            if not residual.requires_grad:
+                continue
+            gradients = torch.autograd.grad(residual, tensors, retain_graph=True, allow_unused=True)
+            flattened = []
+            for tensor, gradient in zip(tensors, gradients):
+                value = torch.zeros_like(tensor) if gradient is None else gradient
+                flattened.append(value.reshape(-1))
+            prior_rows.append(torch.cat(flattened).detach().cpu().numpy())
+    uncertainty = (
+        {"covariance": observation_covariance[np.ix_(selected, selected)] / sampling_factor}
+        if observation_covariance is not None
+        else {"weights": sampling_factor / np.asarray(sigma)[selected] ** 2}
+    )
     diagnostics = analyze_jacobian(
         np.asarray(rows),
-        weights=1.0 / np.asarray(sigma)[selected] ** 2,
         parameter_names=labels,
+        parameter_scales=np.asarray(scales),
+        prior_jacobian=np.asarray(prior_rows) if prior_rows else None,
+        **uncertainty,
     )
     correlation = diagnostics.correlation
     off_diagonal = correlation.copy()
@@ -993,15 +1225,58 @@ def _local_identifiability(calculate, groups, sigma, training, *, max_points, gr
     maximum_correlation = float(np.nanmax(np.abs(off_diagonal))) if len(labels) > 1 else 0.0
     return {
         "parameter_names": list(labels),
+        "characteristic_raw_steps": list(scales),
+        "characteristic_step_descriptions": step_descriptions,
+        "jacobian_sampled_points": len(selected),
+        "jacobian_population_points": len(available),
+        "jacobian_sampling_factor": sampling_factor,
         "sensitivity": diagnostics.sensitivity.tolist(),
         "rank": diagnostics.rank,
+        "data_rank": diagnostics.rank,
+        "prior_rank": diagnostics.prior_rank,
+        "posterior_rank": diagnostics.posterior_rank,
         "parameter_count": len(labels),
         "condition_number": diagnostics.condition_number,
+        "data_condition_number": diagnostics.condition_number,
+        "posterior_condition_number": diagnostics.posterior_condition_number,
         "covariance_is_identifiable": diagnostics.covariance_is_identifiable,
+        "data_covariance_is_identifiable": diagnostics.covariance_is_identifiable,
+        "posterior_covariance_is_identifiable": (diagnostics.posterior_covariance_is_identifiable),
+        "standard_errors_in_characteristic_steps": [
+            float(value) if np.isfinite(value) else None
+            for value in diagnostics.standard_errors_scaled
+        ],
+        "standard_errors_in_raw_parameters": [
+            float(value) if np.isfinite(value) else None
+            for value in diagnostics.standard_errors_physical
+        ],
         "maximum_absolute_correlation": maximum_correlation,
         "correlation": correlation.tolist(),
-        "warning": "Subsampled local raw-parameter approximation; not calibrated uncertainty.",
+        "posterior_correlation": diagnostics.posterior_correlation.tolist(),
+        "null_directions": [
+            {
+                "coefficients": {
+                    name: float(coefficient)
+                    for name, coefficient in zip(labels, vector)
+                    if abs(coefficient) > 1e-8
+                }
+            }
+            for vector in diagnostics.null_space_vectors
+        ],
+        "warning": (
+            "Subsampled local Gaussian approximation conditional on the supplied noise, "
+            "forward and prior models; inspect bootstrap coverage before uncertainty use."
+        ),
     }
+
+
+def _weighted_squared_norm(values, selected, sigma, observation_covariance=None):
+    indices = np.flatnonzero(selected)
+    vector = np.asarray(values, dtype=np.float64)[indices]
+    if observation_covariance is None:
+        return float(np.sum((vector / np.asarray(sigma)[indices]) ** 2))
+    covariance = observation_covariance[np.ix_(indices, indices)]
+    return float(vector @ np.linalg.solve(covariance, vector))
 
 
 def _informative_regions(coordinate, standardized_residual, *, count):

@@ -229,6 +229,32 @@ step and can be compared across parameters with different units. Rank-deficient
 normal matrices are explicitly flagged; their generalized inverse is not
 presented as an identifiable covariance estimate.
 
+An optional prior precision or standardized prior Jacobian can be included:
+
+```python
+diagnostics = analyze_jacobian(
+    jacobian,
+    covariance=observation_covariance,
+    parameter_scales=[0.05, 0.1],
+    parameter_names=["occupancy", "Biso"],
+    prior_precision=np.diag([0.0, 25.0]),
+)
+```
+
+`rank` and `covariance_is_identifiable` always describe diffraction data alone.
+`posterior_rank` and `posterior_covariance_is_identifiable` include the prior.
+The result also exposes scaled null-space vectors, prior precision, posterior
+normal matrix and standard errors in both characteristic-step and input-
+parameter coordinates.
+
+## Parametric bootstrap
+
+`parametric_bootstrap` reapplies a user-supplied estimator to independent or
+correlated Gaussian simulations from a fitted expected profile. Percentile
+intervals respect declared bounds, while lower/upper boundary-hit counts make
+truncation visible. The result includes all successful estimates, failed-draw
+count, seed and noise-model provenance.
+
 ## Backends
 
 ```python

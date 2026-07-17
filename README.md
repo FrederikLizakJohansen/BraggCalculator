@@ -194,6 +194,14 @@ The rigid-body and physical-mixture visual gate is generated with:
 python demo/refine_rigid_multiphase.py
 ```
 
+Rank-aware data/posterior information, correlated observation covariance,
+bounds-aware bootstrap intervals and repeated-synthetic coverage are
+demonstrated with:
+
+```bash
+python demo/uncertainty_identifiability.py
+```
+
 The complete implementation and validation sequence is tracked in
 [`docs/characterization-roadmap.md`](docs/characterization-roadmap.md).
 

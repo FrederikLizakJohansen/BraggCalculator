@@ -284,7 +284,7 @@ Evidence artifacts:
 
 ## Milestone 3 -- Calibrated uncertainty and identifiability
 
-**Status: Planned**
+**Status: Done**
 
 - physical parameter scales in the session Jacobian;
 - restraint and prior contributions to the normal matrix;
@@ -295,6 +295,70 @@ Evidence artifacts:
 
 Until this milestone passes, local covariance output remains diagnostic and
 must not be presented as a certification uncertainty.
+
+### Milestone 3 acceptance gate
+
+The implementation must distinguish three sources of apparent certainty:
+
+1. information supplied by the diffraction observations;
+2. rank supplied only by restraints or priors; and
+3. numerical regularization used to compute a generalized inverse.
+
+A prior may make a posterior normal matrix invertible, but it must never cause
+the corresponding direction to be labeled data-identifiable. Session
+Jacobians must use declared characteristic steps with units, report data and
+posterior ranks separately, and expose the dominant null-space combinations in
+machine-readable form.
+
+An optional positive-definite observation covariance must be honored by both
+the refinement objective and diagnostics; marginal sigma values alone are not
+an acceptable substitute when covariance is supplied. Bounds-aware parametric
+bootstrap intervals will be the first non-linear interval method. They must
+report boundary hits, failed replicates, random seed and empirical coverage in
+a repeated-synthetic gate. These intervals remain conditional on the supplied
+forward model and noise model.
+
+The executable figure must include a well-identified case, a data-null
+direction made finite only by a prior, correlated observations, bootstrap
+coverage and a boundary-limited parameter. The HTML report must state which
+uncertainty claims are local Gaussian approximations and which are empirical
+bootstrap results.
+
+### Milestone 3 measured result
+
+The session now whitens residuals, Jacobians and pairwise model differences by
+an optional full positive-definite observation covariance. The covariance
+diagonal must agree with the supplied marginal sigma values, and a SHA-256 of
+the matrix is recorded in provenance. Subsampled session Jacobians are scaled
+back to the population information level and use declared characteristic steps
+with physical descriptions.
+
+Data, prior and posterior information are reported separately. In the
+executable rank gate, identical occupancy and Biso response columns give data
+rank 1/2 and one explicit null combination. A Biso prior raises posterior rank
+to 2/2, while data rank remains 1/2 and the warning states that the finite
+direction is prior-supplied. Standard errors are withheld when even the
+posterior remains rank deficient.
+
+The bounds-aware parametric-bootstrap gate uses fixed NaCl/CsCl phase profiles.
+With correlated Gaussian observations, the 95% interval for a generating CsCl
+profile-area fraction of 0.28 is [0.237836, 0.321471]. Across 200 independently
+generated experiments, nominal 90% intervals cover the target 88.0% of the
+time. In a boundary-limited 0.003 trace-phase case, 388 of 900 replicates hit
+the zero bound, visibly invalidating a symmetric Gaussian error-bar summary.
+
+Evidence artifacts:
+
+- `demo/uncertainty_identifiability.png` shows covariance, singular spectra,
+  the null direction, correlated bootstrap, repeated coverage and boundary
+  pile-up;
+- `demo/uncertainty_identifiability_report.html` embeds the figure and records
+  assumptions, seeds, draw counts and limitations;
+- `braggcalculator/uncertainty.py` provides the reusable bounds-aware
+  parametric bootstrap;
+- regression tests cover prior-supplied posterior rank, null vectors,
+  correlated covariance whitening, covariance cropping/checksums, bootstrap
+  standard errors, boundary hits and repeated-synthetic coverage.
 
 ## Milestone 4 -- Robust refinement mechanics
 
@@ -397,3 +461,9 @@ instrument, uncertainty and reference-validation milestones are complete.
 - Demonstrated six-mode rigid-pose recovery with sub-femtometre numerical
   distance invariance, 72/28 mixture recovery and an intentionally unsupported
   0.03% trace component in a generated figure and HTML report.
+- Completed Milestone 3 with full observation-covariance whitening, physical
+  Jacobian step metadata, separate data/prior/posterior ranks, explicit null
+  combinations and restraint-aware posterior curvature.
+- Added bounds-aware parametric bootstrap intervals and demonstrated 88.0%
+  empirical coverage for nominal 90% intervals over 200 synthetic experiments,
+  plus a trace-phase boundary pile-up that rules out symmetric error bars.

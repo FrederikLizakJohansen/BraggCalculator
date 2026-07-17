@@ -18,6 +18,7 @@ from .experiment import ProfileNuisanceParameterization
 from .optimization import OptimizationStage, StagedOptimizationResult, staged_adam
 from .mixture import PhaseMixturePolicy, PhaseMixtureResult, PhaseMixtureSession
 from .radiation import nist_copper_ka_spectrum
+from .uncertainty import BootstrapResult, parametric_bootstrap
 from .restraints import (
     BondAngleRestraint,
     BondLengthRestraint,
@@ -39,6 +40,7 @@ __all__ = [
     "AnisotropicDisplacementOrbitSpec",
     "BondAngleRestraint",
     "BondLengthRestraint",
+    "BootstrapResult",
     "BraggCalculator",
     "CompositionRestraint",
     "DiffractionDataset",
@@ -72,5 +74,6 @@ __all__ = [
     "__version__",
     "lattice_parameters",
     "nist_copper_ka_spectrum",
+    "parametric_bootstrap",
     "staged_adam",
 ]
