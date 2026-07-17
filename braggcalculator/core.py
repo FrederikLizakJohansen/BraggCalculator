@@ -167,6 +167,14 @@ class BraggCalculator:
             result[name] = array
         return result
 
+    def symmetry_coordinate_parameterization(self, *, symmetry_tolerance: float | None = None):
+        """Return independent displacements that preserve prepared Wyckoff orbits."""
+        from .parameters import SymmetryCoordinateParameterization
+
+        return SymmetryCoordinateParameterization.from_calculator(
+            self, symmetry_tolerance=symmetry_tolerance
+        )
+
     def _parameter_values(self, parameters: ParameterDict | None):
         parameters = {} if parameters is None else parameters
         allowed = {"lattice", "frac_coords", "occupancies", "b_iso"}

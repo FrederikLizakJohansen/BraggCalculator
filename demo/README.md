@@ -44,3 +44,17 @@ python demo/analyze_profile_information.py
 The default figure `demo/profile_information.png` connects the two calculated
 profiles, standardized bin residuals, local discriminating information, and
 scaled Jacobian information for the candidate parameters.
+
+## Symmetry-constrained coordinate refinement
+
+`refine_symmetry_coordinates.py` constructs a centrosymmetric P-1 model,
+creates synthetic data after changing its three independent general-position
+coordinates, and refines only those three variables. The inversion mate is
+generated automatically and cannot move independently:
+
+```bash
+python demo/refine_symmetry_coordinates.py
+```
+
+The default `demo/symmetry_refinement.png` shows convergence and recovery of
+the known independent displacements.

@@ -70,6 +70,22 @@ names. These arrays may be edited or optimized and passed through the
 `parameters` argument of the calculation methods. Rebuild the calculator if a
 lattice change can add or remove reflections from the configured range.
 
+```python
+coordinate_model = calculator.symmetry_coordinate_parameterization()
+independent = coordinate_model.initial_values(
+    calculator.backend, requires_grad=True
+)
+parameters = coordinate_model.forward_parameters(calculator, independent)
+```
+
+This parameterization derives the allowed local displacement subspace of each
+prepared Wyckoff orbit from its site stabilizer. Independent displacements are
+expanded through fixed symmetry rotations to every orbit member and then to
+every scattering contribution. A special position therefore exposes only its
+symmetry-allowed coordinate degrees of freedom. The topology is intentionally
+local and fixed: refinements that change space group, Wyckoff multiplicity or
+site assignment require rebuilding the calculator and parameterization.
+
 ### Calculations
 
 ```python

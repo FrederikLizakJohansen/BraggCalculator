@@ -2360,6 +2360,10 @@ access.
 - Step 5 is implemented for declared characteristic parameter scales, diagonal
   or correlated observation uncertainty, residual support, local information,
   rank, condition number, column correlations and generalized covariance.
-- Steps 6–7 remain: symmetry-aware constrained parameter generation followed
-  by refinable experimental nuisance/profile parameters and staged
+- Step 6 is implemented for local symmetry-compatible coordinates: site
+  stabilizers define the allowed independent displacement subspaces, and fixed
+  orbit operations expand them to all scattering contributions. Symmetry-aware
+  lattice, occupancy and displacement-factor parameterizations remain future
+  extensions of this layer.
+- Step 7 remains: refinable experimental nuisance/profile parameters and staged
   optimization.

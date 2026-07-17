@@ -1,4 +1,5 @@
 from .core import BraggCalculator
+from .parameters import OrbitCoordinateSpec, SymmetryCoordinateParameterization
 from .results import (
     JacobianDiagnostics,
     MismatchDiskResult,
@@ -14,8 +15,10 @@ __all__ = [
     "JacobianDiagnostics",
     "MismatchDiskResult",
     "OriginAlignment",
+    "OrbitCoordinateSpec",
     "ProfileDiscriminationResult",
     "ReflectionMatch",
     "ReflectionTable",
+    "SymmetryCoordinateParameterization",
     "__version__",
 ]
