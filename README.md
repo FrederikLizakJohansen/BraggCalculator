@@ -233,6 +233,13 @@ amplitude/phase, peak-overlap, identifiability and experiment-design
 diagnostics in separate tabs. The bundled data are synthetic and explicitly
 labeled as a tutorial, not independent validation.
 
+The executed, code-first companion is
+[`notebooks/complete_characterization_tutorial.ipynb`](notebooks/complete_characterization_tutorial.ipynb).
+It follows the same example through input provenance, simulation, structure
+comparison, information-loss diagnostics, staged two-model refinement,
+identifiability, measurement design and auditable exports, with mathematical
+and plain-language explanations beside every figure.
+
 The reproducible diagnostics-paper benchmark is also included:
 
 ```bash

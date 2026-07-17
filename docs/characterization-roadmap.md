@@ -703,6 +703,10 @@ Evidence artifacts:
   interpretations;
 - UI regression tests cover upload policy acknowledgement, tutorial creation,
   diagnostics, local HTTP routes and artifact path confinement.
+- `notebooks/complete_characterization_tutorial.ipynb` is the executed,
+  code-first companion. It reproduces the end-to-end workflow with detailed
+  mathematical, lay and interpretation guidance and maps each result to the
+  corresponding UI tab.
 
 ## Milestone 8 -- Publication package
 
