@@ -73,6 +73,15 @@ lattice change can add or remove reflections from the configured range.
 ### Calculations
 
 ```python
+complex_f = calculator.structure_factors(parameters=None, indices=None)
+```
+
+Returns the complex structure factor \(F(hkl)\) for every selected reciprocal
+point. With the Torch backend, real-valued losses constructed from these
+complex tensors remain differentiable with respect to the continuous
+structural parameters.
+
+```python
 f_squared = calculator.fq(parameters=None, indices=None)
 ```
 
@@ -108,9 +117,24 @@ regular grid. The profile is area-normalized, not maximum-normalized.
 table = calculator.reflection_table(domain="two_theta", parameters=None)
 ```
 
-Returns a `ReflectionTable` with `hkl`, `d_spacing`, `q`, `two_theta`,
-`f_squared`, and corrected `intensity` columns. HKLs are a NumPy integer array;
+Returns a `ReflectionTable` with `hkl`, `d_spacing`, `q`, `two_theta`, complex
+`structure_factor`, `f_squared`, and corrected `intensity` columns. HKLs are a NumPy integer array;
 numerical columns use the configured backend.
+
+## Lattice-compatible diagnostics
+
+```python
+from braggcalculator.diagnostics import compare_calculators
+
+result = compare_calculators(calculator_a, calculator_b, optimize_origin=True)
+```
+
+The calculators must currently use the same lattice representation, radiation
+mode and wavelength. The result contains exact matched HKLs, the fitted
+relative-origin correction, disk coordinates, the per-reflection radius,
+amplitude and phase dissimilarities, and thresholds governing weak-reflection
+phase interpretation. Automatic equivalent-setting and supercell mappings are
+deliberately deferred.
 
 ## Backends
 

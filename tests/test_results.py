@@ -9,6 +9,7 @@ def test_reflection_table_exposes_consistent_indexed_quantities(nacl):
     assert isinstance(table, ReflectionTable)
     assert table.hkl.shape == (len(table), 3)
     np.testing.assert_allclose(table.q, 2 * np.pi / table.d_spacing)
+    np.testing.assert_allclose(table.f_squared, np.abs(table.structure_factor) ** 2)
     np.testing.assert_allclose(
         table.q,
         4 * np.pi * np.sin(np.radians(table.two_theta) / 2) / calculator.wavelength,

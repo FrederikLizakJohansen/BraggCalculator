@@ -35,7 +35,7 @@ def reflection_geometry(backend: Any, hkl, lattice, wavelength: float):
     return g, two_theta
 
 
-def compute_F2(
+def compute_F(
     mode: Literal["xray", "neutron"],
     backend: Any,
     hkl,
@@ -49,7 +49,7 @@ def compute_F2(
     neutron_scattering_lengths: Mapping[str | int, float | str] | None = None,
     phase_chunk_entries: int = 4_194_304,
 ):
-    """Compute ``|F(hkl)|^2`` using integrated site occupancies.
+    """Compute complex ``F(hkl)`` using integrated site occupancies.
 
     ``B`` is the isotropic Debye-Waller ``B`` value in square angstroms, so
     the amplitude correction is ``exp(-B * s**2)`` with
@@ -101,8 +101,40 @@ def compute_F2(
             scattering * occ[None, :] * phase_factor * dw,
             axis=1,
         )
-        outputs.append(bk.real(amplitude * bk.conj(amplitude)))
+        outputs.append(amplitude)
 
     if not outputs:
-        return bk.zeros((0,), dtype=bk.dtype)
+        complex_dtype = bk.complex128 if bk.dtype == bk.float64 else bk.complex64
+        return bk.zeros((0,), dtype=complex_dtype)
     return outputs[0] if len(outputs) == 1 else bk.concat(outputs, axis=0)
+
+
+def compute_F2(
+    mode: Literal["xray", "neutron"],
+    backend: Any,
+    hkl,
+    two_theta,
+    wavelength,
+    Z,
+    frac,
+    occ,
+    B,
+    *,
+    neutron_scattering_lengths: Mapping[str | int, float | str] | None = None,
+    phase_chunk_entries: int = 4_194_304,
+):
+    """Compute ``|F(hkl)|^2`` from the shared complex-amplitude kernel."""
+    amplitude = compute_F(
+        mode=mode,
+        backend=backend,
+        hkl=hkl,
+        two_theta=two_theta,
+        wavelength=wavelength,
+        Z=Z,
+        frac=frac,
+        occ=occ,
+        B=B,
+        neutron_scattering_lengths=neutron_scattering_lengths,
+        phase_chunk_entries=phase_chunk_entries,
+    )
+    return backend.real(amplitude * backend.conj(amplitude))

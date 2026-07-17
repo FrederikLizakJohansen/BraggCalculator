@@ -14,7 +14,7 @@ from .io import to_pmg_structure
 from .profiles import GaussianProfile, GaussianProfileQ
 from .results import ReflectionTable
 from .renderer import apply_lp_and_multiplicity, render_profile, render_profile_q
-from .structure_factor import compute_F2, reflection_geometry
+from .structure_factor import compute_F, compute_F2, reflection_geometry
 from .symmetry import SymmetryEngine
 
 
@@ -211,6 +211,29 @@ class BraggCalculator:
         _, two_theta = self._geometry(lattice, indices)
         return self._compute_f2(hkl, two_theta, frac, occ, b_iso)
 
+    def structure_factors(self, parameters: ParameterDict | None = None, *, indices=None):
+        """Return complex structure factors for the fixed reciprocal topology."""
+        self._ensure_loaded()
+        lattice, frac, occ, b_iso = self._parameter_values(parameters)
+        hkl = self._hkl["hkl"] if indices is None else self._hkl["hkl"][indices]
+        _, two_theta = self._geometry(lattice, indices)
+        return self._compute_f(hkl, two_theta, frac, occ, b_iso)
+
+    def _compute_f(self, hkl, two_theta, frac, occ, b_iso):
+        return compute_F(
+            mode=self.mode,
+            backend=self.backend,
+            hkl=hkl,
+            two_theta=two_theta,
+            wavelength=self.wavelength,
+            Z=self._symm["Z"],
+            frac=frac,
+            occ=occ,
+            B=b_iso,
+            neutron_scattering_lengths=self.neutron_scattering_lengths,
+            phase_chunk_entries=self.phase_chunk_entries,
+        )
+
     def _compute_f2(self, hkl, two_theta, frac, occ, b_iso):
         return compute_F2(
             mode=self.mode,
@@ -232,7 +255,7 @@ class BraggCalculator:
         parameters: ParameterDict | None = None,
     ):
         """Return individual reciprocal-point positions and corrected intensities."""
-        indices, g, two_theta, _, intensity = self._individual_data(domain, parameters)
+        indices, g, two_theta, _, _, intensity = self._individual_data(domain, parameters)
         del indices
         if domain == "two_theta":
             positions = self.backend.degrees(two_theta)
@@ -245,11 +268,14 @@ class BraggCalculator:
         indices = self._domain_indices(domain)
         lattice, frac, occ, b_iso = self._parameter_values(parameters)
         g, two_theta = self._geometry(lattice, indices)
-        f2 = self._compute_f2(self._hkl["hkl"][indices], two_theta, frac, occ, b_iso)
+        structure_factor = self._compute_f(
+            self._hkl["hkl"][indices], two_theta, frac, occ, b_iso
+        )
+        f2 = self.backend.real(structure_factor * self.backend.conj(structure_factor))
         intensity = apply_lp_and_multiplicity(
             self.mode, self.backend, f2, two_theta, multiplicity=None
         )
-        return indices, g, two_theta, f2, intensity
+        return indices, g, two_theta, structure_factor, f2, intensity
 
     def reflection_table(
         self,
@@ -257,12 +283,15 @@ class BraggCalculator:
         parameters: ParameterDict | None = None,
     ) -> ReflectionTable:
         """Return indexed per-reflection geometry and intensities."""
-        indices, g, two_theta, f2, intensity = self._individual_data(domain, parameters)
+        indices, g, two_theta, structure_factor, f2, intensity = self._individual_data(
+            domain, parameters
+        )
         return ReflectionTable(
             hkl=self._hkl["hkl"][indices].copy(),
             d_spacing=1.0 / g,
             q=2.0 * self.backend.pi() * g,
             two_theta=self.backend.degrees(two_theta),
+            structure_factor=structure_factor,
             f_squared=f2,
             intensity=intensity,
         )
