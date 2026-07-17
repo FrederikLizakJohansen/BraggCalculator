@@ -72,3 +72,42 @@ class MismatchDiskResult:
     identity_error: float
     epsilon: float
     phase_threshold: float
+
+
+@dataclass(frozen=True)
+class ProfileDiscriminationResult:
+    """Expected separation of two profiles expressed as measured-bin values."""
+
+    coordinate: np.ndarray
+    expected_a: np.ndarray
+    expected_b: np.ndarray
+    difference: np.ndarray
+    variance: np.ndarray | None
+    covariance: np.ndarray | None
+    whitened_difference: np.ndarray
+    pointwise_discrimination: np.ndarray | None
+    total_discrimination: float
+    bin_widths: np.ndarray | None = None
+
+
+@dataclass(frozen=True)
+class JacobianDiagnostics:
+    """Local parameter information calculated from a scaled profile Jacobian."""
+
+    parameter_names: tuple[str, ...]
+    parameter_scales: np.ndarray
+    jacobian: np.ndarray
+    scaled_jacobian: np.ndarray
+    normal_matrix: np.ndarray
+    sensitivity: np.ndarray
+    residual_support: np.ndarray | None
+    column_cosine: np.ndarray
+    generalized_covariance_scaled: np.ndarray
+    generalized_covariance_physical: np.ndarray
+    correlation: np.ndarray
+    local_information: np.ndarray | None
+    singular_values: np.ndarray
+    right_singular_vectors: np.ndarray
+    rank: int
+    condition_number: float
+    covariance_is_identifiable: bool

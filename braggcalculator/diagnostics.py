@@ -7,13 +7,156 @@ from typing import Any
 
 import numpy as np
 
-from .results import MismatchDiskResult, OriginAlignment, ReflectionMatch
+from .results import (
+    MismatchDiskResult,
+    OriginAlignment,
+    ProfileDiscriminationResult,
+    ReflectionMatch,
+)
 
 
 def _as_numpy(value: Any) -> np.ndarray:
     if hasattr(value, "detach"):
         value = value.detach().cpu()
     return np.asarray(value)
+
+
+def _bin_widths(coordinate) -> np.ndarray:
+    centers = np.asarray(coordinate, dtype=np.float64)
+    if centers.ndim != 1 or len(centers) < 2 or not np.all(np.isfinite(centers)):
+        raise ValueError("coordinate must contain at least two finite bin centers")
+    spacing = np.diff(centers)
+    if np.any(spacing <= 0):
+        raise ValueError("coordinate must be strictly increasing")
+    edges = np.empty(len(centers) + 1, dtype=np.float64)
+    edges[1:-1] = 0.5 * (centers[:-1] + centers[1:])
+    edges[0] = centers[0] - 0.5 * spacing[0]
+    edges[-1] = centers[-1] + 0.5 * spacing[-1]
+    return np.diff(edges)
+
+
+def profile_discrimination(
+    coordinate,
+    expected_a,
+    expected_b,
+    *,
+    variance=None,
+    covariance=None,
+    bin_widths=None,
+) -> ProfileDiscriminationResult:
+    """Compare two vectors of expected measured-bin values under an error model.
+
+    Exactly one of ``variance`` (independent bins) and ``covariance`` must be
+    supplied. For a full covariance matrix, only whitened contributions are
+    returned because assigning correlated information to original bins is not
+    unique.
+    """
+    centers = np.asarray(coordinate, dtype=np.float64)
+    model_a = np.asarray(expected_a, dtype=np.float64)
+    model_b = np.asarray(expected_b, dtype=np.float64)
+    if centers.ndim != 1 or model_a.shape != centers.shape or model_b.shape != centers.shape:
+        raise ValueError("coordinate and expected profiles must be equal-length vectors")
+    if not all(np.all(np.isfinite(values)) for values in (centers, model_a, model_b)):
+        raise ValueError("coordinate and expected profiles must be finite")
+    if (variance is None) == (covariance is None):
+        raise ValueError("provide exactly one of variance or covariance")
+
+    widths = None
+    if bin_widths is not None:
+        widths = np.asarray(bin_widths, dtype=np.float64)
+        if widths.shape != centers.shape or np.any(widths <= 0) or not np.all(np.isfinite(widths)):
+            raise ValueError("bin_widths must be a positive finite vector")
+
+    difference = model_a - model_b
+    variance_array = None
+    covariance_array = None
+    pointwise = None
+    if variance is not None:
+        variance_array = np.asarray(variance, dtype=np.float64)
+        if (
+            variance_array.shape != centers.shape
+            or np.any(variance_array <= 0)
+            or not np.all(np.isfinite(variance_array))
+        ):
+            raise ValueError("variance must be a positive finite vector")
+        whitened = difference / np.sqrt(variance_array)
+        pointwise = whitened**2
+    else:
+        covariance_array = np.asarray(covariance, dtype=np.float64)
+        expected_shape = (len(centers), len(centers))
+        if covariance_array.shape != expected_shape or not np.all(np.isfinite(covariance_array)):
+            raise ValueError(f"covariance must be a finite matrix with shape {expected_shape}")
+        if not np.allclose(covariance_array, covariance_array.T, rtol=1e-12, atol=1e-14):
+            raise ValueError("covariance must be symmetric")
+        try:
+            cholesky = np.linalg.cholesky(covariance_array)
+        except np.linalg.LinAlgError as error:
+            raise ValueError("covariance must be positive definite") from error
+        whitened = np.linalg.solve(cholesky, difference)
+
+    return ProfileDiscriminationResult(
+        coordinate=centers,
+        expected_a=model_a,
+        expected_b=model_b,
+        difference=difference,
+        variance=variance_array,
+        covariance=covariance_array,
+        whitened_difference=whitened,
+        pointwise_discrimination=pointwise,
+        total_discrimination=float(whitened @ whitened),
+        bin_widths=widths,
+    )
+
+
+def compare_profile_counts(
+    calculator_a,
+    calculator_b,
+    *,
+    domain: str = "q",
+    parameters_a=None,
+    parameters_b=None,
+    count_scale: float = 1.0,
+    background_density=0.0,
+    minimum_variance: float = 1.0,
+) -> ProfileDiscriminationResult:
+    """Compare calculator profiles using an explicit synthetic count model.
+
+    Calculated profile densities are converted to expected bin counts using the
+    bin widths and ``count_scale``. ``background_density`` is expected counts
+    per coordinate unit. The symmetric Poisson approximation uses the mean of
+    the two expected counts as its variance.
+    """
+    if not np.isfinite(count_scale) or count_scale <= 0:
+        raise ValueError("count_scale must be positive and finite")
+    if not np.isfinite(minimum_variance) or minimum_variance <= 0:
+        raise ValueError("minimum_variance must be positive and finite")
+    grid_a, density_a = calculator_a.pattern(domain=domain, parameters=parameters_a)
+    grid_b, density_b = calculator_b.pattern(domain=domain, parameters=parameters_b)
+    coordinate = _as_numpy(grid_a).astype(np.float64, copy=False)
+    if not np.allclose(coordinate, _as_numpy(grid_b), rtol=0.0, atol=1e-12):
+        raise ValueError("calculators must produce the same profile grid")
+    widths = _bin_widths(coordinate)
+    background = np.asarray(background_density, dtype=np.float64)
+    if background.ndim == 0:
+        background = np.full_like(coordinate, float(background))
+    if background.shape != coordinate.shape or np.any(background < 0) or not np.all(
+        np.isfinite(background)
+    ):
+        raise ValueError("background_density must be non-negative and scalar or grid-shaped")
+
+    expected_a = np.maximum(_as_numpy(density_a), 0.0) * widths * count_scale
+    expected_b = np.maximum(_as_numpy(density_b), 0.0) * widths * count_scale
+    background_counts = background * widths
+    expected_a = expected_a + background_counts
+    expected_b = expected_b + background_counts
+    variance = np.maximum(0.5 * (expected_a + expected_b), minimum_variance)
+    return profile_discrimination(
+        coordinate,
+        expected_a,
+        expected_b,
+        variance=variance,
+        bin_widths=widths,
+    )
 
 
 def match_reflections(hkl_a, hkl_b) -> ReflectionMatch:

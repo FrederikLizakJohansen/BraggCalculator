@@ -29,3 +29,18 @@ The script prints the unaligned and aligned dissimilarities, their amplitude
 and phase components, the recovered origin correction, the disk-identity
 error, and the five most mismatched reflections. Its default figure is
 `demo/mismatch_disk.png`.
+
+## Profile discrimination and parameter information
+
+`analyze_profile_information.py` moves one oxygen coordinate, simulates a
+bin-level counting experiment, calculates where the two profiles are
+distinguishable, and asks which declared parameter direction is supported by
+that difference:
+
+```bash
+python demo/analyze_profile_information.py
+```
+
+The default figure `demo/profile_information.png` connects the two calculated
+profiles, standardized bin residuals, local discriminating information, and
+scaled Jacobian information for the candidate parameters.

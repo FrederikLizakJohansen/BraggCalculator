@@ -136,6 +136,44 @@ amplitude and phase dissimilarities, and thresholds governing weak-reflection
 phase interpretation. Automatic equivalent-setting and supercell mappings are
 deliberately deferred.
 
+```python
+from braggcalculator.diagnostics import compare_profile_counts
+
+result = compare_profile_counts(
+    calculator_a,
+    calculator_b,
+    count_scale=100.0,
+    background_density=10.0,
+)
+```
+
+This converts the area-normalized calculated profile density into expected
+measured-bin counts before computing the expected separation. Consequently,
+refining the plotting grid does not spuriously multiply the available
+information. For externally supplied expected bin values,
+`profile_discrimination` accepts either independent variances or a full
+positive-definite covariance matrix.
+
+## Scaled Jacobian diagnostics
+
+```python
+from braggcalculator.sensitivity import analyze_jacobian
+
+diagnostics = analyze_jacobian(
+    jacobian,
+    residual=observed - calculated,
+    weights=1.0 / variance,
+    parameter_scales=[0.01, 0.02],
+    parameter_names=["oxygen x", "oxygen y"],
+)
+```
+
+The scales are characteristic physical changes, not optimization bounds. The
+reported sensitivity therefore means pattern response per declared meaningful
+step and can be compared across parameters with different units. Rank-deficient
+normal matrices are explicitly flagged; their generalized inverse is not
+presented as an identifiable covariance estimate.
+
 ## Backends
 
 ```python

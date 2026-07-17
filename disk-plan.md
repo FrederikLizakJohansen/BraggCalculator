@@ -2348,3 +2348,18 @@ Every step must include a small executable example, numerical assertions and a
 human-readable interpretation. Only after these seven steps work should the
 design expand to commensurate/unrelated cells, rich attribution, web UI and MCP
 access.
+
+## 29.1 Current implementation status
+
+- Steps 1–3 are implemented with complex structure factors, matched-reflection
+  results, relative-origin alignment and the mismatch disk.
+- Step 4 is implemented for expected measured-bin values with either diagonal
+  variances or a full covariance matrix. A calculator convenience function
+  converts profile density into bin counts under an explicit synthetic count
+  model.
+- Step 5 is implemented for declared characteristic parameter scales, diagonal
+  or correlated observation uncertainty, residual support, local information,
+  rank, condition number, column correlations and generalized covariance.
+- Steps 6–7 remain: symmetry-aware constrained parameter generation followed
+  by refinable experimental nuisance/profile parameters and staged
+  optimization.
