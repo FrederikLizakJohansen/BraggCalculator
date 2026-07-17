@@ -91,6 +91,102 @@ class ProfileDiscriminationResult:
 
 
 @dataclass(frozen=True)
+class StructuralRelationship:
+    """Crystallographic relationship that controls valid pair diagnostics."""
+
+    regime: str
+    classification: str
+    transformation: np.ndarray | None
+    transformation_direction: str | None
+    volume_ratio: float
+    complex_comparison_allowed: bool
+    reason: str
+
+
+@dataclass(frozen=True)
+class PairDistributionComparison:
+    """Scattering-weighted periodic radial pair-distribution comparison."""
+
+    radius: np.ndarray
+    distribution_a: np.ndarray
+    distribution_b: np.ndarray
+    similarity: float
+    radiation: str
+    broadening: float
+    r_max: float
+
+
+@dataclass(frozen=True)
+class SuperstructureResult:
+    """Reflections in a supercell that do not map to parent-cell indices."""
+
+    parent: str
+    supercell: str
+    transformation: np.ndarray
+    hkl: np.ndarray
+    q: np.ndarray
+    intensity: np.ndarray
+    intensity_fraction: float
+
+
+@dataclass(frozen=True)
+class PeakGroupDiagnostic:
+    """One resolution-defined powder group and its counterfactual site effects."""
+
+    q_center: float
+    q_min: float
+    q_max: float
+    integrated_intensity: float
+    effective_reflections: float
+    hkl: np.ndarray
+    reflection_intensity: np.ndarray
+    site_effects: dict[str, float]
+
+
+@dataclass(frozen=True)
+class CounterfactualAttribution:
+    """Profile effect of substituting a declared site or motif group."""
+
+    name: str
+    site_indices: tuple[int, ...]
+    effect_norm: float
+    alignment_fraction: float
+    largest_effect_coordinate: float
+    profile_change: np.ndarray
+
+
+@dataclass(frozen=True)
+class ExperimentRecommendation:
+    """Expected model discrimination for one declared measurement setup."""
+
+    name: str
+    radiation: str
+    wavelength: float
+    q_range: tuple[float, float]
+    fwhm_q: float
+    total_discrimination: float
+    most_informative_q: float
+    assumptions: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class StructuralDiagnosticsResult:
+    """High-level, relationship-aware structural diagnostic report."""
+
+    relationship: StructuralRelationship
+    similarities: dict[str, float | None]
+    dominant_information_loss: str
+    explanation: str
+    mismatch: MismatchDiskResult | None
+    profile_discrimination: ProfileDiscriminationResult
+    pair_distribution: PairDistributionComparison
+    superstructure: SuperstructureResult | None
+    peak_groups_a: tuple[PeakGroupDiagnostic, ...]
+    peak_groups_b: tuple[PeakGroupDiagnostic, ...]
+    counterfactuals: tuple[CounterfactualAttribution, ...]
+
+
+@dataclass(frozen=True)
 class JacobianDiagnostics:
     """Local parameter information calculated from a scaled profile Jacobian."""
 

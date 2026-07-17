@@ -47,6 +47,21 @@ chi-squared, held-out Rwp, large standardized-residual regions, candidate
 ranking, pairwise expected discrimination, restart sensitivity, provenance and
 a recommended next action.
 
+## Structure-to-structure diagnosis
+
+Before refining competing models, `diagnose_structures(model_a, model_b)`
+classifies their crystallographic relationship and selects the strongest valid
+comparison. Equivalent or compatible models receive complex structure-factor
+diagnostics; commensurate models additionally expose superstructure
+reflections; unrelated polymorphs receive powder-profile and periodic
+radial-pair diagnostics without a fabricated `hkl`-phase mapping.
+
+Peak-group site effects answer “which site matters in this resolved feature?”
+by recalculating the reflection intensities with a site/orbit removed.
+Counterfactual substitutions answer “does replacing this motif move model A
+towards model B?” Their values are interference-aware and non-additive, so they
+must not be interpreted as percentages that sum to 100%.
+
 ### Observation covariance and uncertainty
 
 Independent `sigma` values remain the default. For correlated observations,

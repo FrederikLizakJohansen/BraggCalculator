@@ -431,7 +431,7 @@ Evidence artifacts:
 
 ## Milestone 5 -- General structural diagnostics
 
-**Status: Planned / Research**
+**Status: Done / Research implementation**
 
 - automatic diffraction information-loss ladder classification;
 - peak-group-to-site/orbit attribution;
@@ -442,6 +442,89 @@ Evidence artifacts:
 - unrelated-polymorph powder and motif comparison;
 - experimental-design recommendations across wavelength, radiation and
   resolution choices.
+
+### Milestone 5 acceptance gate
+
+- every comparison must declare whether the prepared structures are
+  equivalent, lattice-compatible, integer/rationally commensurate, or
+  unrelated, and must never expose an `hkl` phase comparison for an unrelated
+  pair;
+- the information-loss ladder must report separately normalized complex,
+  intensity, ideal-powder, broadened-profile and radial-pair similarities, then
+  identify the largest information-hiding transition with an explanation;
+- commensurate comparisons must record the integer cell transformation where
+  one exists and identify supercell reflections that cannot be indexed in the
+  parent cell, including their calculated intensity fraction;
+- peak groups must be formed using a declared resolution width and report their
+  reflection mixture entropy/effective count plus site-orbit counterfactual
+  effects; counterfactual effects must be labelled non-additive because of
+  interference;
+- the radial Patterson/PDF diagnostic must include periodic neighbors,
+  scattering weights, radiation type, broadening and a bounded similarity;
+- unrelated structures must still receive powder-profile and radial-pair
+  comparison, while complex and direct reflection-phase fields remain absent;
+- experiment suggestions must recompute expected count discrimination for
+  declared wavelength, radiation, Q range and resolution configurations and
+  retain assumptions instead of returning an unexplained rank;
+- deterministic tests, one multi-regime figure and a self-contained HTML
+  report must cover equivalent, compatible, commensurate and unrelated pairs,
+  superstructure peaks, counterfactual attribution, Patterson/PDF similarity
+  and measurement ranking.
+
+### Milestone 5 measured result
+
+The new relationship gate classifies exact equivalent/origin-shifted models,
+same-lattice decorated variants, integer or bounded-rational commensurate cells,
+and unrelated lattices. Reciprocal vectors rather than raw Miller labels are
+matched after a valid cell relationship. Regime III results set the complex and
+intensity similarities to `None`, while retaining ideal-powder, broadened
+profile, expected-count discrimination and periodic radial-pair comparisons.
+
+In the executable compatible SiO2 example, similarity rises from 0.856869 for
+aligned complex factors to 0.983362 after phase removal, 0.996230 after powder
+projection and 0.997803 after the declared broadening. The diagnostic therefore
+identifies phase loss as the dominant information-hiding transition. Its
+radial-pair similarity is 0.603583 and is reported as an alternative real-space
+view rather than another step in the diffraction ladder.
+
+For an ordered 2x Si/P cell, the integer cell transformation is recovered and
+118 calculated non-parent reciprocal points carry 0.174574% of the integrated
+intensity in the evaluated Q range. Resolution-defined peak groups report the
+reflection-mixture effective count and recalculated site-removal effects. In a
+two-oxygen counterfactual, replacing O(1) alone has relative profile-effect norm
+0.721116 and local alignment 0.417202; O(2) gives 0.763888 and 0.471699; replacing
+both reproduces the full A-to-B profile direction with norm and alignment 1.0.
+The separate effects are deliberately not added because interference makes the
+decomposition non-additive.
+
+The unrelated triclinic/hexagonal pair emits no complex metric, but reports
+profile similarity 0.302389, radial-pair similarity 0.190419 and an expected
+count separation under the declared measurement model. The experiment gate
+ranks four configurations while preserving radiation, wavelength, Q range,
+resolution, exposure/count scale, background and variance assumptions. In the
+declared example the neutron exposure ranks first; among like-for-like Cu X-ray
+setups, reducing FWHM from 0.25 to 0.04 inverse angstrom raises expected
+separation from 5.88e6 to 2.53e8.
+
+Evidence artifacts:
+
+- `demo/general_structural_diagnostics.png` shows the four relationship regimes,
+  information ladder, superstructure reflections, peak/site effects,
+  counterfactuals, periodic radial PDF, experiment ranking and unrelated-pair
+  powder evidence;
+- `demo/general_structural_diagnostics_report.html` embeds the figure and the
+  numerical relationship, similarity, attribution and measurement tables;
+- `braggcalculator/structural_diagnostics.py` provides the reusable API;
+- regression tests cover all regimes, the no-invented-phase gate,
+  information-loss classification, site counterfactuals, peak groups,
+  superstructure intensity, periodic PDFs and resolution recommendations.
+
+Current research limitations are explicit: rational cell searches use a
+bounded denominator rather than a full crystallographic common-cell search;
+counterfactual substitution requires a contribution-wise site/species mapping;
+the radial signal is a kinematic scattering-weighted periodic pair diagnostic,
+not a fully corrected experimental total-scattering PDF; measurement ranking is
+conditional on the declared count and background models.
 
 ## Milestone 6 -- Reference validation
 

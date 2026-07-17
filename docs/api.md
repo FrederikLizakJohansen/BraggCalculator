@@ -193,12 +193,66 @@ from braggcalculator.diagnostics import compare_calculators
 result = compare_calculators(calculator_a, calculator_b, optimize_origin=True)
 ```
 
-The calculators must currently use the same lattice representation, radiation
+This low-level operation requires the same lattice representation, radiation
 mode and wavelength. The result contains exact matched HKLs, the fitted
 relative-origin correction, disk coordinates, the per-reflection radius,
 amplitude and phase dissimilarities, and thresholds governing weak-reflection
-phase interpretation. Automatic equivalent-setting and supercell mappings are
-deliberately deferred.
+phase interpretation.
+
+For arbitrary periodic structures, use the relationship-aware operation:
+
+```python
+from braggcalculator import diagnose_structures
+
+diagnostic = diagnose_structures(
+    structure_a,
+    structure_b,
+    radiation="xray",
+    wavelength=1.5406,
+    q_range=(0.5, 8.0),
+    profile_fwhm_q=0.08,
+    site_groups={"framework": [0, 1, 2]},
+    counterfactual_groups={"framework": [0, 1, 2]},
+)
+```
+
+The result begins with an `equivalent`, `lattice_compatible`, `commensurate`
+or `unrelated` relationship. Compatible and commensurate pairs receive a
+reciprocal-vector-matched complex comparison. Unrelated pairs return
+`mismatch=None` and retain only powder-profile and periodic radial-pair
+comparisons; the API does not invent a phase correspondence.
+
+`similarities` contains the complex, intensity, ideal-powder, broadened-profile
+and radial-pair levels. `dominant_information_loss` identifies phase loss,
+powder averaging or peak overlap only when the corresponding similarity jump
+exceeds the declared 0.03 gate. Peak-group site-removal and structural
+counterfactual effects retain interference and therefore are explicitly
+non-additive.
+
+Commensurate integer parent/supercell pairs expose a `superstructure` result.
+Its reflections are those whose supercell indices do not transform to integer
+parent indices; their calculated intensity fraction is reported.
+
+Candidate experiments can be compared under explicit count assumptions:
+
+```python
+from braggcalculator import suggest_measurements
+
+recommendations = suggest_measurements(
+    structure_a,
+    structure_b,
+    [
+        {"name": "laboratory", "radiation": "xray", "wavelength": 1.5406,
+         "q_range": (0.5, 6.0), "fwhm_q": 0.20, "count_scale": 1000},
+        {"name": "high resolution", "radiation": "xray", "wavelength": 1.5406,
+         "q_range": (0.5, 6.0), "fwhm_q": 0.04, "count_scale": 1000},
+    ],
+)
+```
+
+The score is expected measured-count separation under a symmetric Poisson
+variance approximation. Radiation sources are comparable only when their
+declared count scales and backgrounds represent credible exposure conditions.
 
 ```python
 from braggcalculator.diagnostics import compare_profile_counts

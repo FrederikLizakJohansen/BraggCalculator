@@ -172,3 +172,19 @@ python demo/robust_refinement_mechanics.py
 It writes `demo/robust_refinement_mechanics.png` and the self-contained
 `demo/robust_refinement_mechanics_report.html`. These are numerical-mechanics
 gates; they do not claim that optimizer convergence proves structural truth.
+
+## General structural diagnostics
+
+`general_structural_diagnostics.py` demonstrates the relationship gate and the
+diagnostics it enables: the diffraction information-loss ladder, ordered-cell
+superstructure reflections, resolution-defined peak/site effects,
+counterfactual motif substitutions, periodic scattering-weighted PDFs,
+unrelated-polymorph powder comparison and declared-experiment ranking.
+
+```bash
+python demo/general_structural_diagnostics.py
+```
+
+It writes `demo/general_structural_diagnostics.png` and the self-contained
+`demo/general_structural_diagnostics_report.html`. The unrelated example
+deliberately reports no complex or `hkl`-phase metric.
