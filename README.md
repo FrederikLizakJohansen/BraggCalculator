@@ -240,6 +240,25 @@ comparison, information-loss diagnostics, staged two-model refinement,
 identifiability, measurement design and auditable exports, with mathematical
 and plain-language explanations beside every figure.
 
+For a minimal first example, start with
+[`notebooks/simple_refinement_tutorial.ipynb`](notebooks/simple_refinement_tutorial.ipynb):
+choose one CIF and one XY/XYE pattern, load them, refine ordinary profile and
+unit-cell parameters, and inspect the fitted curve and values.
+
+The next step is
+[`notebooks/progressive_refinement_tutorial.ipynb`](notebooks/progressive_refinement_tutorial.ipynb).
+It starts from deliberately shifted oxygen coordinates and compares four
+refinement levels, including atomic positions and a joint polish, with profile,
+residual, loss-curve, lattice-change and atomic-movement figures.
+
+For a difficult real-data and API-level treatment, use
+[`notebooks/advanced_session_tutorial.ipynb`](notebooks/advanced_session_tutorial.ipynb).
+It works through the full NIST SRM 660c scan, candidate sessions, direct
+candidate refinement, policies and stages, checkpoints, restarts, result
+objects, identifiability, exports, coordinate release and phase-mixture
+sessions, including examples where an incomplete model gives misleading fit
+improvements.
+
 The reproducible diagnostics-paper benchmark is also included:
 
 ```bash
