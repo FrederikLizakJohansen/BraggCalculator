@@ -25,10 +25,23 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="use the NIST six-line Cu K-alpha emission spectrum",
     )
-    parser.add_argument("--weight-column", action="store_true", help="third column is weight, not sigma")
+    parser.add_argument(
+        "--weight-column", action="store_true", help="third column is weight, not sigma"
+    )
     parser.add_argument("--lower", type=float)
     parser.add_argument("--upper", type=float)
-    parser.add_argument("--coordinates", action="store_true", help="release symmetry-compatible coordinates")
+    parser.add_argument(
+        "--coordinates", action="store_true", help="release symmetry-compatible coordinates"
+    )
+    parser.add_argument(
+        "--occupancy-mode",
+        choices=("fixed", "composition", "vacancy"),
+        default="fixed",
+        help="shared-site occupancy policy",
+    )
+    parser.add_argument("--b-iso", action="store_true", help="release positive orbit Biso values")
+    parser.add_argument("--occupancy-restraint", type=float, default=1.0)
+    parser.add_argument("--b-iso-restraint", type=float, default=0.1)
     parser.add_argument("--quick", action="store_true", help="use the shorter validation recipe")
     parser.add_argument(
         "--legacy-profile", action="store_true", help="use the original symmetric pseudo-Voigt"
@@ -66,14 +79,24 @@ def main(argv=None) -> int:
     if names is not None and len(names) != len(args.model):
         raise SystemExit("repeat --name exactly once per --model")
     policy = (
-        RefinementPolicy.quick(refine_coordinates=args.coordinates)
+        RefinementPolicy.quick(
+            refine_coordinates=args.coordinates,
+            occupancy_mode=args.occupancy_mode,
+            refine_b_iso=args.b_iso,
+        )
         if args.quick
-        else RefinementPolicy.cautious(refine_coordinates=args.coordinates)
+        else RefinementPolicy.cautious(
+            refine_coordinates=args.coordinates,
+            occupancy_mode=args.occupancy_mode,
+            refine_b_iso=args.b_iso,
+        )
     )
     policy = replace(
         policy,
         profile_model="legacy" if args.legacy_profile else "tch",
         axial_asymmetry=not args.no_axial_asymmetry,
+        occupancy_restraint=args.occupancy_restraint,
+        b_iso_restraint=args.b_iso_restraint,
         goniometer_radius_mm=args.goniometer_radius_mm,
         specimen_displacement_mm=args.specimen_displacement_mm,
         refine_specimen_displacement=args.refine_specimen_displacement,
@@ -84,10 +107,7 @@ def main(argv=None) -> int:
     print(f"wrote {args.output}")
     print(result.conclusion)
     for candidate in result.candidates:
-        print(
-            f"{candidate.name}: Rwp={candidate.r_wp:.5f}, "
-            f"chi2={candidate.chi_squared:.3f}"
-        )
+        print(f"{candidate.name}: Rwp={candidate.r_wp:.5f}, chi2={candidate.chi_squared:.3f}")
     return 0
 
 

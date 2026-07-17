@@ -6,6 +6,23 @@ from braggcalculator import BraggCalculator
 from braggcalculator.backends import TorchBackend
 
 
+def _mixed_perovskite():
+    structure = Structure.from_spacegroup(
+        "Pm-3m",
+        Lattice.cubic(3.9),
+        [{"Sr": 0.7, "Ca": 0.3}, "Ti", "O"],
+        [[0, 0, 0], [0.5, 0.5, 0.5], [0.5, 0.5, 0]],
+    )
+    structure.add_site_property(
+        "B",
+        [
+            0.4 if "Sr" in site.species else (0.3 if "Ti" in site.species else 0.7)
+            for site in structure
+        ],
+    )
+    return structure
+
+
 def test_p1_has_three_independent_coordinates_per_site(triclinic_structure):
     calculator = BraggCalculator(primitive=False).load(triclinic_structure)
     model = calculator.symmetry_coordinate_parameterization()
@@ -114,3 +131,60 @@ def test_lattice_modes_recover_synthetic_reflection_positions():
         loss.backward()
         optimizer.step()
     torch.testing.assert_close(values, target_values, atol=2e-3, rtol=0)
+
+
+def test_shared_site_composition_is_a_symmetry_shared_simplex():
+    calculator = BraggCalculator(primitive=False).load(_mixed_perovskite())
+    model = calculator.symmetry_occupancy_parameterization(mode="composition")
+    assert model.independent_count == 1
+    assert model.labels == ("orbit_0.Ca_vs_Sr",)
+    values = model.initial_values(calculator.backend)
+    np.testing.assert_allclose(model.expand(values, calculator.backend), calculator._symm["occ"])
+
+    changed = values + 0.8
+    expanded = model.expand(changed, calculator.backend)
+    assert np.all(expanded >= 0)
+    assert expanded[0] + expanded[1] == pytest.approx(1.0)
+    np.testing.assert_allclose(expanded[2:], 1.0)
+
+
+def test_vacancy_mode_bounds_every_orbit_occupancy_and_has_gradient():
+    torch = pytest.importorskip("torch")
+    calculator = BraggCalculator(
+        primitive=False, backend=TorchBackend(), two_theta_range=(20, 70)
+    ).load(_mixed_perovskite())
+    model = calculator.symmetry_occupancy_parameterization(mode="vacancy")
+    values = model.initial_values(calculator.backend, requires_grad=True)
+    expanded = model.expand(values, calculator.backend)
+    assert torch.all(expanded >= 0)
+    for group in model.physical_groups(values.detach().numpy()):
+        assert sum(group["species"].values()) <= 1.0
+    parameters = calculator.tensor_parameters()
+    parameters["occupancies"] = expanded
+    loss = torch.sum(calculator.fq(parameters=parameters))
+    loss.backward()
+    assert torch.all(torch.isfinite(values.grad))
+    assert torch.linalg.vector_norm(values.grad) > 0
+
+
+def test_b_iso_is_positive_and_shared_across_symmetry_orbits():
+    torch = pytest.importorskip("torch")
+    calculator = BraggCalculator(
+        primitive=False, backend=TorchBackend(), two_theta_range=(20, 70)
+    ).load(_mixed_perovskite())
+    model = calculator.symmetry_b_iso_parameterization()
+    assert model.independent_count == 3
+    values = model.initial_values(calculator.backend, requires_grad=True)
+    expanded = model.expand(values, calculator.backend)
+    torch.testing.assert_close(
+        expanded,
+        torch.as_tensor(calculator._symm["B"], dtype=torch.float64),
+    )
+    assert torch.all(expanded > 0)
+    torch.testing.assert_close(expanded[3:], expanded[3].expand(3))
+    parameters = calculator.tensor_parameters()
+    parameters["b_iso"] = expanded
+    loss = torch.sum(calculator.fq(parameters=parameters))
+    loss.backward()
+    assert torch.all(torch.isfinite(values.grad))
+    assert torch.linalg.vector_norm(values.grad) > 0

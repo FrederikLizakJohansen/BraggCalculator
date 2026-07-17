@@ -37,6 +37,35 @@ for monoclinic and six for triclinic structures. Reports include the physical
 `a`, `b`, `c`, `alpha`, `beta` and `gamma` values as well as the internal mode
 coordinates.
 
+### Occupancy and isotropic displacement refinement
+
+Occupancy refinement is opt-in and has two explicit meanings:
+
+- `occupancy_mode="composition"` redistributes species on each shared site
+  with a softmax while preserving that site's initial total occupancy;
+- `occupancy_mode="vacancy"` adds vacancy as another simplex component, so the
+  total site occupancy may change but cannot exceed one.
+
+All symmetry-equivalent sites in a crystallographic orbit share the same
+composition. Isotropic displacement refinement is also orbit-shared and uses a
+softplus transform, so every refined `B_iso` remains positive. If a CIF has a
+zero or absent displacement value, `default_b_iso` supplies the positive
+starting value (0.5 square angstrom by default) and is recorded in provenance.
+
+```python
+policy = RefinementPolicy.cautious(
+    occupancy_mode="composition",
+    refine_b_iso=True,
+)
+result = session.run(policy)
+```
+
+The defaults restrain both families toward their starting values. Setting
+`occupancy_restraint=0` or `b_iso_restraint=0` removes that protection and
+should normally be reserved for controlled tests or independently informative
+data. The report warns when local occupancy and displacement directions are
+strongly correlated. A low Rwp does not override that warning.
+
 ## CLI
 
 ```bash
@@ -63,6 +92,22 @@ Add `--weight-column` when the third input column is a least-squares weight
 rather than a standard deviation. Add `--coordinates` only for scientifically
 plausible starting models and inspect the resulting warning.
 
+To release a fixed-composition shared site and positive isotropic displacement
+parameters:
+
+```bash
+bragg-diagnose sample.xye \
+  --model candidate.cif \
+  --wavelength 1.5405929 \
+  --occupancy-mode composition \
+  --b-iso \
+  --output report.html
+```
+
+Use `--occupancy-mode vacancy` only when vacancy is scientifically plausible.
+The `--occupancy-restraint` and `--b-iso-restraint` options control the raw-
+parameter quadratic restraints.
+
 ## Current experimental model
 
 - X-ray or neutron kinematic intensities from the existing forward engine;
@@ -75,6 +120,8 @@ plausible starting models and inspect the resulting warning.
 - positive scale and a polynomial background;
 - zero shift and symmetry-aware lattice strain;
 - optional symmetry-compatible coordinate displacements;
+- optional symmetry-constrained composition or vacancy occupancies;
+- optional positive, orbit-shared isotropic displacement parameters;
 - weighted least squares, held-out bins, restraints and declared Adam stages.
 
 ## Important limitations
@@ -86,6 +133,9 @@ plausible starting models and inspect the resulting warning.
   size/microstrain models are not implemented.
 - Covariance tools exist, but session-level experimental uncertainties are not
   yet calibrated and must not be reported as certification uncertainties.
+- Occupancy and displacement parameters often attenuate the same reflections;
+  they must not be interpreted independently when the reported Jacobian
+  correlation is large.
 - Rwp ranking is accompanied by discrimination and robustness diagnostics, but
   is not evidence that the winning structure is correct.
 

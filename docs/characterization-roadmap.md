@@ -142,10 +142,10 @@ Implemented evidence:
 
 ## Milestone 2 -- Full crystallographic refinement parameters
 
-**Status: Planned**
+**Status: In progress**
 
-- symmetry-constrained site occupancies and shared-site simplexes;
-- positive isotropic displacement factors;
+- symmetry-constrained site occupancies and shared-site simplexes; **done**
+- positive isotropic displacement factors; **done**
 - positive-semidefinite anisotropic displacement tensors;
 - composition, bond-length, angle and minimum-distance restraints;
 - rigid-body translations and rotations;
@@ -153,6 +153,41 @@ Implemented evidence:
 
 Each parameter family requires a synthetic recovery example, physical-domain
 tests and an identifiability warning for a deliberately correlated case.
+
+The occupancy implementation distinguishes:
+
+1. **composition mode**, which redistributes species on a shared site while
+   keeping that site's total occupancy fixed; and
+2. **vacancy mode**, which adds vacancy as a simplex component and can refine
+   total site occupancy.
+
+Occupancies and isotropic displacement factors are shared across every member
+of a crystallographic orbit. The first executable gate is a mixed-site
+synthetic recovery with a figure comparing target and recovered composition,
+orbit Biso values, calculated profile and residual.
+
+### Milestone 2A measured result
+
+The executable mixed-site perovskite example starts from Sr0.70Ca0.30 and
+generates a target with Ca=0.55 and orbit Biso values of 0.60, 0.35 and 1.10
+square angstrom for the A, Ti and O sites. A controlled staged refinement
+recovers all four target quantities to better than 1e-5.
+
+An unrestricted whole-profile run deliberately exposes the identifiability
+problem: it reaches Rwp=0.01340 but returns Ca=0.51572 while the displacement
+parameters drift. The largest local occupancy--Biso correlation is about 0.90,
+and the session emits an explicit warning. This is a successful diagnostic,
+not a failed optimizer: several parameter combinations explain almost the same
+powder signal.
+
+Evidence artifacts:
+
+- `demo/occupancy_adp_refinement.png` compares profiles, residuals, physical
+  parameters, loss history and the local correlation matrix;
+- `demo/occupancy_adp_report.html` contains the ordinary session report;
+- `demo/refine_occupancy_adp.py` regenerates both artifacts;
+- unit tests cover composition and vacancy simplexes, orbit sharing, positivity,
+  autograd and the deliberately ambiguous whole-profile result.
 
 ## Milestone 3 -- Calibrated uncertainty and identifiability
 
@@ -246,3 +281,10 @@ instrument, uncertainty and reference-validation milestones are complete.
   an explicit warning that the result lies outside certification uncertainty.
 - Next implementation target: Milestone 2, beginning with symmetry-constrained
   occupancies and positive isotropic displacement parameters.
+- Began Milestone 2 and fixed the distinction between composition-only and
+  vacancy-enabled occupancy refinement before implementing the parameter API.
+- Completed Milestone 2A: symmetry-constrained composition/vacancy simplexes,
+  positive orbit-shared Biso parameters, session/CLI integration, physical
+  reporting and occupancy--displacement correlation warnings.
+- Demonstrated exact controlled recovery and a deliberately underdetermined
+  joint fit in a generated six-panel figure and HTML diagnostic report.

@@ -95,3 +95,18 @@ python demo/characterize_nist_lab6.py
 It writes `demo/nist_lab6_report.html` and prints both the historical
 limited-scan baseline and the current full-scan result. The example is an
 instrument-aware validation, not a reproduction of NIST's certification fit.
+
+## Occupancy and isotropic displacement diagnostics
+
+`refine_occupancy_adp.py` uses a mixed Sr/Ca perovskite to show two regimes:
+a controlled staged recovery where correlated parameter families are released
+separately, and a whole-profile joint refinement where the correlation matrix
+correctly warns that composition and displacement factors are not independently
+determined.
+
+```bash
+python demo/refine_occupancy_adp.py
+```
+
+It writes `demo/occupancy_adp_refinement.png` and
+`demo/occupancy_adp_report.html`.

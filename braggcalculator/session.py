@@ -59,8 +59,7 @@ def _wavelength_components(metadata, default_wavelength):
     weights = np.asarray([item["weight"] for item in components], dtype=np.float64)
     weights /= weights.sum()
     return tuple(
-        {**item, "normalized_weight": float(weight)}
-        for item, weight in zip(components, weights)
+        {**item, "normalized_weight": float(weight)} for item, weight in zip(components, weights)
     )
 
 
@@ -72,6 +71,11 @@ class RefinementPolicy:
     refine_lattice: bool = True
     refine_coordinates: bool = False
     coordinate_restraint: float = 10.0
+    occupancy_mode: str = "fixed"
+    occupancy_restraint: float = 1.0
+    refine_b_iso: bool = False
+    b_iso_restraint: float = 0.1
+    default_b_iso: float = 0.5
     holdout_stride: int = 10
     restarts: int = 1
     diagnostic_points: int = 48
@@ -93,6 +97,14 @@ class RefinementPolicy:
             raise ValueError("diagnostic_points must be non-negative")
         if self.coordinate_restraint < 0 or not np.isfinite(self.coordinate_restraint):
             raise ValueError("coordinate_restraint must be finite and non-negative")
+        if self.occupancy_mode not in {"fixed", "composition", "vacancy"}:
+            raise ValueError("occupancy_mode must be 'fixed', 'composition', or 'vacancy'")
+        if self.occupancy_restraint < 0 or not np.isfinite(self.occupancy_restraint):
+            raise ValueError("occupancy_restraint must be finite and non-negative")
+        if self.b_iso_restraint < 0 or not np.isfinite(self.b_iso_restraint):
+            raise ValueError("b_iso_restraint must be finite and non-negative")
+        if not np.isfinite(self.default_b_iso) or self.default_b_iso <= 0:
+            raise ValueError("default_b_iso must be positive and finite")
         if self.profile_model not in {"legacy", "tch"}:
             raise ValueError("profile_model must be 'legacy' or 'tch'")
         if self.goniometer_radius_mm is not None and (
@@ -103,7 +115,13 @@ class RefinementPolicy:
             raise ValueError("specimen_displacement_mm must be finite")
 
     @classmethod
-    def quick(cls, *, refine_coordinates: bool = False) -> "RefinementPolicy":
+    def quick(
+        cls,
+        *,
+        refine_coordinates: bool = False,
+        occupancy_mode: str = "fixed",
+        refine_b_iso: bool = False,
+    ) -> "RefinementPolicy":
         active_joint = (
             "scale",
             "background",
@@ -114,8 +132,14 @@ class RefinementPolicy:
         )
         if refine_coordinates:
             active_joint += ("coordinates",)
+        if occupancy_mode != "fixed":
+            active_joint += ("occupancies",)
+        if refine_b_iso:
+            active_joint += ("b_iso",)
         return cls(
             refine_coordinates=refine_coordinates,
+            occupancy_mode=occupancy_mode,
+            refine_b_iso=refine_b_iso,
             stages=(
                 OptimizationStage("scale/background", ("scale", "background"), 40, 0.04),
                 OptimizationStage(
@@ -129,7 +153,13 @@ class RefinementPolicy:
         )
 
     @classmethod
-    def cautious(cls, *, refine_coordinates: bool = False) -> "RefinementPolicy":
+    def cautious(
+        cls,
+        *,
+        refine_coordinates: bool = False,
+        occupancy_mode: str = "fixed",
+        refine_b_iso: bool = False,
+    ) -> "RefinementPolicy":
         active_joint = (
             "scale",
             "background",
@@ -150,8 +180,19 @@ class RefinementPolicy:
         if refine_coordinates:
             stages.append(OptimizationStage("coordinates", ("coordinates",), 150, 0.006))
             active_joint += ("coordinates",)
+        if occupancy_mode != "fixed":
+            stages.append(OptimizationStage("occupancies", ("occupancies",), 140, 0.008))
+            active_joint += ("occupancies",)
+        if refine_b_iso:
+            stages.append(OptimizationStage("isotropic displacement", ("b_iso",), 140, 0.008))
+            active_joint += ("b_iso",)
         stages.append(OptimizationStage("joint", active_joint, 250, 0.005))
-        return cls(refine_coordinates=refine_coordinates, stages=tuple(stages))
+        return cls(
+            refine_coordinates=refine_coordinates,
+            occupancy_mode=occupancy_mode,
+            refine_b_iso=refine_b_iso,
+            stages=tuple(stages),
+        )
 
 
 @dataclass(frozen=True)
@@ -226,6 +267,16 @@ class RefinementSession:
         component_weights = np.asarray([item["normalized_weight"] for item in components])
         coordinate_model = calculator.symmetry_coordinate_parameterization()
         lattice_model = calculator.symmetry_lattice_parameterization()
+        occupancy_model = (
+            calculator.symmetry_occupancy_parameterization(mode=policy.occupancy_mode)
+            if policy.occupancy_mode != "fixed"
+            else None
+        )
+        b_iso_model = (
+            calculator.symmetry_b_iso_parameterization(default_if_zero=policy.default_b_iso)
+            if policy.refine_b_iso
+            else None
+        )
         base_parameters = calculator.tensor_parameters()
         grid = torch.as_tensor(self.dataset.coordinate, dtype=torch.float64, device=self.device)
         observed = torch.as_tensor(self.dataset.intensity, dtype=torch.float64, device=self.device)
@@ -247,7 +298,12 @@ class RefinementSession:
             ]
             background0 = max(float(np.percentile(self.dataset.intensity[selected], 10)), 1e-6)
             signal_area = max(
-                float(np.trapezoid(np.maximum(self.dataset.intensity - background0, 0.0), self.dataset.coordinate)),
+                float(
+                    np.trapezoid(
+                        np.maximum(self.dataset.intensity - background0, 0.0),
+                        self.dataset.coordinate,
+                    )
+                ),
                 1e-9,
             )
             calculated_area = max(float(component_weights @ component_areas), 1e-9)
@@ -270,6 +326,16 @@ class RefinementSession:
         lattice = lattice_model.initial_values(calculator.backend, requires_grad=True)
         displacement = torch.zeros((), dtype=torch.float64, device=self.device, requires_grad=True)
         coordinates = coordinate_model.initial_values(calculator.backend, requires_grad=True)
+        occupancies = (
+            occupancy_model.initial_values(calculator.backend, requires_grad=True)
+            if occupancy_model is not None
+            else None
+        )
+        b_iso = (
+            b_iso_model.initial_values(calculator.backend, requires_grad=True)
+            if b_iso_model is not None
+            else None
+        )
         if restart_index:
             generator = np.random.default_rng(1729 + restart_index)
             with torch.no_grad():
@@ -305,6 +371,24 @@ class RefinementSession:
                             device=self.device,
                         )
                     )
+                if occupancy_model is not None and occupancy_model.independent_count:
+                    occupancies.copy_(
+                        torch.as_tensor(
+                            occupancy_model.initial_raw_values
+                            + generator.normal(0.0, 0.02, occupancy_model.independent_count),
+                            dtype=torch.float64,
+                            device=self.device,
+                        )
+                    )
+                if b_iso_model is not None:
+                    b_iso.copy_(
+                        torch.as_tensor(
+                            b_iso_model.initial_raw_values
+                            + generator.normal(0.0, 0.02, b_iso_model.independent_count),
+                            dtype=torch.float64,
+                            device=self.device,
+                        )
+                    )
         groups = {
             "scale": scale,
             "background": background,
@@ -317,10 +401,12 @@ class RefinementSession:
             groups["specimen_displacement"] = displacement
         if policy.refine_coordinates and coordinate_model.independent_count:
             groups["coordinates"] = coordinates
+        if occupancy_model is not None and occupancy_model.independent_count:
+            groups["occupancies"] = occupancies
+        if b_iso_model is not None:
+            groups["b_iso"] = b_iso
 
-        normalized_x = torch.linspace(
-            -1.0, 1.0, len(grid), dtype=torch.float64, device=self.device
-        )
+        normalized_x = torch.linspace(-1.0, 1.0, len(grid), dtype=torch.float64, device=self.device)
         background_basis = torch.stack(
             [normalized_x**degree for degree in range(policy.background_degree + 1)], dim=1
         )
@@ -329,29 +415,26 @@ class RefinementSession:
         if goniometer_radius is None:
             goniometer_radius = instrument_metadata.get("goniometer_radius_mm")
         if (
-            policy.refine_specimen_displacement
-            or abs(policy.specimen_displacement_mm) > 0.0
+            policy.refine_specimen_displacement or abs(policy.specimen_displacement_mm) > 0.0
         ) and goniometer_radius is None:
-            raise ValueError(
-                "a goniometer radius is required for specimen-displacement correction"
-            )
+            raise ValueError("a goniometer radius is required for specimen-displacement correction")
 
         def calculate():
             peaks = torch.zeros_like(grid)
             structural = dict(base_parameters)
             structural["lattice"] = lattice_model.expand(lattice, calculator.backend)
             if policy.refine_coordinates and coordinate_model.independent_count:
-                structural["frac_coords"] = coordinate_model.expand(
-                    coordinates, calculator.backend
-                )
+                structural["frac_coords"] = coordinate_model.expand(coordinates, calculator.backend)
+            if occupancy_model is not None and occupancy_model.independent_count:
+                structural["occupancies"] = occupancy_model.expand(occupancies, calculator.backend)
+            if b_iso_model is not None:
+                structural["b_iso"] = b_iso_model.expand(b_iso, calculator.backend)
             component_patterns = calculator.line_components(
                 [component["wavelength_angstrom"] for component in components],
                 domain="two_theta",
                 parameters=structural,
             )
-            for (peak_centers, peak_areas), component in zip(
-                component_patterns, components
-            ):
+            for (peak_centers, peak_areas), component in zip(component_patterns, components):
                 component_weight = component["normalized_weight"]
                 peak_centers = peak_centers + self.dataset.step * zero_shift
                 physical_displacement = (
@@ -406,9 +489,7 @@ class RefinementSession:
                             calculator.backend,
                         ),
                     )
-                    asymmetry = (
-                        0.05 * torch.exp(profile[5]) if policy.axial_asymmetry else 0.0
-                    )
+                    asymmetry = 0.05 * torch.exp(profile[5]) if policy.axial_asymmetry else 0.0
                     low_widths, high_widths = axial_divergence_widths(
                         widths, radians, asymmetry, calculator.backend
                     )
@@ -433,11 +514,32 @@ class RefinementSession:
             loss = loss + 0.01 * torch.mean(negative_background**2)
             if policy.refine_coordinates and coordinate_model.independent_count:
                 loss = loss + policy.coordinate_restraint * torch.mean(coordinates**2)
+            if occupancy_model is not None and occupancy_model.independent_count:
+                occupancy_initial = torch.as_tensor(
+                    occupancy_model.initial_raw_values,
+                    dtype=torch.float64,
+                    device=self.device,
+                )
+                loss = loss + policy.occupancy_restraint * torch.mean(
+                    (occupancies - occupancy_initial) ** 2
+                )
+            if b_iso_model is not None:
+                b_iso_initial = torch.as_tensor(
+                    b_iso_model.initial_raw_values,
+                    dtype=torch.float64,
+                    device=self.device,
+                )
+                loss = loss + policy.b_iso_restraint * torch.mean((b_iso - b_iso_initial) ** 2)
             return loss
 
-        stages = policy.stages or RefinementPolicy.cautious(
-            refine_coordinates=policy.refine_coordinates
-        ).stages
+        stages = (
+            policy.stages
+            or RefinementPolicy.cautious(
+                refine_coordinates=policy.refine_coordinates,
+                occupancy_mode=policy.occupancy_mode,
+                refine_b_iso=policy.refine_b_iso,
+            ).stages
+        )
         stages = tuple(
             OptimizationStage(
                 stage.name,
@@ -448,9 +550,7 @@ class RefinementSession:
             for stage in stages
             if any(name in groups for name in stage.active)
         )
-        released_names = {
-            name for stage in stages for name in stage.active if name in groups
-        }
+        released_names = {name for stage in stages for name in stage.active if name in groups}
         released_groups = {
             name: tensor for name, tensor in groups.items() if name in released_names
         }
@@ -485,9 +585,7 @@ class RefinementSession:
                 "lorentzian_x": float((0.01 * torch.exp(profile[3])).detach().cpu()),
                 "lorentzian_y": float((0.01 * torch.exp(profile[4])).detach().cpu()),
                 "axial_asymmetry": float(
-                    (0.05 * torch.exp(profile[5])).detach().cpu()
-                    if policy.axial_asymmetry
-                    else 0.0
+                    (0.05 * torch.exp(profile[5])).detach().cpu() if policy.axial_asymmetry else 0.0
                 ),
             }
         physical = {
@@ -496,8 +594,7 @@ class RefinementSession:
             "zero_shift": float((self.dataset.step * zero_shift).detach().cpu()),
             **profile_physical,
             "specimen_displacement_mm": float(
-                policy.specimen_displacement_mm
-                + (0.05 * displacement).detach().cpu()
+                policy.specimen_displacement_mm + (0.05 * displacement).detach().cpu()
                 if policy.refine_specimen_displacement
                 else policy.specimen_displacement_mm
             ),
@@ -510,6 +607,17 @@ class RefinementSession:
                 "log_strain_coordinates": lattice.detach().cpu().numpy().tolist(),
             },
             "coordinate_displacements": coordinates.detach().cpu().numpy().tolist(),
+            "occupancy_mode": policy.occupancy_mode,
+            "occupancy_groups": (
+                list(occupancy_model.physical_groups(occupancies.detach().cpu().numpy()))
+                if occupancy_model is not None
+                else []
+            ),
+            "isotropic_displacement_groups": (
+                list(b_iso_model.physical_groups(b_iso.detach().cpu().numpy()))
+                if b_iso_model is not None
+                else []
+            ),
         }
         warnings = []
         declared_limitations = self.dataset.metadata.get("model_limitations", ())
@@ -517,20 +625,28 @@ class RefinementSession:
             declared_limitations = (declared_limitations,)
         warnings.extend(str(item) for item in declared_limitations)
         if r_wp > 0.15:
-            warnings.append("Large profile residual: the instrument/background model is incomplete.")
+            warnings.append(
+                "Large profile residual: the instrument/background model is incomplete."
+            )
         if policy.refine_coordinates:
             warnings.append("Coordinate uncertainties are not yet calibrated for experimental use.")
+        if policy.occupancy_mode != "fixed":
+            warnings.append("Occupancy uncertainties are not yet calibrated for experimental use.")
+        if policy.refine_b_iso:
+            warnings.append("Biso uncertainties are not yet calibrated for experimental use.")
         if r_wp > 0.15 or declared_limitations:
             recommendation = (
                 "Improve the wavelength, instrument-profile, background, or phase model before "
                 "interpreting structural parameters."
             )
-        elif not policy.refine_coordinates:
-            recommendation = (
-                "Inspect parameter sensitivity and correlations before releasing structural coordinates."
-            )
+        elif not (
+            policy.refine_coordinates or policy.occupancy_mode != "fixed" or policy.refine_b_iso
+        ):
+            recommendation = "Inspect parameter sensitivity and correlations before releasing structural coordinates."
         else:
-            recommendation = "Validate the refined coordinates across restarts and held-out regions."
+            recommendation = (
+                "Validate the refined structural parameters across restarts and held-out regions."
+            )
         regions = _informative_regions(
             self.dataset.coordinate, residual / self.dataset.sigma, count=5
         )
@@ -542,6 +658,8 @@ class RefinementSession:
             max_points=policy.diagnostic_points,
             group_labels={
                 "lattice": lattice_model.labels,
+                "occupancies": (occupancy_model.labels if occupancy_model is not None else ()),
+                "b_iso": b_iso_model.labels if b_iso_model is not None else (),
                 "profile": (
                     ("U", "V", "W", "eta")
                     if policy.profile_model == "legacy"
@@ -553,6 +671,14 @@ class RefinementSession:
             warnings.append("The released parameter set is locally rank deficient.")
         if identifiability and identifiability["maximum_absolute_correlation"] > 0.98:
             warnings.append("At least one released parameter pair is extremely correlated.")
+        occupancy_b_correlation = _maximum_cross_group_correlation(
+            identifiability, "occupancies.", "b_iso."
+        )
+        if occupancy_b_correlation > 0.85:
+            warnings.append(
+                "Occupancy and Biso directions are strongly correlated; do not interpret "
+                "their joint refinement independently."
+            )
         return CandidateRefinementResult(
             name=self.names[index],
             structure=self.structures[index],
@@ -576,6 +702,11 @@ class RefinementSession:
                     "refine_lattice": policy.refine_lattice,
                     "refine_coordinates": policy.refine_coordinates,
                     "coordinate_restraint": policy.coordinate_restraint,
+                    "occupancy_mode": policy.occupancy_mode,
+                    "occupancy_restraint": policy.occupancy_restraint,
+                    "refine_b_iso": policy.refine_b_iso,
+                    "b_iso_restraint": policy.b_iso_restraint,
+                    "default_b_iso": policy.default_b_iso,
                     "holdout_stride": policy.holdout_stride,
                     "diagnostic_points": policy.diagnostic_points,
                     "profile_model": policy.profile_model,
@@ -606,23 +737,29 @@ class RefinementSession:
                 extra_warnings.append("Refinement is sensitive to starting values across restarts.")
             provenance = dict(best.provenance)
             provenance["restart_rwp"] = restart_rwp
-            candidates.append(
-                replace(best, warnings=tuple(extra_warnings), provenance=provenance)
-            )
+            candidates.append(replace(best, warnings=tuple(extra_warnings), provenance=provenance))
         candidates = tuple(candidates)
         ranking = tuple(result.name for result in sorted(candidates, key=lambda item: item.r_wp))
         pairwise = {}
         for left in range(len(candidates)):
             for right in range(left + 1, len(candidates)):
                 difference = candidates[left].calculated - candidates[right].calculated
-                score = float(np.sum((difference[self.dataset.mask] / self.dataset.sigma[self.dataset.mask]) ** 2))
+                score = float(
+                    np.sum(
+                        (difference[self.dataset.mask] / self.dataset.sigma[self.dataset.mask]) ** 2
+                    )
+                )
                 pairwise[f"{candidates[left].name} vs {candidates[right].name}"] = score
         if len(candidates) == 1:
-            conclusion = f"Refined {candidates[0].name}; candidate discrimination was not requested."
+            conclusion = (
+                f"Refined {candidates[0].name}; candidate discrimination was not requested."
+            )
         elif pairwise and max(pairwise.values()) < 9.0:
             conclusion = "The supplied experiment does not discriminate the refined candidates."
         else:
-            conclusion = f"{ranking[0]} has the lowest Rwp; inspect robustness and residual evidence."
+            conclusion = (
+                f"{ranking[0]} has the lowest Rwp; inspect robustness and residual evidence."
+            )
         return SessionResult(self.dataset, candidates, ranking, pairwise, conclusion)
 
     def write_html(self, result: SessionResult, path) -> Path:
@@ -631,9 +768,7 @@ class RefinementSession:
         return output
 
 
-def _local_identifiability(
-    calculate, groups, sigma, training, *, max_points, group_labels=None
-):
+def _local_identifiability(calculate, groups, sigma, training, *, max_points, group_labels=None):
     """Estimate a subsampled local Gauss-Newton matrix for released raw parameters."""
     if max_points == 0:
         return {}
@@ -676,9 +811,7 @@ def _local_identifiability(
     correlation = diagnostics.correlation
     off_diagonal = correlation.copy()
     np.fill_diagonal(off_diagonal, np.nan)
-    maximum_correlation = (
-        float(np.nanmax(np.abs(off_diagonal))) if len(labels) > 1 else 0.0
-    )
+    maximum_correlation = float(np.nanmax(np.abs(off_diagonal))) if len(labels) > 1 else 0.0
     return {
         "parameter_names": list(labels),
         "sensitivity": diagnostics.sensitivity.tolist(),
@@ -710,16 +843,36 @@ def _informative_regions(coordinate, standardized_residual, *, count):
     return tuple(chosen)
 
 
+def _maximum_cross_group_correlation(diagnostics, left_prefix, right_prefix):
+    if not diagnostics:
+        return 0.0
+    names = diagnostics["parameter_names"]
+    left = [index for index, name in enumerate(names) if name.startswith(left_prefix)]
+    right = [index for index, name in enumerate(names) if name.startswith(right_prefix)]
+    if not left or not right:
+        return 0.0
+    correlation = np.asarray(diagnostics["correlation"], dtype=np.float64)
+    return float(np.max(np.abs(correlation[np.ix_(left, right)])))
+
+
 def _svg_profile(dataset, candidate, width=900, height=320):
-    selected = np.linspace(0, len(dataset.coordinate) - 1, min(1200, len(dataset.coordinate))).astype(int)
+    selected = np.linspace(
+        0, len(dataset.coordinate) - 1, min(1200, len(dataset.coordinate))
+    ).astype(int)
     x = dataset.coordinate[selected]
-    curves = [dataset.intensity[selected], candidate.calculated[selected], candidate.residual[selected]]
+    curves = [
+        dataset.intensity[selected],
+        candidate.calculated[selected],
+        candidate.residual[selected],
+    ]
     x_scaled = (x - x.min()) / max(float(np.ptp(x)), 1e-12) * (width - 60) + 45
     y_min = min(float(np.min(curve)) for curve in curves)
     y_max = max(float(np.max(curve)) for curve in curves)
+
     def points(values):
         y = height - 30 - (values - y_min) / max(y_max - y_min, 1e-12) * (height - 55)
         return " ".join(f"{left:.1f},{top:.1f}" for left, top in zip(x_scaled, y))
+
     return (
         f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="profile fit">'
         f'<polyline fill="none" stroke="#222" stroke-width="1" points="{points(curves[0])}"/>'
@@ -761,5 +914,5 @@ def _render_html(result: SessionResult) -> str:
     return f"""<!doctype html><html><head><meta charset="utf-8"><title>BraggCalculator diagnostic report</title>
 <style>body{{font-family:system-ui;max-width:1050px;margin:2rem auto;padding:0 1rem}}table{{border-collapse:collapse}}th,td{{text-align:left;border-bottom:1px solid #ddd;padding:.35rem}}svg{{width:100%;border:1px solid #ddd}}</style></head>
 <body><h1>Diffraction diagnostic report</h1><p><strong>Conclusion:</strong> {html.escape(result.conclusion)}</p>
-<p>Dataset: {source}<br>SHA-256: <code>{digest}</code></p><h2>Candidate ranking</h2><ol>{''.join(f'<li>{html.escape(name)}</li>' for name in result.ranking)}</ol>
-<h2>Pairwise discrimination</h2><ul>{pairwise or '<li>Not applicable</li>'}</ul>{''.join(sections)}</body></html>"""
+<p>Dataset: {source}<br>SHA-256: <code>{digest}</code></p><h2>Candidate ranking</h2><ol>{"".join(f"<li>{html.escape(name)}</li>" for name in result.ranking)}</ol>
+<h2>Pairwise discrimination</h2><ul>{pairwise or "<li>Not applicable</li>"}</ul>{"".join(sections)}</body></html>"""

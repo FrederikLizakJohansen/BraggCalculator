@@ -6,6 +6,7 @@ from demo.analyze_profile_information import calculate_information, plot_informa
 from demo.diagnose_compatible_models import calculate_diagnostics, plot_disk
 from demo.refine_symmetry_coordinates import plot_refinement, run_refinement
 from demo.refine_staged import plot_staged_refinement, run_staged_example
+from demo.refine_occupancy_adp import run_occupancy_adp_demo
 
 
 def test_demo_matches_pymatgen_and_writes_figure(tmp_path):
@@ -73,3 +74,21 @@ def test_staged_refinement_demo_recovers_structure_and_profile(tmp_path):
     output = tmp_path / "staged.png"
     plot_staged_refinement(output, result=result)
     assert output.stat().st_size > 0
+
+
+def test_occupancy_adp_demo_recovers_controlled_case_and_flags_joint_ambiguity(tmp_path):
+    figure = tmp_path / "occupancy-adp.png"
+    report = tmp_path / "occupancy-adp.html"
+    _, controlled, joint = run_occupancy_adp_demo(figure, report)
+
+    controlled_ca = controlled["occupancy"][0]["species"]["Ca"]
+    controlled_b = [item["B_iso"] for item in controlled["b_iso"]]
+    joint_ca = joint.physical_parameters["occupancy_groups"][0]["species"]["Ca"]
+
+    assert figure.stat().st_size > 0
+    assert report.stat().st_size > 0
+    assert controlled_ca == pytest.approx(0.55, abs=1e-5)
+    np.testing.assert_allclose(controlled_b, [0.6, 0.35, 1.1], atol=1e-5)
+    assert joint.r_wp < 0.02
+    assert abs(joint_ca - 0.55) > 0.01
+    assert any("strongly correlated" in warning for warning in joint.warnings)

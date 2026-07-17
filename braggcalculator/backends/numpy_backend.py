@@ -32,6 +32,17 @@ class NumpyBackend:
     def exp(self, x):
         return np.exp(x)
 
+    def log(self, x):
+        return np.log(x)
+
+    def softplus(self, x):
+        return np.logaddexp(0.0, x)
+
+    def softmax(self, x, axis=-1):
+        shifted = x - np.max(x, axis=axis, keepdims=True)
+        weights = np.exp(shifted)
+        return weights / np.sum(weights, axis=axis, keepdims=True)
+
     def pi(self):
         return np.pi
 
@@ -78,6 +89,9 @@ class NumpyBackend:
 
     def concat(self, xs, axis=0):
         return np.concatenate(xs, axis=axis)
+
+    def stack(self, xs, axis=0):
+        return np.stack(xs, axis=axis)
 
     def conj(self, x):
         return np.conj(x)

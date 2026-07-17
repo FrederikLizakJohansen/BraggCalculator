@@ -104,23 +104,18 @@ class SymmetryLatticeParameterization:
         matrix_basis = _symmetric_matrix_basis()
         constraints = []
         for fractional_rotation in np.asarray(metadata["symm_rot"], dtype=np.float64):
-            cartesian_rotation = (
-                lattice.T @ fractional_rotation @ inverse_cartesian_lattice
-            )
+            cartesian_rotation = lattice.T @ fractional_rotation @ inverse_cartesian_lattice
             transformed = np.asarray(
                 [cartesian_rotation @ item @ cartesian_rotation.T for item in matrix_basis]
             )
-            transform = np.stack(
-                [_symmetric_coefficients(item) for item in transformed], axis=1
-            )
+            transform = np.stack([_symmetric_coefficients(item) for item in transformed], axis=1)
             constraints.append(transform - np.eye(6))
         constraint_matrix = np.concatenate(constraints, axis=0)
         coefficients = _null_space(constraint_matrix, tolerance)
         strain_basis = np.einsum("ki,kjl->ijl", coefficients, matrix_basis)
         crystal_system = str(metadata["crystal_system"])
         labels = tuple(
-            f"{crystal_system}.metric_mode_{index + 1}"
-            for index in range(strain_basis.shape[0])
+            f"{crystal_system}.metric_mode_{index + 1}" for index in range(strain_basis.shape[0])
         )
         return cls(
             base_lattice=lattice.copy(),
@@ -150,9 +145,7 @@ class SymmetryLatticeParameterization:
                 f"got {tuple(independent_values.shape)}"
             )
         basis = backend.asarray(self.strain_basis, dtype=backend.dtype)
-        log_strain = self.strain_scale * backend.einsum(
-            "k,kij->ij", independent_values, basis
-        )
+        log_strain = self.strain_scale * backend.einsum("k,kij->ij", independent_values, basis)
         deformation = backend.matrix_exp(log_strain)
         base = backend.asarray(self.base_lattice, dtype=backend.dtype)
         return backend.matmul(base, deformation)
@@ -163,6 +156,337 @@ class SymmetryLatticeParameterization:
         values = np.asarray(independent_values, dtype=np.float64)
         lattice = self.expand(values, NumpyBackend())
         return lattice_parameters(lattice)
+
+
+@dataclass(frozen=True)
+class OccupancyOrbitSpec:
+    """One symmetry orbit represented by a composition or vacancy simplex."""
+
+    orbit_index: int
+    representative_site: int
+    member_sites: np.ndarray
+    atomic_numbers: tuple[int, ...]
+    symbols: tuple[str, ...]
+    total_occupancy: float
+    includes_vacancy: bool
+    reference_component: int
+    parameter_slice: slice
+
+    @property
+    def species_count(self) -> int:
+        return len(self.atomic_numbers)
+
+    @property
+    def component_count(self) -> int:
+        return self.species_count + int(self.includes_vacancy)
+
+    @property
+    def degrees_of_freedom(self) -> int:
+        return self.component_count - 1
+
+
+@dataclass(frozen=True)
+class SymmetryOccupancyParameterization:
+    """Shared-site occupancy simplexes propagated over crystallographic orbits."""
+
+    mode: str
+    base_occupancies: np.ndarray
+    contribution_orbits: np.ndarray
+    contribution_components: np.ndarray
+    orbits: tuple[OccupancyOrbitSpec, ...]
+    labels: tuple[str, ...]
+    initial_raw_values: np.ndarray
+    probability_floor: float
+
+    @classmethod
+    def from_calculator(
+        cls,
+        calculator,
+        *,
+        mode: str = "composition",
+        probability_floor: float = 1e-6,
+    ) -> "SymmetryOccupancyParameterization":
+        calculator._ensure_loaded()
+        if mode not in {"composition", "vacancy"}:
+            raise ValueError("occupancy mode must be 'composition' or 'vacancy'")
+        if not np.isfinite(probability_floor) or not 0 < probability_floor < 0.1:
+            raise ValueError("probability_floor must lie between zero and 0.1")
+
+        metadata = calculator._symm
+        site_indices = np.asarray(metadata["site_indices"], dtype=np.int64)
+        atomic_numbers = np.asarray(metadata["Z"], dtype=np.int64)
+        symbols = np.asarray(metadata["symbols"], dtype=object)
+        occupancies = np.asarray(metadata["occ"], dtype=np.float64)
+        orbit_members = tuple(
+            np.asarray(item, dtype=np.int64) for item in metadata["orbit_indices"]
+        )
+        contribution_orbits = np.full(len(occupancies), -1, dtype=np.int64)
+        contribution_components = np.full(len(occupancies), -1, dtype=np.int64)
+        specifications = []
+        labels = []
+        raw_values = []
+        parameter_count = 0
+
+        for orbit_index, members in enumerate(orbit_members):
+            representative = int(members[0])
+            representative_contributions = np.flatnonzero(site_indices == representative)
+            orbit_z = tuple(int(item) for item in atomic_numbers[representative_contributions])
+            orbit_symbols = tuple(str(item) for item in symbols[representative_contributions])
+            orbit_occ = occupancies[representative_contributions]
+            total = float(np.sum(orbit_occ))
+            if total <= 0 or total > 1.0 + 1e-8:
+                raise ValueError(f"orbit {orbit_index} has invalid total occupancy {total}")
+
+            for member in members:
+                contributions = np.flatnonzero(site_indices == member)
+                member_z = tuple(int(item) for item in atomic_numbers[contributions])
+                if member_z != orbit_z:
+                    raise ValueError(
+                        f"orbit {orbit_index} has inconsistent shared-site species ordering"
+                    )
+                if not np.allclose(occupancies[contributions], orbit_occ, rtol=0, atol=1e-8):
+                    raise ValueError(f"orbit {orbit_index} has inconsistent member occupancies")
+                contribution_orbits[contributions] = orbit_index
+                contribution_components[contributions] = np.arange(len(contributions))
+
+            includes_vacancy = mode == "vacancy"
+            probabilities = (
+                np.r_[orbit_occ, max(0.0, 1.0 - total)] if includes_vacancy else orbit_occ / total
+            )
+            probabilities = np.maximum(probabilities, probability_floor)
+            probabilities /= probabilities.sum()
+            reference = int(np.argmax(probabilities))
+            non_reference = [index for index in range(len(probabilities)) if index != reference]
+            start = parameter_count
+            parameter_count += len(non_reference)
+            parameter_slice = slice(start, parameter_count)
+            component_names = list(orbit_symbols) + (["vacancy"] if includes_vacancy else [])
+            raw_values.extend(
+                float(np.log(probabilities[index] / probabilities[reference]))
+                for index in non_reference
+            )
+            labels.extend(
+                f"orbit_{orbit_index}.{component_names[index]}_vs_{component_names[reference]}"
+                for index in non_reference
+            )
+            specifications.append(
+                OccupancyOrbitSpec(
+                    orbit_index=orbit_index,
+                    representative_site=representative,
+                    member_sites=members.copy(),
+                    atomic_numbers=orbit_z,
+                    symbols=orbit_symbols,
+                    total_occupancy=total,
+                    includes_vacancy=includes_vacancy,
+                    reference_component=reference,
+                    parameter_slice=parameter_slice,
+                )
+            )
+
+        if np.any(contribution_orbits < 0) or np.any(contribution_components < 0):
+            raise RuntimeError("not every scattering contribution was assigned to an orbit")
+        return cls(
+            mode=mode,
+            base_occupancies=occupancies.copy(),
+            contribution_orbits=contribution_orbits,
+            contribution_components=contribution_components,
+            orbits=tuple(specifications),
+            labels=tuple(labels),
+            initial_raw_values=np.asarray(raw_values, dtype=np.float64),
+            probability_floor=float(probability_floor),
+        )
+
+    @property
+    def independent_count(self) -> int:
+        return len(self.initial_raw_values)
+
+    def initial_values(self, backend, *, requires_grad: bool = False):
+        values = backend.asarray(self.initial_raw_values, dtype=backend.dtype)
+        if getattr(backend, "is_torch", False):
+            values = values.clone().detach().requires_grad_(requires_grad)
+        elif requires_grad:
+            raise TypeError("requires_grad is available only with TorchBackend")
+        return values
+
+    def _orbit_species_values(self, independent_values, backend):
+        values = []
+        for orbit in self.orbits:
+            count = orbit.component_count
+            if orbit.degrees_of_freedom:
+                non_reference = [
+                    index for index in range(count) if index != orbit.reference_component
+                ]
+                design = np.zeros((count, orbit.degrees_of_freedom), dtype=np.float64)
+                design[non_reference, np.arange(orbit.degrees_of_freedom)] = 1.0
+                logits = backend.matmul(
+                    backend.asarray(design, dtype=backend.dtype),
+                    independent_values[orbit.parameter_slice],
+                )
+                probabilities = backend.softmax(logits, axis=0)
+            else:
+                probabilities = backend.ones((1,), dtype=backend.dtype)
+            species = probabilities[: orbit.species_count]
+            if not orbit.includes_vacancy:
+                species = species * orbit.total_occupancy
+            values.append(species)
+        return values
+
+    def expand(self, independent_values, backend):
+        if tuple(independent_values.shape) != (self.independent_count,):
+            raise ValueError(
+                f"independent_values must have shape ({self.independent_count},), "
+                f"got {tuple(independent_values.shape)}"
+            )
+        orbit_values = self._orbit_species_values(independent_values, backend)
+        return backend.stack(
+            [
+                orbit_values[int(orbit)][int(component)]
+                for orbit, component in zip(self.contribution_orbits, self.contribution_components)
+            ]
+        )
+
+    def physical_groups(self, independent_values) -> tuple[dict[str, object], ...]:
+        from .backends import NumpyBackend
+
+        orbit_values = self._orbit_species_values(
+            np.asarray(independent_values, dtype=np.float64), NumpyBackend()
+        )
+        result = []
+        for orbit, species_values in zip(self.orbits, orbit_values):
+            species = {symbol: float(value) for symbol, value in zip(orbit.symbols, species_values)}
+            result.append(
+                {
+                    "orbit": orbit.orbit_index,
+                    "representative_site": orbit.representative_site,
+                    "members": orbit.member_sites.tolist(),
+                    "species": species,
+                    "vacancy": float(max(0.0, 1.0 - sum(species.values()))),
+                }
+            )
+        return tuple(result)
+
+
+@dataclass(frozen=True)
+class IsotropicDisplacementOrbitSpec:
+    orbit_index: int
+    representative_site: int
+    member_sites: np.ndarray
+    parameter_index: int
+    label: str
+
+
+@dataclass(frozen=True)
+class SymmetryIsotropicDisplacementParameterization:
+    """Positive Biso values shared by all sites and species in an orbit."""
+
+    contribution_orbits: np.ndarray
+    orbits: tuple[IsotropicDisplacementOrbitSpec, ...]
+    labels: tuple[str, ...]
+    initial_raw_values: np.ndarray
+    b_min: float
+
+    @classmethod
+    def from_calculator(
+        cls,
+        calculator,
+        *,
+        b_min: float = 0.0,
+        default_if_zero: float = 0.5,
+    ) -> "SymmetryIsotropicDisplacementParameterization":
+        calculator._ensure_loaded()
+        if not np.isfinite(b_min) or b_min < 0:
+            raise ValueError("b_min must be finite and non-negative")
+        if not np.isfinite(default_if_zero) or default_if_zero <= b_min:
+            raise ValueError("default_if_zero must be finite and greater than b_min")
+        metadata = calculator._symm
+        site_indices = np.asarray(metadata["site_indices"], dtype=np.int64)
+        b_iso = np.asarray(metadata["B"], dtype=np.float64)
+        symbols = np.asarray(metadata["symbols"], dtype=object)
+        orbit_members = tuple(
+            np.asarray(item, dtype=np.int64) for item in metadata["orbit_indices"]
+        )
+        contribution_orbits = np.full(len(b_iso), -1, dtype=np.int64)
+        specifications = []
+        raw_values = []
+        labels = []
+        for orbit_index, members in enumerate(orbit_members):
+            representative = int(members[0])
+            representative_contributions = np.flatnonzero(site_indices == representative)
+            values = b_iso[representative_contributions]
+            if len(values) == 0:
+                raise RuntimeError(f"orbit {orbit_index} has no scattering contributions")
+            if np.ptp(values) > 1e-8:
+                raise ValueError(f"orbit {orbit_index} has species-dependent Biso values")
+            initial_b = float(values[0]) if values[0] > b_min + 1e-10 else default_if_zero
+            positive = max(initial_b - b_min, 1e-12)
+            raw_values.append(float(positive if positive > 20.0 else np.log(np.expm1(positive))))
+            symbol_label = "/".join(
+                dict.fromkeys(str(symbols[index]) for index in representative_contributions)
+            )
+            label = f"orbit_{orbit_index}.{symbol_label}.B_iso"
+            labels.append(label)
+            specifications.append(
+                IsotropicDisplacementOrbitSpec(
+                    orbit_index=orbit_index,
+                    representative_site=representative,
+                    member_sites=members.copy(),
+                    parameter_index=orbit_index,
+                    label=label,
+                )
+            )
+            for member in members:
+                contributions = np.flatnonzero(site_indices == member)
+                if np.ptp(b_iso[contributions]) > 1e-8:
+                    raise ValueError(f"site {member} has species-dependent Biso values")
+                contribution_orbits[contributions] = orbit_index
+        if np.any(contribution_orbits < 0):
+            raise RuntimeError("not every scattering contribution was assigned to a Biso orbit")
+        return cls(
+            contribution_orbits=contribution_orbits,
+            orbits=tuple(specifications),
+            labels=tuple(labels),
+            initial_raw_values=np.asarray(raw_values, dtype=np.float64),
+            b_min=float(b_min),
+        )
+
+    @property
+    def independent_count(self) -> int:
+        return len(self.orbits)
+
+    def initial_values(self, backend, *, requires_grad: bool = False):
+        values = backend.asarray(self.initial_raw_values, dtype=backend.dtype)
+        if getattr(backend, "is_torch", False):
+            values = values.clone().detach().requires_grad_(requires_grad)
+        elif requires_grad:
+            raise TypeError("requires_grad is available only with TorchBackend")
+        return values
+
+    def orbit_values(self, independent_values, backend):
+        return self.b_min + backend.softplus(independent_values)
+
+    def expand(self, independent_values, backend):
+        if tuple(independent_values.shape) != (self.independent_count,):
+            raise ValueError(
+                f"independent_values must have shape ({self.independent_count},), "
+                f"got {tuple(independent_values.shape)}"
+            )
+        values = self.orbit_values(independent_values, backend)
+        indices = backend.asarray(self.contribution_orbits, dtype=backend.int64)
+        return values[indices]
+
+    def physical_groups(self, independent_values) -> tuple[dict[str, object], ...]:
+        from .backends import NumpyBackend
+
+        values = self.orbit_values(np.asarray(independent_values, dtype=np.float64), NumpyBackend())
+        return tuple(
+            {
+                "orbit": orbit.orbit_index,
+                "representative_site": orbit.representative_site,
+                "members": orbit.member_sites.tolist(),
+                "B_iso": float(values[orbit.parameter_index]),
+            }
+            for orbit in self.orbits
+        )
 
 
 @dataclass(frozen=True)
@@ -218,7 +542,9 @@ class SymmetryCoordinateParameterization:
         base = np.asarray(metadata["structure"].frac_coords, dtype=np.float64)
         rotations = np.asarray(metadata["symm_rot"], dtype=np.int64)
         translations = np.asarray(metadata["symm_trans"], dtype=np.float64)
-        orbit_members = tuple(np.asarray(orbit, dtype=np.int64) for orbit in metadata["orbit_indices"])
+        orbit_members = tuple(
+            np.asarray(orbit, dtype=np.int64) for orbit in metadata["orbit_indices"]
+        )
 
         site_blocks = []
         specifications = []
@@ -230,10 +556,13 @@ class SymmetryCoordinateParameterization:
             mapped_representative = (
                 np.einsum("rij,j->ri", rotations, representative_coordinate) + translations
             )
-            stabilizer_mask = np.max(
-                np.abs(_periodic_difference(mapped_representative, representative_coordinate)),
-                axis=1,
-            ) < tolerance
+            stabilizer_mask = (
+                np.max(
+                    np.abs(_periodic_difference(mapped_representative, representative_coordinate)),
+                    axis=1,
+                )
+                < tolerance
+            )
             stabilizer = rotations[stabilizer_mask] - np.eye(3, dtype=np.int64)
             basis = _null_space(stabilizer.reshape(-1, 3), tolerance)
 
@@ -311,9 +640,7 @@ class SymmetryCoordinateParameterization:
     def forward_parameters(self, calculator, independent_values, *, base_parameters=None):
         """Build a calculator parameter dictionary with expanded coordinates."""
         parameters = (
-            calculator.tensor_parameters()
-            if base_parameters is None
-            else dict(base_parameters)
+            calculator.tensor_parameters() if base_parameters is None else dict(base_parameters)
         )
         parameters["frac_coords"] = self.expand(independent_values, calculator.backend)
         return parameters

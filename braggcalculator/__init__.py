@@ -3,6 +3,8 @@ from .dataset import DiffractionDataset
 from .session import CandidateRefinementResult, RefinementPolicy, RefinementSession, SessionResult
 from .parameters import (
     OrbitCoordinateSpec,
+    SymmetryIsotropicDisplacementParameterization,
+    SymmetryOccupancyParameterization,
     SymmetryCoordinateParameterization,
     SymmetryLatticeParameterization,
     lattice_parameters,
@@ -36,7 +38,9 @@ __all__ = [
     "ReflectionMatch",
     "ReflectionTable",
     "SymmetryCoordinateParameterization",
+    "SymmetryIsotropicDisplacementParameterization",
     "SymmetryLatticeParameterization",
+    "SymmetryOccupancyParameterization",
     "StagedOptimizationResult",
     "SessionResult",
     "__version__",

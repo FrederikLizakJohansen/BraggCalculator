@@ -34,6 +34,15 @@ class TorchBackend:
     def exp(self, x):
         return torch.exp(x)
 
+    def log(self, x):
+        return torch.log(x)
+
+    def softplus(self, x):
+        return torch.nn.functional.softplus(x)
+
+    def softmax(self, x, axis=-1):
+        return torch.softmax(x, dim=axis)
+
     def pi(self):
         return torch.pi
 
@@ -87,6 +96,9 @@ class TorchBackend:
 
     def concat(self, xs, axis=0):
         return torch.cat(xs, dim=axis)
+
+    def stack(self, xs, axis=0):
+        return torch.stack(xs, dim=axis)
 
     def sum(self, x, axis=None):
         return torch.sum(x, dim=axis)

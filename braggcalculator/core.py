@@ -183,6 +183,32 @@ class BraggCalculator:
             self, symmetry_tolerance=symmetry_tolerance
         )
 
+    def symmetry_occupancy_parameterization(
+        self,
+        *,
+        mode: str = "composition",
+        probability_floor: float = 1e-6,
+    ):
+        """Return orbit-shared composition or vacancy occupancy simplexes."""
+        from .parameters import SymmetryOccupancyParameterization
+
+        return SymmetryOccupancyParameterization.from_calculator(
+            self, mode=mode, probability_floor=probability_floor
+        )
+
+    def symmetry_b_iso_parameterization(
+        self,
+        *,
+        b_min: float = 0.0,
+        default_if_zero: float = 0.5,
+    ):
+        """Return positive orbit-shared isotropic displacement parameters."""
+        from .parameters import SymmetryIsotropicDisplacementParameterization
+
+        return SymmetryIsotropicDisplacementParameterization.from_calculator(
+            self, b_min=b_min, default_if_zero=default_if_zero
+        )
+
     def _parameter_values(self, parameters: ParameterDict | None):
         parameters = {} if parameters is None else parameters
         allowed = {"lattice", "frac_coords", "occupancies", "b_iso"}
@@ -352,9 +378,7 @@ class BraggCalculator:
         indices = self._domain_indices(domain)
         lattice, frac, occ, b_iso = self._parameter_values(parameters)
         g, two_theta = self._geometry(lattice, indices)
-        structure_factor = self._compute_f(
-            self._hkl["hkl"][indices], two_theta, frac, occ, b_iso
-        )
+        structure_factor = self._compute_f(self._hkl["hkl"][indices], two_theta, frac, occ, b_iso)
         f2 = self.backend.real(structure_factor * self.backend.conj(structure_factor))
         intensity = apply_lp_and_multiplicity(
             self.mode, self.backend, f2, two_theta, multiplicity=None
