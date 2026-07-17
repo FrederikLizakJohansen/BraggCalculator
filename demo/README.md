@@ -72,3 +72,26 @@ python demo/refine_staged.py
 
 The default `demo/staged_refinement.png` shows the stage-wise loss and final
 target/recovered parameter ratios.
+
+## Symmetry-aware lattice refinement
+
+`refine_symmetry_lattice.py` generates a tetragonal target and recovers it
+through exactly two point-group-invariant metric modes:
+
+```bash
+python demo/refine_symmetry_lattice.py
+```
+
+## Instrument-aware real-data refinement
+
+`characterize_nist_lab6.py` refines the complete public NIST SRM 660c scan
+using the six-line Cu spectrum, the reported Bragg--Brentano geometry and the
+symmetry-aware cubic cell:
+
+```bash
+python demo/characterize_nist_lab6.py
+```
+
+It writes `demo/nist_lab6_report.html` and prints both the historical
+limited-scan baseline and the current full-scan result. The example is an
+instrument-aware validation, not a reproduction of NIST's certification fit.

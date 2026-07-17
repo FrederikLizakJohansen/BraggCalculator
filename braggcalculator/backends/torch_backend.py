@@ -46,6 +46,9 @@ class TorchBackend:
     def sigmoid(self, x):
         return torch.sigmoid(x)
 
+    def sinh(self, x):
+        return torch.sinh(x)
+
     def arcsin(self, x):
         return torch.arcsin(x)
 
@@ -55,8 +58,14 @@ class TorchBackend:
     def clip(self, x, a, b):
         return torch.clamp(x, a, b)
 
+    def where(self, condition, left, right):
+        return torch.where(condition, left, right)
+
     def inverse(self, x):
         return torch.linalg.inv(x)
+
+    def matrix_exp(self, x):
+        return torch.matrix_exp(x)
 
     def abs(self, x):
         return torch.abs(x)

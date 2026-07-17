@@ -59,3 +59,58 @@ def test_symmetry_expansion_preserves_torch_gradient():
     assert values.grad is not None
     assert torch.all(torch.isfinite(values.grad))
     assert torch.linalg.vector_norm(values.grad) > 0
+
+
+@pytest.mark.parametrize(
+    ("lattice", "crystal_system", "degrees_of_freedom"),
+    [
+        (Lattice.cubic(4.0), "cubic", 1),
+        (Lattice.tetragonal(4.0, 5.0), "tetragonal", 2),
+        (Lattice.hexagonal(4.0, 6.0), "hexagonal", 2),
+        (Lattice.orthorhombic(4.0, 5.0, 6.0), "orthorhombic", 3),
+        (Lattice.monoclinic(4.0, 5.0, 6.0, 105.0), "monoclinic", 4),
+        (Lattice.from_parameters(4.0, 5.0, 6.0, 75.0, 85.0, 95.0), "triclinic", 6),
+    ],
+)
+def test_lattice_parameterization_has_crystal_system_metric_dofs(
+    lattice, crystal_system, degrees_of_freedom
+):
+    calculator = BraggCalculator(primitive=False).load(
+        Structure(lattice, ["Si"], [[0, 0, 0]])
+    )
+    model = calculator.symmetry_lattice_parameterization()
+    assert model.crystal_system == crystal_system
+    assert model.independent_count == degrees_of_freedom
+    np.testing.assert_allclose(
+        model.expand(model.initial_values(calculator.backend), calculator.backend),
+        lattice.matrix,
+        atol=1e-12,
+    )
+    assert np.linalg.det(model.expand(np.ones(model.independent_count), calculator.backend)) > 0
+
+
+def test_lattice_modes_recover_synthetic_reflection_positions():
+    torch = pytest.importorskip("torch")
+    structure = Structure(Lattice.tetragonal(4.0, 5.0), ["Si"], [[0, 0, 0]])
+    calculator = BraggCalculator(
+        primitive=False,
+        backend=TorchBackend(),
+        two_theta_range=(15.0, 75.0),
+    ).load(structure)
+    model = calculator.symmetry_lattice_parameterization()
+    target_values = torch.tensor([0.45, -0.3], dtype=torch.float64)
+    target_parameters = calculator.tensor_parameters()
+    target_parameters["lattice"] = model.expand(target_values, calculator.backend)
+    target_positions = calculator.iq(parameters=target_parameters)[0].detach()
+
+    values = model.initial_values(calculator.backend, requires_grad=True)
+    optimizer = torch.optim.Adam([values], lr=0.08)
+    for _ in range(180):
+        optimizer.zero_grad()
+        parameters = calculator.tensor_parameters()
+        parameters["lattice"] = model.expand(values, calculator.backend)
+        positions = calculator.iq(parameters=parameters)[0]
+        loss = torch.mean((positions - target_positions) ** 2)
+        loss.backward()
+        optimizer.step()
+    torch.testing.assert_close(values, target_values, atol=2e-3, rtol=0)

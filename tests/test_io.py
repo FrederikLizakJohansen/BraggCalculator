@@ -25,6 +25,12 @@ def test_cif_path_is_loaded():
     assert structure.composition.reduced_formula == "NaCl"
 
 
+def test_cif_isotropic_displacements_are_preserved():
+    calculator = BraggCalculator(primitive=False).load("data/LaB6_srm660c.cif")
+    assert calculator._symm["B"][0] == pytest.approx(8 * np.pi**2 * 0.0045)
+    np.testing.assert_allclose(calculator._symm["B"][1:], 8 * np.pi**2 * 0.0035)
+
+
 @pytest.mark.parametrize("path", ["demo/NaCl.cif", Path("demo/NaCl.cif")])
 def test_calculator_accepts_cif_paths(path):
     calculator = BraggCalculator().load(path)

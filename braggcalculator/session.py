@@ -13,10 +13,55 @@ import numpy as np
 from .backends import TorchBackend
 from .core import BraggCalculator
 from .dataset import DiffractionDataset
-from .experimental_profile import caglioti_fwhm, render_pseudo_voigt
+from .experimental_profile import (
+    axial_divergence_widths,
+    caglioti_fwhm,
+    emission_lorentzian_fwhm,
+    render_pseudo_voigt,
+    render_split_pseudo_voigt,
+    specimen_displacement_shift,
+    thompson_cox_hastings,
+)
 from .io import to_pmg_structure
 from .optimization import OptimizationStage, staged_adam
+from .parameters import lattice_parameters
 from .sensitivity import analyze_jacobian
+
+
+def _wavelength_components(metadata, default_wavelength):
+    """Normalize legacy tuples or explicit component dictionaries."""
+    raw = metadata.get("wavelength_components", [(default_wavelength, 1.0)])
+    components = []
+    for item in raw:
+        if isinstance(item, dict):
+            wavelength = float(item["wavelength_angstrom"])
+            weight = float(item["weight"])
+            line_width = float(item.get("lorentzian_fwhm_angstrom", 0.0))
+        else:
+            if len(item) not in {2, 3}:
+                raise ValueError("wavelength component tuples must have two or three values")
+            wavelength = float(item[0])
+            weight = float(item[1])
+            line_width = float(item[2]) if len(item) == 3 else 0.0
+        if wavelength <= 0 or not np.isfinite(wavelength):
+            raise ValueError("component wavelengths must be positive and finite")
+        if weight <= 0 or not np.isfinite(weight):
+            raise ValueError("component weights must be positive and finite")
+        if line_width < 0 or not np.isfinite(line_width):
+            raise ValueError("emission line widths must be finite and non-negative")
+        components.append(
+            {
+                "wavelength_angstrom": wavelength,
+                "weight": weight,
+                "lorentzian_fwhm_angstrom": line_width,
+            }
+        )
+    weights = np.asarray([item["weight"] for item in components], dtype=np.float64)
+    weights /= weights.sum()
+    return tuple(
+        {**item, "normalized_weight": float(weight)}
+        for item, weight in zip(components, weights)
+    )
 
 
 @dataclass(frozen=True)
@@ -30,6 +75,11 @@ class RefinementPolicy:
     holdout_stride: int = 10
     restarts: int = 1
     diagnostic_points: int = 48
+    profile_model: str = "tch"
+    axial_asymmetry: bool = True
+    goniometer_radius_mm: float | None = None
+    specimen_displacement_mm: float = 0.0
+    refine_specimen_displacement: bool = False
     stages: tuple[OptimizationStage, ...] | None = None
 
     def __post_init__(self):
@@ -43,27 +93,59 @@ class RefinementPolicy:
             raise ValueError("diagnostic_points must be non-negative")
         if self.coordinate_restraint < 0 or not np.isfinite(self.coordinate_restraint):
             raise ValueError("coordinate_restraint must be finite and non-negative")
+        if self.profile_model not in {"legacy", "tch"}:
+            raise ValueError("profile_model must be 'legacy' or 'tch'")
+        if self.goniometer_radius_mm is not None and (
+            not np.isfinite(self.goniometer_radius_mm) or self.goniometer_radius_mm <= 0
+        ):
+            raise ValueError("goniometer_radius_mm must be positive and finite")
+        if not np.isfinite(self.specimen_displacement_mm):
+            raise ValueError("specimen_displacement_mm must be finite")
 
     @classmethod
     def quick(cls, *, refine_coordinates: bool = False) -> "RefinementPolicy":
-        active_joint = ("scale", "background", "zero_shift", "profile", "lattice")
+        active_joint = (
+            "scale",
+            "background",
+            "zero_shift",
+            "profile",
+            "lattice",
+            "specimen_displacement",
+        )
         if refine_coordinates:
             active_joint += ("coordinates",)
         return cls(
             refine_coordinates=refine_coordinates,
             stages=(
                 OptimizationStage("scale/background", ("scale", "background"), 40, 0.04),
-                OptimizationStage("calibration/profile", ("zero_shift", "profile", "lattice"), 60, 0.025),
+                OptimizationStage(
+                    "calibration/profile",
+                    ("zero_shift", "profile", "lattice", "specimen_displacement"),
+                    60,
+                    0.025,
+                ),
                 OptimizationStage("joint", active_joint, 100, 0.01),
             ),
         )
 
     @classmethod
     def cautious(cls, *, refine_coordinates: bool = False) -> "RefinementPolicy":
-        active_joint = ("scale", "background", "zero_shift", "profile", "lattice")
+        active_joint = (
+            "scale",
+            "background",
+            "zero_shift",
+            "profile",
+            "lattice",
+            "specimen_displacement",
+        )
         stages = [
             OptimizationStage("scale/background", ("scale", "background"), 120, 0.03),
-            OptimizationStage("calibration/profile", ("zero_shift", "profile", "lattice"), 180, 0.015),
+            OptimizationStage(
+                "calibration/profile",
+                ("zero_shift", "profile", "lattice", "specimen_displacement"),
+                180,
+                0.015,
+            ),
         ]
         if refine_coordinates:
             stages.append(OptimizationStage("coordinates", ("coordinates",), 150, 0.006))
@@ -140,35 +222,11 @@ class RefinementSession:
 
         policy = RefinementPolicy.quick() if policy is None else policy
         calculator = self._calculator(self.structures[index])
-        raw_components = self.dataset.metadata.get(
-            "wavelength_components", [(self.dataset.wavelength, 1.0)]
-        )
-        component_weights = np.asarray([float(item[1]) for item in raw_components])
-        if np.any(component_weights <= 0) or not np.all(np.isfinite(component_weights)):
-            raise ValueError("wavelength component weights must be positive and finite")
-        component_weights = component_weights / component_weights.sum()
-        component_calculators = []
-        for wavelength, _ in raw_components:
-            wavelength = float(wavelength)
-            if np.isclose(wavelength, self.dataset.wavelength):
-                component_calculators.append(calculator)
-            else:
-                component_calculators.append(
-                    BraggCalculator(
-                        mode=self.dataset.radiation,
-                        wavelength=wavelength,
-                        two_theta_range=(
-                            float(self.dataset.coordinate[0]),
-                            float(self.dataset.coordinate[-1]),
-                        ),
-                        two_theta_step=self.dataset.step,
-                        backend=TorchBackend(device=self.device),
-                        primitive=False,
-                    ).load(self.structures[index])
-                )
+        components = _wavelength_components(self.dataset.metadata, self.dataset.wavelength)
+        component_weights = np.asarray([item["normalized_weight"] for item in components])
         coordinate_model = calculator.symmetry_coordinate_parameterization()
-        component_bases = [item.tensor_parameters() for item in component_calculators]
-        base = component_bases[0]
+        lattice_model = calculator.symmetry_lattice_parameterization()
+        base_parameters = calculator.tensor_parameters()
         grid = torch.as_tensor(self.dataset.coordinate, dtype=torch.float64, device=self.device)
         observed = torch.as_tensor(self.dataset.intensity, dtype=torch.float64, device=self.device)
         sigma = torch.as_tensor(self.dataset.sigma, dtype=torch.float64, device=self.device)
@@ -181,8 +239,11 @@ class RefinementSession:
 
         with torch.no_grad():
             component_areas = [
-                float(torch.sum(item.iq(domain="two_theta")[1]).cpu())
-                for item in component_calculators
+                float(torch.sum(item[1]).cpu())
+                for item in calculator.line_components(
+                    [component["wavelength_angstrom"] for component in components],
+                    domain="two_theta",
+                )
             ]
             background0 = max(float(np.percentile(self.dataset.intensity[selected], 10)), 1e-6)
             signal_area = max(
@@ -202,8 +263,12 @@ class RefinementSession:
         with torch.no_grad():
             background[0] = background0
         zero_shift = torch.zeros((), dtype=torch.float64, device=self.device, requires_grad=True)
-        profile = torch.zeros(4, dtype=torch.float64, device=self.device, requires_grad=True)
-        lattice = torch.zeros((), dtype=torch.float64, device=self.device, requires_grad=True)
+        profile_size = 4 if policy.profile_model == "legacy" else 6
+        profile = torch.zeros(
+            profile_size, dtype=torch.float64, device=self.device, requires_grad=True
+        )
+        lattice = lattice_model.initial_values(calculator.backend, requires_grad=True)
+        displacement = torch.zeros((), dtype=torch.float64, device=self.device, requires_grad=True)
         coordinates = coordinate_model.initial_values(calculator.backend, requires_grad=True)
         if restart_index:
             generator = np.random.default_rng(1729 + restart_index)
@@ -220,14 +285,16 @@ class RefinementSession:
                 )
                 profile.copy_(
                     torch.as_tensor(
-                        generator.normal(0.0, 0.05, 4),
+                        generator.normal(0.0, 0.05, profile_size),
                         dtype=torch.float64,
                         device=self.device,
                     )
                 )
                 lattice.copy_(
-                    torch.tensor(
-                        generator.normal(0.0, 0.05), dtype=torch.float64, device=self.device
+                    torch.as_tensor(
+                        generator.normal(0.0, 0.05, lattice_model.independent_count),
+                        dtype=torch.float64,
+                        device=self.device,
                     )
                 )
                 if coordinate_model.independent_count:
@@ -246,6 +313,8 @@ class RefinementSession:
         }
         if policy.refine_lattice:
             groups["lattice"] = lattice
+        if policy.refine_specimen_displacement:
+            groups["specimen_displacement"] = displacement
         if policy.refine_coordinates and coordinate_model.independent_count:
             groups["coordinates"] = coordinates
 
@@ -255,37 +324,103 @@ class RefinementSession:
         background_basis = torch.stack(
             [normalized_x**degree for degree in range(policy.background_degree + 1)], dim=1
         )
+        instrument_metadata = self.dataset.metadata.get("instrument", {})
+        goniometer_radius = policy.goniometer_radius_mm
+        if goniometer_radius is None:
+            goniometer_radius = instrument_metadata.get("goniometer_radius_mm")
+        if (
+            policy.refine_specimen_displacement
+            or abs(policy.specimen_displacement_mm) > 0.0
+        ) and goniometer_radius is None:
+            raise ValueError(
+                "a goniometer radius is required for specimen-displacement correction"
+            )
 
         def calculate():
             peaks = torch.zeros_like(grid)
-            for component_calculator, component_base, component_weight in zip(
-                component_calculators, component_bases, component_weights
-            ):
-                structural = dict(component_base)
-                structural["lattice"] = component_base["lattice"] * torch.exp(0.01 * lattice)
-                if policy.refine_coordinates and coordinate_model.independent_count:
-                    structural["frac_coords"] = coordinate_model.expand(
-                        coordinates, calculator.backend
-                    )
-                peak_centers, peak_areas = component_calculator.iq(
-                    domain="two_theta", parameters=structural
+            structural = dict(base_parameters)
+            structural["lattice"] = lattice_model.expand(lattice, calculator.backend)
+            if policy.refine_coordinates and coordinate_model.independent_count:
+                structural["frac_coords"] = coordinate_model.expand(
+                    coordinates, calculator.backend
                 )
+            component_patterns = calculator.line_components(
+                [component["wavelength_angstrom"] for component in components],
+                domain="two_theta",
+                parameters=structural,
+            )
+            for (peak_centers, peak_areas), component in zip(
+                component_patterns, components
+            ):
+                component_weight = component["normalized_weight"]
                 peak_centers = peak_centers + self.dataset.step * zero_shift
+                physical_displacement = (
+                    policy.specimen_displacement_mm + 0.05 * displacement
+                    if policy.refine_specimen_displacement
+                    else policy.specimen_displacement_mm
+                )
+                if goniometer_radius is not None and (
+                    policy.refine_specimen_displacement
+                    or abs(policy.specimen_displacement_mm) > 0.0
+                ):
+                    peak_centers = peak_centers + specimen_displacement_shift(
+                        torch.deg2rad(peak_centers),
+                        physical_displacement,
+                        float(goniometer_radius),
+                        calculator.backend,
+                    )
                 peak_areas = peak_areas * scale0 * torch.exp(scale) * component_weight
                 radians = torch.deg2rad(peak_centers)
-                u = 0.0025 * torch.exp(profile[0])
-                v = 1e-6 * torch.exp(profile[1])
-                w = 0.0064 * torch.exp(profile[2])
-                widths = caglioti_fwhm(radians, u, v, w, calculator.backend)
-                eta = torch.sigmoid(profile[3])
-                peaks = peaks + render_pseudo_voigt(
-                    grid,
-                    peak_centers,
-                    peak_areas,
-                    widths,
-                    eta,
-                    component_calculator.backend,
-                )
+                if policy.profile_model == "legacy":
+                    u = 0.0025 * torch.exp(profile[0])
+                    v = 1e-6 * torch.exp(profile[1])
+                    w = 0.0064 * torch.exp(profile[2])
+                    widths = caglioti_fwhm(radians, u, v, w, calculator.backend)
+                    eta = torch.sigmoid(profile[3])
+                    peaks = peaks + render_pseudo_voigt(
+                        grid,
+                        peak_centers,
+                        peak_areas,
+                        widths,
+                        eta,
+                        calculator.backend,
+                    )
+                else:
+                    u = 0.0025 * torch.exp(profile[0])
+                    v = 0.001 * torch.sinh(profile[1])
+                    w = 0.0036 * torch.exp(profile[2])
+                    x = 0.01 * torch.exp(profile[3])
+                    y = 0.01 * torch.exp(profile[4])
+                    widths, eta = thompson_cox_hastings(
+                        radians,
+                        u,
+                        v,
+                        w,
+                        x,
+                        y,
+                        calculator.backend,
+                        extra_lorentzian=emission_lorentzian_fwhm(
+                            radians,
+                            component["wavelength_angstrom"],
+                            component["lorentzian_fwhm_angstrom"],
+                            calculator.backend,
+                        ),
+                    )
+                    asymmetry = (
+                        0.05 * torch.exp(profile[5]) if policy.axial_asymmetry else 0.0
+                    )
+                    low_widths, high_widths = axial_divergence_widths(
+                        widths, radians, asymmetry, calculator.backend
+                    )
+                    peaks = peaks + render_split_pseudo_voigt(
+                        grid,
+                        peak_centers,
+                        peak_areas,
+                        low_widths,
+                        high_widths,
+                        eta,
+                        calculator.backend,
+                    )
             return peaks + background_basis @ background
 
         def objective():
@@ -313,6 +448,12 @@ class RefinementSession:
             for stage in stages
             if any(name in groups for name in stage.active)
         )
+        released_names = {
+            name for stage in stages for name in stage.active if name in groups
+        }
+        released_groups = {
+            name: tensor for name, tensor in groups.items() if name in released_names
+        }
         trace = staged_adam(objective, groups, stages)
         calculated = calculate().detach().cpu().numpy()
         residual = self.dataset.intensity - calculated
@@ -326,24 +467,60 @@ class RefinementSession:
             held_out_r_wp = float(
                 np.sqrt(np.sum(weights[held_out] * residual[held_out] ** 2) / held_denominator)
             )
+        refined_lattice = lattice_model.expand(lattice, calculator.backend).detach().cpu().numpy()
+        if policy.profile_model == "legacy":
+            profile_physical = {
+                "profile_model": "legacy pseudo-Voigt",
+                "caglioti_u": float((0.0025 * torch.exp(profile[0])).detach().cpu()),
+                "caglioti_v": float((1e-6 * torch.exp(profile[1])).detach().cpu()),
+                "caglioti_w": float((0.0064 * torch.exp(profile[2])).detach().cpu()),
+                "eta": float(torch.sigmoid(profile[3]).detach().cpu()),
+            }
+        else:
+            profile_physical = {
+                "profile_model": "TCH split pseudo-Voigt",
+                "gaussian_u": float((0.0025 * torch.exp(profile[0])).detach().cpu()),
+                "gaussian_v": float((0.001 * torch.sinh(profile[1])).detach().cpu()),
+                "gaussian_w": float((0.0036 * torch.exp(profile[2])).detach().cpu()),
+                "lorentzian_x": float((0.01 * torch.exp(profile[3])).detach().cpu()),
+                "lorentzian_y": float((0.01 * torch.exp(profile[4])).detach().cpu()),
+                "axial_asymmetry": float(
+                    (0.05 * torch.exp(profile[5])).detach().cpu()
+                    if policy.axial_asymmetry
+                    else 0.0
+                ),
+            }
         physical = {
             "scale": float(scale0 * torch.exp(scale).detach().cpu()),
             "background_coefficients": background.detach().cpu().numpy().tolist(),
             "zero_shift": float((self.dataset.step * zero_shift).detach().cpu()),
-            "caglioti_u": float((0.0025 * torch.exp(profile[0])).detach().cpu()),
-            "caglioti_v": float((1e-6 * torch.exp(profile[1])).detach().cpu()),
-            "caglioti_w": float((0.0064 * torch.exp(profile[2])).detach().cpu()),
-            "eta": float(torch.sigmoid(profile[3]).detach().cpu()),
-            "lattice_scale": float(torch.exp(0.01 * lattice).detach().cpu()),
-            "lattice": (base["lattice"] * torch.exp(0.01 * lattice)).detach().cpu().numpy().tolist(),
+            **profile_physical,
+            "specimen_displacement_mm": float(
+                policy.specimen_displacement_mm
+                + (0.05 * displacement).detach().cpu()
+                if policy.refine_specimen_displacement
+                else policy.specimen_displacement_mm
+            ),
+            "goniometer_radius_mm": goniometer_radius,
+            "lattice": refined_lattice.tolist(),
+            "cell_parameters": lattice_parameters(refined_lattice),
+            "lattice_parameterization": {
+                "crystal_system": lattice_model.crystal_system,
+                "mode_labels": list(lattice_model.labels),
+                "log_strain_coordinates": lattice.detach().cpu().numpy().tolist(),
+            },
             "coordinate_displacements": coordinates.detach().cpu().numpy().tolist(),
         }
         warnings = []
+        declared_limitations = self.dataset.metadata.get("model_limitations", ())
+        if isinstance(declared_limitations, str):
+            declared_limitations = (declared_limitations,)
+        warnings.extend(str(item) for item in declared_limitations)
         if r_wp > 0.15:
             warnings.append("Large profile residual: the instrument/background model is incomplete.")
         if policy.refine_coordinates:
             warnings.append("Coordinate uncertainties are not yet calibrated for experimental use.")
-        if r_wp > 0.15:
+        if r_wp > 0.15 or declared_limitations:
             recommendation = (
                 "Improve the wavelength, instrument-profile, background, or phase model before "
                 "interpreting structural parameters."
@@ -359,10 +536,18 @@ class RefinementSession:
         )
         identifiability = _local_identifiability(
             calculate,
-            groups,
+            released_groups,
             self.dataset.sigma,
             training,
             max_points=policy.diagnostic_points,
+            group_labels={
+                "lattice": lattice_model.labels,
+                "profile": (
+                    ("U", "V", "W", "eta")
+                    if policy.profile_model == "legacy"
+                    else ("U", "V", "W", "X", "Y", "axial_asymmetry")
+                ),
+            },
         )
         if identifiability and not identifiability["covariance_is_identifiable"]:
             warnings.append("The released parameter set is locally rank deficient.")
@@ -385,7 +570,7 @@ class RefinementSession:
             warnings=tuple(warnings),
             provenance={
                 "dataset_sha256": self.dataset.source_sha256,
-                "wavelength_components": [list(item) for item in raw_components],
+                "wavelength_components": [dict(item) for item in components],
                 "policy": {
                     "background_degree": policy.background_degree,
                     "refine_lattice": policy.refine_lattice,
@@ -393,7 +578,15 @@ class RefinementSession:
                     "coordinate_restraint": policy.coordinate_restraint,
                     "holdout_stride": policy.holdout_stride,
                     "diagnostic_points": policy.diagnostic_points,
+                    "profile_model": policy.profile_model,
+                    "axial_asymmetry": policy.axial_asymmetry,
+                    "goniometer_radius_mm": goniometer_radius,
+                    "specimen_displacement_mm": policy.specimen_displacement_mm,
+                    "refine_specimen_displacement": policy.refine_specimen_displacement,
+                    "released_parameter_groups": sorted(released_names),
                 },
+                "instrument": instrument_metadata,
+                "declared_model_limitations": list(declared_limitations),
                 "restart_index": restart_index,
             },
         )
@@ -438,7 +631,9 @@ class RefinementSession:
         return output
 
 
-def _local_identifiability(calculate, groups, sigma, training, *, max_points):
+def _local_identifiability(
+    calculate, groups, sigma, training, *, max_points, group_labels=None
+):
     """Estimate a subsampled local Gauss-Newton matrix for released raw parameters."""
     if max_points == 0:
         return {}
@@ -447,11 +642,17 @@ def _local_identifiability(calculate, groups, sigma, training, *, max_points):
     tensors = tuple(groups.values())
     labels = []
     for name, tensor in groups.items():
-        labels.extend(
-            [name]
-            if tensor.numel() == 1
-            else [f"{name}[{index}]" for index in range(tensor.numel())]
-        )
+        declared = None if group_labels is None else group_labels.get(name)
+        if declared is not None:
+            if len(declared) != tensor.numel():
+                raise ValueError(f"group_labels for {name} do not match its parameter count")
+            labels.extend(f"{name}.{item}" for item in declared)
+        else:
+            labels.extend(
+                [name]
+                if tensor.numel() == 1
+                else [f"{name}[{index}]" for index in range(tensor.numel())]
+            )
     selected = np.flatnonzero(training)
     selected = selected[
         np.linspace(0, len(selected) - 1, min(max_points, len(selected))).astype(int)

@@ -175,6 +175,14 @@ class BraggCalculator:
             self, symmetry_tolerance=symmetry_tolerance
         )
 
+    def symmetry_lattice_parameterization(self, *, symmetry_tolerance: float = 1e-8):
+        """Return independent log-strain modes invariant under the point group."""
+        from .parameters import SymmetryLatticeParameterization
+
+        return SymmetryLatticeParameterization.from_calculator(
+            self, symmetry_tolerance=symmetry_tolerance
+        )
+
     def _parameter_values(self, parameters: ParameterDict | None):
         parameters = {} if parameters is None else parameters
         allowed = {"lattice", "frac_coords", "occupancies", "b_iso"}
@@ -270,6 +278,74 @@ class BraggCalculator:
         else:
             positions = 2.0 * self.backend.pi() * g
         return positions, intensity
+
+    def iq_components(
+        self,
+        wavelengths,
+        domain: Literal["two_theta", "q"] = "two_theta",
+        parameters: ParameterDict | None = None,
+    ):
+        """Return several emission components while sharing one structure factor.
+
+        For elastic diffraction, ``sin(theta) / wavelength`` and therefore the
+        scattering vector are fixed by the reciprocal lattice. X-ray form
+        factors and Debye--Waller terms can consequently be evaluated once;
+        only the Bragg angle and angle-dependent powder correction differ
+        between emission lines.
+        """
+        self._ensure_loaded()
+        values = tuple(float(item) for item in wavelengths)
+        if not values or any(not np.isfinite(item) or item <= 0 for item in values):
+            raise ValueError("wavelengths must contain positive finite values")
+        indices = self._domain_indices(domain)
+        lattice, frac, occ, b_iso = self._parameter_values(parameters)
+        g, reference_two_theta = self._geometry(lattice, indices)
+        hkl = self._hkl["hkl"][indices]
+        f2 = self._compute_f2(hkl, reference_two_theta, frac, occ, b_iso)
+        q = 2.0 * self.backend.pi() * g
+        result = []
+        for wavelength in values:
+            two_theta = self.backend.two_theta_from_q(q, wavelength)
+            intensity = apply_lp_and_multiplicity(
+                self.mode, self.backend, f2, two_theta, multiplicity=None
+            )
+            position = self.backend.degrees(two_theta) if domain == "two_theta" else q
+            result.append((position, intensity))
+        return tuple(result)
+
+    def line_components(
+        self,
+        wavelengths,
+        domain: Literal["two_theta", "q"] = "two_theta",
+        parameters: ParameterDict | None = None,
+    ):
+        """Return emission components with coincident reciprocal points merged.
+
+        This path is appropriate when supplied lattice parameters preserve the
+        prepared metric symmetry, as the session-level symmetry lattice
+        parameterization does. Intensities remain differentiable and are
+        summed without applying a reporting threshold.
+        """
+        patterns = self.iq_components(wavelengths, domain=domain, parameters=parameters)
+        indices = self._domain_indices(domain)
+        nominal = (
+            np.degrees(self._hkl["two_theta"][indices])
+            if domain == "two_theta"
+            else self._hkl["q"][indices]
+        )
+        if len(nominal) == 0:
+            return patterns
+        tolerance = 1e-5 if domain == "two_theta" else 1e-7
+        starts = np.r_[0, np.flatnonzero(np.diff(nominal) > tolerance) + 1]
+        group_ids = np.cumsum(np.r_[0, (np.diff(nominal) > tolerance).astype(np.int64)])
+        backend_starts = self.backend.asarray(starts, dtype=self.backend.int64)
+        return tuple(
+            (
+                positions[backend_starts],
+                self.backend.scatter_sum(intensities, group_ids, len(starts)),
+            )
+            for positions, intensities in patterns
+        )
 
     def _individual_data(self, domain, parameters):
         self._ensure_loaded()

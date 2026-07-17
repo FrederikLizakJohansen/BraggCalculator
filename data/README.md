@@ -1,9 +1,14 @@
 # Experimental validation data
 
-`nist_srm660c_100a_20-50.xye` contains exact measured rows from the NIST SRM
-660c LaB6 certification dataset, scan `100a`, restricted to corrected 2-theta
-values from 20.300 through 50.000 degrees. The source scan uses separated
-angular windows, which are retained exactly.
+`nist_srm660c_100a_full.xye` contains all 5332 measured rows from the NIST SRM
+660c LaB6 certification dataset, scan `100a`, spanning corrected 2-theta values
+from 20.300 through 150.908 degrees. The source scan uses separated angular
+windows and adaptive step sizes, which are retained exactly.
+
+`nist_srm660c_100a_20-50.xye` is the original small pipeline-validation excerpt.
+It is retained so historical results remain reproducible, but the full scan is
+used for lattice validation because high-angle reflections are essential for
+separating lattice scale from angular offsets and specimen displacement.
 
 The third column is derived from the published least-squares weight using
 
@@ -26,6 +31,7 @@ The certification reports a lattice parameter of 4.156826 Å at 22.5 °C with a
 from the structural block supplied in the NIST pdCIF; its starting cell is
 4.156780 Å.
 
-The excerpt is intended for executable ingestion, provenance, and limited
-real-data regression tests. It is not a replacement for the complete NIST
-dataset or a full fundamental-parameters refinement.
+The vendored measured pattern is intended for executable ingestion,
+provenance, and real-data regression tests. The NIST archive remains the
+authoritative source, and BraggCalculator's compact profile model is not a
+replacement for NIST's full fundamental-parameters refinement.

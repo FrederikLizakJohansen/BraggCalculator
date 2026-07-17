@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 from pathlib import Path
 
 from .dataset import DiffractionDataset
+from .radiation import nist_copper_ka_spectrum
 from .session import RefinementPolicy, RefinementSession
 
 
@@ -18,21 +20,43 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", type=Path, action="append", required=True, help="candidate CIF")
     parser.add_argument("--name", action="append", help="candidate name; repeat with --model")
     parser.add_argument("--wavelength", type=float, required=True, help="wavelength in angstroms")
+    parser.add_argument(
+        "--copper-ka-spectrum",
+        action="store_true",
+        help="use the NIST six-line Cu K-alpha emission spectrum",
+    )
     parser.add_argument("--weight-column", action="store_true", help="third column is weight, not sigma")
     parser.add_argument("--lower", type=float)
     parser.add_argument("--upper", type=float)
     parser.add_argument("--coordinates", action="store_true", help="release symmetry-compatible coordinates")
     parser.add_argument("--quick", action="store_true", help="use the shorter validation recipe")
+    parser.add_argument(
+        "--legacy-profile", action="store_true", help="use the original symmetric pseudo-Voigt"
+    )
+    parser.add_argument(
+        "--no-axial-asymmetry",
+        action="store_true",
+        help="disable the empirical low-angle axial-divergence tail",
+    )
+    parser.add_argument("--goniometer-radius-mm", type=float)
+    parser.add_argument("--specimen-displacement-mm", type=float, default=0.0)
+    parser.add_argument("--refine-specimen-displacement", action="store_true")
     parser.add_argument("--output", type=Path, default=Path("bragg-report.html"))
     return parser
 
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
+    metadata = {}
+    if args.copper_ka_spectrum:
+        metadata["wavelength_components"] = nist_copper_ka_spectrum()
+    if args.goniometer_radius_mm is not None:
+        metadata["instrument"] = {"goniometer_radius_mm": args.goniometer_radius_mm}
     dataset = DiffractionDataset.from_xye(
         args.data,
         wavelength=args.wavelength,
         third_column="weight" if args.weight_column else "sigma",
+        metadata=metadata,
     )
     if (args.lower is None) != (args.upper is None):
         raise SystemExit("--lower and --upper must be supplied together")
@@ -45,6 +69,14 @@ def main(argv=None) -> int:
         RefinementPolicy.quick(refine_coordinates=args.coordinates)
         if args.quick
         else RefinementPolicy.cautious(refine_coordinates=args.coordinates)
+    )
+    policy = replace(
+        policy,
+        profile_model="legacy" if args.legacy_profile else "tch",
+        axial_asymmetry=not args.no_axial_asymmetry,
+        goniometer_radius_mm=args.goniometer_radius_mm,
+        specimen_displacement_mm=args.specimen_displacement_mm,
+        refine_specimen_displacement=args.refine_specimen_displacement,
     )
     session = RefinementSession(dataset, args.model, names=names)
     result = session.run(policy)

@@ -44,6 +44,9 @@ class NumpyBackend:
     def sigmoid(self, x):
         return 1.0 / (1.0 + np.exp(-x))
 
+    def sinh(self, x):
+        return np.sinh(x)
+
     def arcsin(self, x):
         return np.arcsin(x)
 
@@ -53,8 +56,16 @@ class NumpyBackend:
     def clip(self, x, a, b):
         return np.clip(x, a, b)
 
+    def where(self, condition, left, right):
+        return np.where(condition, left, right)
+
     def inverse(self, x):
         return np.linalg.inv(x)
+
+    def matrix_exp(self, x):
+        """Matrix exponential for a real symmetric matrix."""
+        eigenvalues, eigenvectors = np.linalg.eigh(x)
+        return (eigenvectors * np.exp(eigenvalues)) @ eigenvectors.T
 
     def einsum(self, s, *ops):
         return np.einsum(s, *ops)

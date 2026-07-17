@@ -171,13 +171,20 @@ tolerances.
 
 An experimental candidate-guided workflow is also available. It reads XY/XYE
 data with uncertainties, refines plausible CIF models under a declared policy,
-compares candidates and writes a self-contained HTML diagnostic report. See
+compares candidates and writes a self-contained HTML diagnostic report. The
+current instrument-aware layer supports point-group-constrained lattice modes,
+six-line Cu K-alpha emission, natural line widths, Thompson--Cox--Hastings
+broadening, a compact low-angle asymmetry term and Bragg--Brentano specimen
+displacement. See
 [`docs/experimental.md`](docs/experimental.md) and the public NIST SRM 660c
 example:
 
 ```bash
 python demo/characterize_nist_lab6.py
 ```
+
+The complete implementation and validation sequence is tracked in
+[`docs/characterization-roadmap.md`](docs/characterization-roadmap.md).
 
 ## Data and model references
 

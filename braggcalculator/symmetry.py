@@ -96,6 +96,11 @@ class SymmetryEngine:
             "lattice": np.asarray(structure.lattice.matrix, dtype=float),
             "spacegroup_symbol": dataset.international,
             "spacegroup_number": int(dataset.number),
+            "crystal_system": SpacegroupAnalyzer(
+                structure,
+                symprec=self.symprec,
+                angle_tolerance=self.angle_tolerance,
+            ).get_crystal_system(),
             "pointgroup_symbol": dataset.pointgroup,
             "frac_coords": np.asarray(frac, dtype=float),
             "Z": np.asarray(atomic_numbers, dtype=int),

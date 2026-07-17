@@ -14,7 +14,7 @@ def _periodic_difference(left, right):
 
 def _null_space(matrix, tolerance: float) -> np.ndarray:
     if matrix.size == 0:
-        return np.eye(3)
+        return np.eye(matrix.shape[1])
     _, singular_values, right_vectors = np.linalg.svd(matrix, full_matrices=True)
     scale = singular_values[0] if len(singular_values) else 0.0
     rank = int(np.count_nonzero(singular_values > tolerance * max(scale, 1.0)))
@@ -24,6 +24,145 @@ def _null_space(matrix, tolerance: float) -> np.ndarray:
         if len(nonzero) and basis[nonzero[0], column] < 0:
             basis[:, column] *= -1
     return basis
+
+
+def _symmetric_matrix_basis() -> np.ndarray:
+    """Return a Frobenius-orthonormal basis for symmetric 3 by 3 matrices."""
+    basis = []
+    for row, column in ((0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)):
+        matrix = np.zeros((3, 3), dtype=np.float64)
+        matrix[row, column] = 1.0
+        matrix[column, row] = 1.0
+        if row != column:
+            matrix /= np.sqrt(2.0)
+        basis.append(matrix)
+    return np.asarray(basis)
+
+
+def _symmetric_coefficients(matrix: np.ndarray) -> np.ndarray:
+    basis = _symmetric_matrix_basis()
+    return np.einsum("kij,ij->k", basis, matrix)
+
+
+def lattice_parameters(lattice) -> dict[str, float]:
+    """Return conventional lengths and angles from a row-vector lattice."""
+    matrix = np.asarray(lattice, dtype=np.float64)
+    if matrix.shape != (3, 3):
+        raise ValueError("lattice must have shape (3, 3)")
+    lengths = np.linalg.norm(matrix, axis=1)
+
+    def angle(left, right):
+        cosine = np.dot(matrix[left], matrix[right]) / (lengths[left] * lengths[right])
+        return float(np.degrees(np.arccos(np.clip(cosine, -1.0, 1.0))))
+
+    return {
+        "a": float(lengths[0]),
+        "b": float(lengths[1]),
+        "c": float(lengths[2]),
+        "alpha": angle(1, 2),
+        "beta": angle(0, 2),
+        "gamma": angle(0, 1),
+    }
+
+
+@dataclass(frozen=True)
+class SymmetryLatticeParameterization:
+    """Point-group-invariant positive-volume lattice deformation.
+
+    Independent values are dimensionless log-strain coordinates. The strain
+    tensor is constrained to the invariant symmetric subspace of the loaded
+    point group, and its matrix exponential is applied in Cartesian space.
+    This gives the expected 1, 2, 3, 4 and 6 metric degrees of freedom for
+    cubic, uniaxial, orthorhombic, monoclinic and triclinic structures.
+    """
+
+    base_lattice: np.ndarray
+    strain_basis: np.ndarray
+    labels: tuple[str, ...]
+    crystal_system: str
+    strain_scale: float
+    symmetry_tolerance: float
+
+    @classmethod
+    def from_calculator(
+        cls,
+        calculator,
+        *,
+        symmetry_tolerance: float = 1e-8,
+        strain_scale: float = 0.01,
+    ) -> "SymmetryLatticeParameterization":
+        calculator._ensure_loaded()
+        tolerance = float(symmetry_tolerance)
+        if not np.isfinite(tolerance) or tolerance <= 0:
+            raise ValueError("symmetry_tolerance must be positive and finite")
+        if not np.isfinite(strain_scale) or strain_scale <= 0:
+            raise ValueError("strain_scale must be positive and finite")
+
+        metadata = calculator._symm
+        lattice = np.asarray(metadata["lattice"], dtype=np.float64)
+        inverse_cartesian_lattice = np.linalg.inv(lattice.T)
+        matrix_basis = _symmetric_matrix_basis()
+        constraints = []
+        for fractional_rotation in np.asarray(metadata["symm_rot"], dtype=np.float64):
+            cartesian_rotation = (
+                lattice.T @ fractional_rotation @ inverse_cartesian_lattice
+            )
+            transformed = np.asarray(
+                [cartesian_rotation @ item @ cartesian_rotation.T for item in matrix_basis]
+            )
+            transform = np.stack(
+                [_symmetric_coefficients(item) for item in transformed], axis=1
+            )
+            constraints.append(transform - np.eye(6))
+        constraint_matrix = np.concatenate(constraints, axis=0)
+        coefficients = _null_space(constraint_matrix, tolerance)
+        strain_basis = np.einsum("ki,kjl->ijl", coefficients, matrix_basis)
+        crystal_system = str(metadata["crystal_system"])
+        labels = tuple(
+            f"{crystal_system}.metric_mode_{index + 1}"
+            for index in range(strain_basis.shape[0])
+        )
+        return cls(
+            base_lattice=lattice.copy(),
+            strain_basis=strain_basis,
+            labels=labels,
+            crystal_system=crystal_system,
+            strain_scale=float(strain_scale),
+            symmetry_tolerance=tolerance,
+        )
+
+    @property
+    def independent_count(self) -> int:
+        return int(self.strain_basis.shape[0])
+
+    def initial_values(self, backend, *, requires_grad: bool = False):
+        values = backend.zeros((self.independent_count,), dtype=backend.dtype)
+        if getattr(backend, "is_torch", False):
+            values = values.clone().detach().requires_grad_(requires_grad)
+        elif requires_grad:
+            raise TypeError("requires_grad is available only with TorchBackend")
+        return values
+
+    def expand(self, independent_values, backend):
+        if tuple(independent_values.shape) != (self.independent_count,):
+            raise ValueError(
+                f"independent_values must have shape ({self.independent_count},), "
+                f"got {tuple(independent_values.shape)}"
+            )
+        basis = backend.asarray(self.strain_basis, dtype=backend.dtype)
+        log_strain = self.strain_scale * backend.einsum(
+            "k,kij->ij", independent_values, basis
+        )
+        deformation = backend.matrix_exp(log_strain)
+        base = backend.asarray(self.base_lattice, dtype=backend.dtype)
+        return backend.matmul(base, deformation)
+
+    def physical_parameters(self, independent_values) -> dict[str, float]:
+        from .backends import NumpyBackend
+
+        values = np.asarray(independent_values, dtype=np.float64)
+        lattice = self.expand(values, NumpyBackend())
+        return lattice_parameters(lattice)
 
 
 @dataclass(frozen=True)
