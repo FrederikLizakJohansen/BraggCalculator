@@ -7,6 +7,7 @@ from demo.diagnose_compatible_models import calculate_diagnostics, plot_disk
 from demo.refine_symmetry_coordinates import plot_refinement, run_refinement
 from demo.refine_staged import plot_staged_refinement, run_staged_example
 from demo.refine_occupancy_adp import run_occupancy_adp_demo
+from demo.refine_anisotropic_restraints import run_anisotropic_restraint_demo
 
 
 def test_demo_matches_pymatgen_and_writes_figure(tmp_path):
@@ -92,3 +93,25 @@ def test_occupancy_adp_demo_recovers_controlled_case_and_flags_joint_ambiguity(t
     assert joint.r_wp < 0.02
     assert abs(joint_ca - 0.55) > 0.01
     assert any("strongly correlated" in warning for warning in joint.warnings)
+
+
+def test_anisotropic_restraint_demo_recovers_tensor_and_resolves_geometry(tmp_path):
+    figure = tmp_path / "anisotropic-restraints.png"
+    report = tmp_path / "anisotropic-restraints.html"
+    candidate, target_u, recovered_u, unrestrained, restrained = run_anisotropic_restraint_demo(
+        figure, report
+    )
+
+    assert figure.stat().st_size > 0
+    assert report.stat().st_size > 0
+    assert candidate.r_wp < 0.001
+    np.testing.assert_allclose(recovered_u, target_u, atol=1e-4)
+    assert np.linalg.eigvalsh(recovered_u).min() > 0
+    assert unrestrained["history"][-1, 0] < 1e-8
+    assert abs(unrestrained["metrics"][2] - 109.5) > 20
+    np.testing.assert_allclose(restrained["metrics"], [1.62, 1.62, 109.5], atol=1e-5)
+    assert restrained["history"][-1, 0] < 1e-6
+    assert candidate.physical_parameters["structural_restraint_contributions"] == {
+        "composition[0].Si": 0.0
+    }
+    assert any("prior information" in warning for warning in candidate.warnings)

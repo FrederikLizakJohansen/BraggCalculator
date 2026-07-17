@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -40,8 +41,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="shared-site occupancy policy",
     )
     parser.add_argument("--b-iso", action="store_true", help="release positive orbit Biso values")
+    parser.add_argument(
+        "--u-aniso",
+        action="store_true",
+        help="release positive-definite site-symmetry-compatible U tensors",
+    )
     parser.add_argument("--occupancy-restraint", type=float, default=1.0)
     parser.add_argument("--b-iso-restraint", type=float, default=0.1)
+    parser.add_argument("--u-aniso-restraint", type=float, default=0.1)
+    parser.add_argument(
+        "--restraints",
+        type=Path,
+        help="JSON file containing composition, bond, angle, and minimum-distance restraints",
+    )
+    parser.add_argument("--structural-restraint-weight", type=float, default=1.0)
     parser.add_argument("--quick", action="store_true", help="use the shorter validation recipe")
     parser.add_argument(
         "--legacy-profile", action="store_true", help="use the original symmetric pseudo-Voigt"
@@ -78,17 +91,22 @@ def main(argv=None) -> int:
     names = args.name
     if names is not None and len(names) != len(args.model):
         raise SystemExit("repeat --name exactly once per --model")
+    restraints = None
+    if args.restraints is not None:
+        restraints = json.loads(args.restraints.read_text(encoding="utf-8"))
     policy = (
         RefinementPolicy.quick(
             refine_coordinates=args.coordinates,
             occupancy_mode=args.occupancy_mode,
             refine_b_iso=args.b_iso,
+            refine_u_aniso=args.u_aniso,
         )
         if args.quick
         else RefinementPolicy.cautious(
             refine_coordinates=args.coordinates,
             occupancy_mode=args.occupancy_mode,
             refine_b_iso=args.b_iso,
+            refine_u_aniso=args.u_aniso,
         )
     )
     policy = replace(
@@ -97,6 +115,9 @@ def main(argv=None) -> int:
         axial_asymmetry=not args.no_axial_asymmetry,
         occupancy_restraint=args.occupancy_restraint,
         b_iso_restraint=args.b_iso_restraint,
+        u_aniso_restraint=args.u_aniso_restraint,
+        structural_restraints=restraints,
+        structural_restraint_weight=args.structural_restraint_weight,
         goniometer_radius_mm=args.goniometer_radius_mm,
         specimen_displacement_mm=args.specimen_displacement_mm,
         refine_specimen_displacement=args.refine_specimen_displacement,

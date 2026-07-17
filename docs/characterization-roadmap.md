@@ -146,8 +146,8 @@ Implemented evidence:
 
 - symmetry-constrained site occupancies and shared-site simplexes; **done**
 - positive isotropic displacement factors; **done**
-- positive-semidefinite anisotropic displacement tensors;
-- composition, bond-length, angle and minimum-distance restraints;
+- positive-semidefinite anisotropic displacement tensors; **done**
+- composition, bond-length, angle and minimum-distance restraints; **done**
 - rigid-body translations and rotations;
 - multiple phases and simplex-constrained phase fractions.
 
@@ -188,6 +188,54 @@ Evidence artifacts:
 - `demo/refine_occupancy_adp.py` regenerates both artifacts;
 - unit tests cover composition and vacancy simplexes, orbit sharing, positivity,
   autograd and the deliberately ambiguous whole-profile result.
+
+### Milestone 2B acceptance gate
+
+Anisotropic displacement tensors use the Cartesian convention
+
+\[
+T_{hj}=\exp\!\left(-\tfrac12\,\mathbf G_h^\mathsf T
+\mathbf U_j\mathbf G_h\right),
+\]
+
+with \(\mathbf U\) in square angstrom. The isotropic limit must exactly match
+the existing \(B_{iso}\) implementation through
+\(\mathbf U=B_{iso}\mathbf I/(8\pi^2)\). Independent tensor modes must obey
+site symmetry, propagate across crystallographic orbits and remain positive
+definite throughout optimization.
+
+Structural restraints must be differentiable, use a fixed periodic-image
+topology during one refinement and report their standardized contributions
+separately from the diffraction-data objective. The executable gate shows
+tensor recovery and a deliberately weak structural refinement with and
+without bond/angle restraints in one generated figure and HTML report.
+
+### Milestone 2B measured result
+
+A tetragonal synthetic case reduces a Cartesian symmetric tensor to its two
+site-symmetry-allowed modes. Starting from isotropic U=0.006 square angstrom,
+the session recovers target eigenvalues (0.004, 0.004, 0.014) square angstrom
+with a maximum tensor-component error of 5.6e-5 square angstrom and
+Rwp=0.000338. The matrix-exponential parameterization keeps every eigenvalue
+positive, and its isotropic limit agrees with the established Biso path to
+floating-point precision.
+
+The deliberately sparse geometry example uses only eight strong reflections.
+An unrestrained model reaches a weighted intensity loss of 6.7e-11 but returns
+Si--O distances of 2.038 and 1.492 A and an O--Si--O angle of 140.50 degrees.
+With declared bond, angle and minimum-distance information, refinement returns
+1.620, 1.620 A and 109.50 degrees while retaining a near-exact data loss of
+1.3e-8. This is a diffraction null space rather than an optimizer failure; the
+chemical information is reported as a separate prior penalty.
+
+Evidence artifacts:
+
+- `demo/anisotropic_restraint_refinement.png` shows the profile, residual,
+  displacement ellipse/eigenvalues and restrained versus unrestrained geometry;
+- `demo/anisotropic_restraint_report.html` embeds the figure and numerical
+  restraint evidence;
+- CIF Uij/Bij ingestion, site-symmetry mode counts, positivity, autograd,
+  isotropic equivalence and every restraint family have regression tests.
 
 ## Milestone 3 -- Calibrated uncertainty and identifiability
 
@@ -288,3 +336,11 @@ instrument, uncertainty and reference-validation milestones are complete.
   reporting and occupancy--displacement correlation warnings.
 - Demonstrated exact controlled recovery and a deliberately underdetermined
   joint fit in a generated six-panel figure and HTML diagnostic report.
+- Began Milestone 2B by fixing the Cartesian anisotropic-displacement
+  convention and separate reporting requirements for structural restraints.
+- Completed Milestone 2B with site-symmetry-compatible positive-definite U
+  tensors, CIF anisotropic ingestion, four differentiable restraint families,
+  session/CLI integration and separate penalty provenance.
+- Demonstrated that sparse diffraction can fit chemically incorrect geometry
+  essentially exactly and that explicit restraints resolve the null direction
+  without being misreported as diffraction evidence.

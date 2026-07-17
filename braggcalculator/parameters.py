@@ -490,6 +490,233 @@ class SymmetryIsotropicDisplacementParameterization:
 
 
 @dataclass(frozen=True)
+class AnisotropicDisplacementOrbitSpec:
+    """One site-symmetry-compatible Cartesian anisotropic displacement tensor."""
+
+    orbit_index: int
+    representative_site: int
+    member_sites: np.ndarray
+    basis: np.ndarray
+    member_rotations: np.ndarray
+    base_log_u: np.ndarray
+    parameter_slice: slice
+    label: str
+
+    @property
+    def degrees_of_freedom(self) -> int:
+        return int(self.basis.shape[0])
+
+
+@dataclass(frozen=True)
+class SymmetryAnisotropicDisplacementParameterization:
+    """Positive-definite Cartesian U tensors constrained by site symmetry.
+
+    Each representative tensor is the matrix exponential of an invariant
+    symmetric log-tensor. Crystallographic rotations propagate that tensor to
+    the other members of its orbit. This guarantees positive definiteness and
+    exact orbit compatibility for every optimizer iterate.
+    """
+
+    contribution_orbits: np.ndarray
+    contribution_rotations: np.ndarray
+    orbits: tuple[AnisotropicDisplacementOrbitSpec, ...]
+    labels: tuple[str, ...]
+    mode_scale: float
+    symmetry_tolerance: float
+    default_u_iso: float
+
+    @classmethod
+    def from_calculator(
+        cls,
+        calculator,
+        *,
+        default_u_iso: float = 0.006,
+        mode_scale: float = 0.25,
+        symmetry_tolerance: float = 1e-8,
+    ) -> "SymmetryAnisotropicDisplacementParameterization":
+        calculator._ensure_loaded()
+        if not np.isfinite(default_u_iso) or default_u_iso <= 0:
+            raise ValueError("default_u_iso must be positive and finite")
+        if not np.isfinite(mode_scale) or mode_scale <= 0:
+            raise ValueError("mode_scale must be positive and finite")
+        if not np.isfinite(symmetry_tolerance) or symmetry_tolerance <= 0:
+            raise ValueError("symmetry_tolerance must be positive and finite")
+
+        metadata = calculator._symm
+        lattice = np.asarray(metadata["lattice"], dtype=np.float64)
+        inverse_cartesian_lattice = np.linalg.inv(lattice.T)
+        rotations = np.asarray(metadata["symm_rot"], dtype=np.int64)
+        translations = np.asarray(metadata["symm_trans"], dtype=np.float64)
+        cartesian_rotations = np.asarray(
+            [lattice.T @ rotation @ inverse_cartesian_lattice for rotation in rotations]
+        )
+        base_coordinates = np.asarray(metadata["structure"].frac_coords, dtype=np.float64)
+        site_indices = np.asarray(metadata["site_indices"], dtype=np.int64)
+        base_u = np.asarray(metadata["U_cart"], dtype=np.float64)
+        orbit_members = tuple(
+            np.asarray(item, dtype=np.int64) for item in metadata["orbit_indices"]
+        )
+        matrix_basis = _symmetric_matrix_basis()
+        contribution_orbits = np.full(len(site_indices), -1, dtype=np.int64)
+        contribution_rotations = np.zeros((len(site_indices), 3, 3), dtype=np.float64)
+        specifications = []
+        labels = []
+        parameter_count = 0
+
+        for orbit_index, members in enumerate(orbit_members):
+            representative = int(members[0])
+            representative_coordinate = base_coordinates[representative]
+            mapped_representative = (
+                np.einsum("rij,j->ri", rotations, representative_coordinate) + translations
+            )
+            stabilizer_mask = np.max(
+                np.abs(_periodic_difference(mapped_representative, representative_coordinate)),
+                axis=1,
+            ) < max(symmetry_tolerance, 1.1 * calculator.symprec)
+            stabilizer_cartesian = cartesian_rotations[stabilizer_mask]
+            constraints = []
+            for rotation in stabilizer_cartesian:
+                transformed = np.asarray([rotation @ item @ rotation.T for item in matrix_basis])
+                transform = np.stack(
+                    [_symmetric_coefficients(item) for item in transformed], axis=1
+                )
+                constraints.append(transform - np.eye(6))
+            invariant_coefficients = _null_space(
+                np.concatenate(constraints, axis=0), symmetry_tolerance
+            )
+            invariant_basis = np.einsum("ki,kjl->ijl", invariant_coefficients, matrix_basis)
+
+            representative_contributions = np.flatnonzero(site_indices == representative)
+            tensors = base_u[representative_contributions]
+            if len(tensors) == 0:
+                raise RuntimeError(f"orbit {orbit_index} has no scattering contributions")
+            if not np.allclose(tensors, tensors[0], atol=1e-10, rtol=0):
+                raise ValueError(f"orbit {orbit_index} has species-dependent U tensors")
+            initial_u = tensors[0]
+            if np.linalg.eigvalsh(initial_u).min() <= 1e-10:
+                initial_u = np.eye(3) * default_u_iso
+            invariant_u = np.mean(
+                [rotation @ initial_u @ rotation.T for rotation in stabilizer_cartesian], axis=0
+            )
+            eigenvalues, eigenvectors = np.linalg.eigh(0.5 * (invariant_u + invariant_u.T))
+            if eigenvalues.min() <= 0:
+                raise ValueError(f"orbit {orbit_index} has a non-positive initial U tensor")
+            base_log_u = (eigenvectors * np.log(eigenvalues)) @ eigenvectors.T
+
+            member_rotations = []
+            for member in members:
+                errors = np.max(
+                    np.abs(_periodic_difference(mapped_representative, base_coordinates[member])),
+                    axis=1,
+                )
+                operation_index = int(np.argmin(errors))
+                if errors[operation_index] >= max(symmetry_tolerance, 1.1 * calculator.symprec):
+                    raise ValueError(f"could not map U-tensor orbit {orbit_index} to site {member}")
+                member_rotation = cartesian_rotations[operation_index]
+                member_rotations.append(member_rotation)
+                contributions = np.flatnonzero(site_indices == member)
+                contribution_orbits[contributions] = orbit_index
+                contribution_rotations[contributions] = member_rotation
+
+            start = parameter_count
+            parameter_count += len(invariant_basis)
+            parameter_slice = slice(start, parameter_count)
+            symbol_label = "/".join(
+                dict.fromkeys(
+                    str(metadata["symbols"][index]) for index in representative_contributions
+                )
+            )
+            labels.extend(
+                f"orbit_{orbit_index}.{symbol_label}.U_mode_{index + 1}"
+                for index in range(len(invariant_basis))
+            )
+            specifications.append(
+                AnisotropicDisplacementOrbitSpec(
+                    orbit_index=orbit_index,
+                    representative_site=representative,
+                    member_sites=members.copy(),
+                    basis=invariant_basis,
+                    member_rotations=np.asarray(member_rotations),
+                    base_log_u=base_log_u,
+                    parameter_slice=parameter_slice,
+                    label=symbol_label,
+                )
+            )
+
+        if np.any(contribution_orbits < 0):
+            raise RuntimeError("not every scattering contribution was assigned to a U orbit")
+        return cls(
+            contribution_orbits=contribution_orbits,
+            contribution_rotations=contribution_rotations,
+            orbits=tuple(specifications),
+            labels=tuple(labels),
+            mode_scale=float(mode_scale),
+            symmetry_tolerance=float(symmetry_tolerance),
+            default_u_iso=float(default_u_iso),
+        )
+
+    @property
+    def independent_count(self) -> int:
+        return sum(orbit.degrees_of_freedom for orbit in self.orbits)
+
+    def initial_values(self, backend, *, requires_grad: bool = False):
+        values = backend.zeros((self.independent_count,), dtype=backend.dtype)
+        if getattr(backend, "is_torch", False):
+            values = values.clone().detach().requires_grad_(requires_grad)
+        elif requires_grad:
+            raise TypeError("requires_grad is available only with TorchBackend")
+        return values
+
+    def representative_tensors(self, independent_values, backend):
+        tensors = []
+        for orbit in self.orbits:
+            base = backend.asarray(orbit.base_log_u, dtype=backend.dtype)
+            basis = backend.asarray(orbit.basis, dtype=backend.dtype)
+            perturbation = self.mode_scale * backend.einsum(
+                "k,kij->ij", independent_values[orbit.parameter_slice], basis
+            )
+            tensors.append(backend.matrix_exp(base + perturbation))
+        return tensors
+
+    def expand(self, independent_values, backend):
+        if tuple(independent_values.shape) != (self.independent_count,):
+            raise ValueError(
+                f"independent_values must have shape ({self.independent_count},), "
+                f"got {tuple(independent_values.shape)}"
+            )
+        orbit_tensors = self.representative_tensors(independent_values, backend)
+        expanded = []
+        for orbit_index, rotation in zip(self.contribution_orbits, self.contribution_rotations):
+            transform = backend.asarray(rotation, dtype=backend.dtype)
+            expanded.append(
+                backend.matmul(
+                    transform,
+                    backend.matmul(orbit_tensors[int(orbit_index)], transform.T),
+                )
+            )
+        return backend.stack(expanded)
+
+    def physical_groups(self, independent_values) -> tuple[dict[str, object], ...]:
+        from .backends import NumpyBackend
+
+        tensors = self.representative_tensors(
+            np.asarray(independent_values, dtype=np.float64), NumpyBackend()
+        )
+        return tuple(
+            {
+                "orbit": orbit.orbit_index,
+                "representative_site": orbit.representative_site,
+                "members": orbit.member_sites.tolist(),
+                "species": orbit.label,
+                "U_cart": tensor.tolist(),
+                "eigenvalues": np.linalg.eigvalsh(tensor).tolist(),
+                "B_equivalent": float(8.0 * np.pi**2 * np.trace(tensor) / 3.0),
+            }
+            for orbit, tensor in zip(self.orbits, tensors)
+        )
+
+
+@dataclass(frozen=True)
 class OrbitCoordinateSpec:
     """Independent displacement subspace and member mappings for one orbit."""
 

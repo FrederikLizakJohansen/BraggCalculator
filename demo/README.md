@@ -110,3 +110,19 @@ python demo/refine_occupancy_adp.py
 
 It writes `demo/occupancy_adp_refinement.png` and
 `demo/occupancy_adp_report.html`.
+
+## Anisotropic displacement and structural restraints
+
+`refine_anisotropic_restraints.py` recovers a site-symmetry-compatible
+anisotropic displacement tensor and then demonstrates why chemical restraints
+must be reported separately from diffraction agreement. Eight strong synthetic
+reflections admit a nearly exact but chemically distorted three-atom model;
+bond-length, angle and minimum-distance restraints select the plausible local
+geometry while preserving the diffraction fit.
+
+```bash
+python demo/refine_anisotropic_restraints.py
+```
+
+It writes `demo/anisotropic_restraint_refinement.png` and a self-contained
+`demo/anisotropic_restraint_report.html`.

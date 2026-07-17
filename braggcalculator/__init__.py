@@ -2,7 +2,9 @@ from .core import BraggCalculator
 from .dataset import DiffractionDataset
 from .session import CandidateRefinementResult, RefinementPolicy, RefinementSession, SessionResult
 from .parameters import (
+    AnisotropicDisplacementOrbitSpec,
     OrbitCoordinateSpec,
+    SymmetryAnisotropicDisplacementParameterization,
     SymmetryIsotropicDisplacementParameterization,
     SymmetryOccupancyParameterization,
     SymmetryCoordinateParameterization,
@@ -12,6 +14,13 @@ from .parameters import (
 from .experiment import ProfileNuisanceParameterization
 from .optimization import OptimizationStage, StagedOptimizationResult, staged_adam
 from .radiation import nist_copper_ka_spectrum
+from .restraints import (
+    BondAngleRestraint,
+    BondLengthRestraint,
+    CompositionRestraint,
+    MinimumDistanceRestraint,
+    StructuralRestraintSet,
+)
 from .results import (
     JacobianDiagnostics,
     MismatchDiskResult,
@@ -23,11 +32,16 @@ from .results import (
 from ._version import __version__
 
 __all__ = [
+    "AnisotropicDisplacementOrbitSpec",
+    "BondAngleRestraint",
+    "BondLengthRestraint",
     "BraggCalculator",
+    "CompositionRestraint",
     "DiffractionDataset",
     "CandidateRefinementResult",
     "JacobianDiagnostics",
     "MismatchDiskResult",
+    "MinimumDistanceRestraint",
     "OriginAlignment",
     "OptimizationStage",
     "OrbitCoordinateSpec",
@@ -38,10 +52,12 @@ __all__ = [
     "ReflectionMatch",
     "ReflectionTable",
     "SymmetryCoordinateParameterization",
+    "SymmetryAnisotropicDisplacementParameterization",
     "SymmetryIsotropicDisplacementParameterization",
     "SymmetryLatticeParameterization",
     "SymmetryOccupancyParameterization",
     "StagedOptimizationResult",
+    "StructuralRestraintSet",
     "SessionResult",
     "__version__",
     "lattice_parameters",

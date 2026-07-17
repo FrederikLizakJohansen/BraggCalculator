@@ -61,6 +61,9 @@ class TorchBackend:
     def arcsin(self, x):
         return torch.arcsin(x)
 
+    def arccos(self, x):
+        return torch.arccos(x)
+
     def sqrt(self, x):
         return torch.sqrt(x)
 

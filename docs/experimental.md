@@ -66,6 +66,53 @@ should normally be reserved for controlled tests or independently informative
 data. The report warns when local occupancy and displacement directions are
 strongly correlated. A low Rwp does not override that warning.
 
+### Anisotropic displacement tensors
+
+Set `refine_u_aniso=True` to refine Cartesian anisotropic displacement tensors
+in square angstrom. A matrix exponential acts within the site-symmetry-
+invariant tensor subspace, preserving positive eigenvalues, special-position
+restrictions and crystallographic-orbit relationships at every step. Isotropic
+and anisotropic displacement parameters cannot be released simultaneously.
+
+```python
+policy = RefinementPolicy.cautious(refine_u_aniso=True)
+```
+
+The forward attenuation is `exp(-0.5 * G.T @ U_cart @ G)`. CIF anisotropic
+`Uij` and `Bij` loops are read and converted to this Cartesian convention.
+Missing or zero tensors start from `default_u_iso` (0.006 square angstrom by
+default), which is recorded in provenance.
+
+### Structural restraints
+
+Composition, bond-length, angle and minimum-distance restraints are supplied
+explicitly. Site indices refer to the prepared structure. Periodic images are
+resolved once at the start of refinement and then kept fixed so optimization
+remains continuous.
+
+```python
+from dataclasses import replace
+
+restraints = {
+    "composition": [{"species": "O", "target": 2.0, "sigma": 0.02}],
+    "bonds": [{"sites": [0, 1], "target": 1.62, "sigma": 0.02}],
+    "angles": [{
+        "sites": [0, 1, 2],
+        "target_degrees": 109.5,
+        "sigma_degrees": 1.5,
+    }],
+    "minimum_distances": [{
+        "sites": [0, 2], "minimum": 2.5, "sigma": 0.05,
+    }],
+}
+policy = RefinementPolicy.cautious(refine_coordinates=True)
+policy = replace(policy, structural_restraints=restraints)
+```
+
+Every standardized squared contribution and their mean are reported separately
+from the diffraction statistics. These terms encode prior chemical
+information; they are not additional diffraction observations.
+
 ## CLI
 
 ```bash
@@ -108,6 +155,10 @@ Use `--occupancy-mode vacancy` only when vacancy is scientifically plausible.
 The `--occupancy-restraint` and `--b-iso-restraint` options control the raw-
 parameter quadratic restraints.
 
+Use `--u-aniso` for anisotropic tensors. A JSON file containing the dictionary
+shown above can be supplied with `--restraints restraints.json`; its global
+multiplier is controlled by `--structural-restraint-weight`.
+
 ## Current experimental model
 
 - X-ray or neutron kinematic intensities from the existing forward engine;
@@ -122,6 +173,9 @@ parameter quadratic restraints.
 - optional symmetry-compatible coordinate displacements;
 - optional symmetry-constrained composition or vacancy occupancies;
 - optional positive, orbit-shared isotropic displacement parameters;
+- optional positive-definite, site-symmetry-compatible anisotropic tensors;
+- explicit composition, bond, angle and minimum-distance restraints with
+  separate contribution reporting;
 - weighted least squares, held-out bins, restraints and declared Adam stages.
 
 ## Important limitations
@@ -136,6 +190,9 @@ parameter quadratic restraints.
 - Occupancy and displacement parameters often attenuate the same reflections;
   they must not be interpreted independently when the reported Jacobian
   correlation is large.
+- Periodic images used by geometry restraints are fixed from the starting
+  topology. Large coordinate changes that alter bonding require rebuilding the
+  restraint set rather than continuing the same local refinement.
 - Rwp ranking is accompanied by discrimination and robustness diagnostics, but
   is not evidence that the winning structure is correct.
 

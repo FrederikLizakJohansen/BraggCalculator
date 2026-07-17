@@ -29,7 +29,9 @@ def test_p1_has_three_independent_coordinates_per_site(triclinic_structure):
     assert calculator._symm["spacegroup_symbol"] == "P1"
     assert model.independent_count == 3 * len(triclinic_structure)
     values = model.initial_values(calculator.backend)
-    np.testing.assert_allclose(model.expand(values, calculator.backend), calculator._symm["frac_coords"])
+    np.testing.assert_allclose(
+        model.expand(values, calculator.backend), calculator._symm["frac_coords"]
+    )
 
 
 def test_inversion_mates_receive_opposite_displacements():
@@ -92,9 +94,7 @@ def test_symmetry_expansion_preserves_torch_gradient():
 def test_lattice_parameterization_has_crystal_system_metric_dofs(
     lattice, crystal_system, degrees_of_freedom
 ):
-    calculator = BraggCalculator(primitive=False).load(
-        Structure(lattice, ["Si"], [[0, 0, 0]])
-    )
+    calculator = BraggCalculator(primitive=False).load(Structure(lattice, ["Si"], [[0, 0, 0]]))
     model = calculator.symmetry_lattice_parameterization()
     assert model.crystal_system == crystal_system
     assert model.independent_count == degrees_of_freedom
@@ -188,3 +188,47 @@ def test_b_iso_is_positive_and_shared_across_symmetry_orbits():
     loss.backward()
     assert torch.all(torch.isfinite(values.grad))
     assert torch.linalg.vector_norm(values.grad) > 0
+
+
+def test_anisotropic_u_has_site_symmetry_modes_positive_eigenvalues_and_gradient():
+    torch = pytest.importorskip("torch")
+    structure = Structure(
+        Lattice.tetragonal(4.2, 6.1),
+        ["Si"],
+        [[0, 0, 0]],
+        site_properties={"U_cart": [np.eye(3) * 0.006]},
+    )
+    calculator = BraggCalculator(
+        primitive=False, backend=TorchBackend(), two_theta_range=(20, 100)
+    ).load(structure)
+    model = calculator.symmetry_u_aniso_parameterization()
+    assert calculator._symm["spacegroup_symbol"] == "P4/mmm"
+    assert model.independent_count == 2
+
+    values = torch.tensor([8.0, -8.0], dtype=torch.float64, requires_grad=True)
+    expanded = model.expand(values, calculator.backend)
+    eigenvalues = torch.linalg.eigvalsh(expanded)
+    assert torch.all(eigenvalues > 0)
+    torch.testing.assert_close(expanded[0, 0, 0], expanded[0, 1, 1])
+    torch.testing.assert_close(expanded[0, 0, 1], torch.tensor(0.0, dtype=torch.float64))
+
+    parameters = calculator.tensor_parameters()
+    parameters["u_cart"] = expanded
+    loss = torch.sum(calculator.fq(parameters=parameters))
+    loss.backward()
+    assert torch.all(torch.isfinite(values.grad))
+    assert torch.linalg.vector_norm(values.grad) > 0
+
+
+def test_anisotropic_isotropic_limit_matches_b_iso_exactly():
+    structure = Structure(
+        Lattice.from_parameters(4.3, 5.1, 6.2, 77, 83, 72),
+        ["Si"],
+        [[0.13, 0.24, 0.31]],
+        site_properties={"B": [0.8]},
+    )
+    calculator = BraggCalculator(primitive=False, two_theta_range=(10, 110)).load(structure)
+    reference = calculator.fq()
+    parameters = calculator.tensor_parameters()
+    parameters["u_cart"] = np.asarray([np.eye(3) * 0.8 / (8 * np.pi**2)])
+    np.testing.assert_allclose(calculator.fq(parameters=parameters), reference, rtol=2e-14)

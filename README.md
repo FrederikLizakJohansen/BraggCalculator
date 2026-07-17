@@ -175,7 +175,9 @@ compares candidates and writes a self-contained HTML diagnostic report. The
 current instrument-aware layer supports point-group-constrained lattice modes,
 six-line Cu K-alpha emission, natural line widths, Thompson--Cox--Hastings
 broadening, a compact low-angle asymmetry term and Bragg--Brentano specimen
-displacement. See
+displacement. Structural refinement additionally supports symmetry-constrained
+occupancies, isotropic or anisotropic displacement parameters, and explicitly
+reported composition/bond/angle/minimum-distance restraints. See
 [`docs/experimental.md`](docs/experimental.md) and the public NIST SRM 660c
 example:
 

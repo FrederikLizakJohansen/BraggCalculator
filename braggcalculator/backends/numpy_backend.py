@@ -61,6 +61,9 @@ class NumpyBackend:
     def arcsin(self, x):
         return np.arcsin(x)
 
+    def arccos(self, x):
+        return np.arccos(x)
+
     def sqrt(self, x):
         return np.sqrt(x)
 

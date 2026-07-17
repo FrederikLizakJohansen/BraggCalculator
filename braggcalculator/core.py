@@ -117,13 +117,16 @@ class BraggCalculator:
 
         if self.debye_waller_factors:
             b_values = self._symm["B"].copy()
+            u_values = self._symm["U_cart"].copy()
             for index, symbol in enumerate(self._symm["symbols"]):
                 if symbol in self.debye_waller_factors:
                     value = float(self.debye_waller_factors[symbol])
                     if value < 0 or not np.isfinite(value):
                         raise ValueError(f"invalid Debye-Waller B value for {symbol}: {value}")
                     b_values[index] = value
+                    u_values[index] = np.eye(3) * value / (8.0 * np.pi**2)
             self._symm["B"] = b_values
+            self._symm["U_cart"] = u_values
 
         self._hkl = HKLEnumerator(self.wavelength, self.qmax).enumerate(
             self._symm["lattice"], self._symm["pointgroup_symbol"]
@@ -140,11 +143,14 @@ class BraggCalculator:
     ) -> dict[str, Any]:
         """Return backend arrays suitable for the ``parameters=`` argument.
 
-        Valid differentiable names are ``lattice``, ``frac_coords``,
-        ``occupancies`` and ``b_iso``.  Species and the HKL list are discrete.
+        Valid differentiable names are ``lattice``, ``frac_coords`` and
+        ``occupancies``, plus ``b_iso`` for isotropic structures or ``u_cart``
+        when the loaded structure contains anisotropic displacement tensors.
+        Species and the HKL list are discrete.
         """
         self._ensure_loaded()
-        names = {"lattice", "frac_coords", "occupancies", "b_iso"}
+        displacement_name = "u_cart" if self._symm["has_anisotropic_displacement"] else "b_iso"
+        names = {"lattice", "frac_coords", "occupancies", displacement_name}
         if isinstance(requires_grad, bool):
             grad_names = names if requires_grad else set()
         else:
@@ -157,7 +163,7 @@ class BraggCalculator:
             "lattice": self._symm["lattice"],
             "frac_coords": self._symm["frac_coords"],
             "occupancies": self._symm["occ"],
-            "b_iso": self._symm["B"],
+            displacement_name: self._symm["U_cart" if displacement_name == "u_cart" else "B"],
         }
         result = {}
         for name, value in values.items():
@@ -209,26 +215,56 @@ class BraggCalculator:
             self, b_min=b_min, default_if_zero=default_if_zero
         )
 
+    def symmetry_u_aniso_parameterization(
+        self,
+        *,
+        default_u_iso: float = 0.006,
+        mode_scale: float = 0.25,
+        symmetry_tolerance: float = 1e-8,
+    ):
+        """Return positive-definite, site-symmetry-compatible Cartesian U tensors."""
+        from .parameters import SymmetryAnisotropicDisplacementParameterization
+
+        return SymmetryAnisotropicDisplacementParameterization.from_calculator(
+            self,
+            default_u_iso=default_u_iso,
+            mode_scale=mode_scale,
+            symmetry_tolerance=symmetry_tolerance,
+        )
+
     def _parameter_values(self, parameters: ParameterDict | None):
         parameters = {} if parameters is None else parameters
-        allowed = {"lattice", "frac_coords", "occupancies", "b_iso"}
+        allowed = {"lattice", "frac_coords", "occupancies", "b_iso", "u_cart"}
         unknown = set(parameters) - allowed
         if unknown:
             raise ValueError(f"unknown parameters: {sorted(unknown)}")
+        if "u_cart" in parameters:
+            u_cart = parameters["u_cart"]
+        elif "b_iso" in parameters:
+            u_cart = None
+        elif self._symm["has_anisotropic_displacement"]:
+            u_cart = self._symm["U_cart"]
+        else:
+            u_cart = None
         values = (
             parameters.get("lattice", self._symm["lattice"]),
             parameters.get("frac_coords", self._symm["frac_coords"]),
             parameters.get("occupancies", self._symm["occ"]),
             parameters.get("b_iso", self._symm["B"]),
+            u_cart,
         )
-        lattice, frac, occ, b_iso = values
+        lattice, frac, occ, b_iso, u_cart = values
         atom_count = len(self._symm["Z"])
         expected = ((3, 3), (atom_count, 3), (atom_count,), (atom_count,))
         names = ("lattice", "frac_coords", "occupancies", "b_iso")
         for name, value, shape in zip(names, values, expected):
             if tuple(value.shape) != shape:
                 raise ValueError(f"{name} must have shape {shape}, got {tuple(value.shape)}")
-        return lattice, frac, occ, b_iso
+        if u_cart is not None and tuple(u_cart.shape) != (atom_count, 3, 3):
+            raise ValueError(
+                f"u_cart must have shape ({atom_count}, 3, 3), got {tuple(u_cart.shape)}"
+            )
+        return lattice, frac, occ, b_iso, u_cart
 
     def _domain_indices(self, domain: Literal["two_theta", "q"]):
         if domain == "two_theta":
@@ -248,20 +284,20 @@ class BraggCalculator:
     def fq(self, parameters: ParameterDict | None = None, *, indices=None):
         """Return per-reciprocal-point ``|F|^2`` without powder corrections."""
         self._ensure_loaded()
-        lattice, frac, occ, b_iso = self._parameter_values(parameters)
+        lattice, frac, occ, b_iso, u_cart = self._parameter_values(parameters)
         hkl = self._hkl["hkl"] if indices is None else self._hkl["hkl"][indices]
         _, two_theta = self._geometry(lattice, indices)
-        return self._compute_f2(hkl, two_theta, frac, occ, b_iso)
+        return self._compute_f2(hkl, two_theta, lattice, frac, occ, b_iso, u_cart)
 
     def structure_factors(self, parameters: ParameterDict | None = None, *, indices=None):
         """Return complex structure factors for the fixed reciprocal topology."""
         self._ensure_loaded()
-        lattice, frac, occ, b_iso = self._parameter_values(parameters)
+        lattice, frac, occ, b_iso, u_cart = self._parameter_values(parameters)
         hkl = self._hkl["hkl"] if indices is None else self._hkl["hkl"][indices]
         _, two_theta = self._geometry(lattice, indices)
-        return self._compute_f(hkl, two_theta, frac, occ, b_iso)
+        return self._compute_f(hkl, two_theta, lattice, frac, occ, b_iso, u_cart)
 
-    def _compute_f(self, hkl, two_theta, frac, occ, b_iso):
+    def _compute_f(self, hkl, two_theta, lattice, frac, occ, b_iso, u_cart):
         return compute_F(
             mode=self.mode,
             backend=self.backend,
@@ -272,11 +308,13 @@ class BraggCalculator:
             frac=frac,
             occ=occ,
             B=b_iso,
+            lattice=lattice,
+            U_cart=u_cart,
             neutron_scattering_lengths=self.neutron_scattering_lengths,
             phase_chunk_entries=self.phase_chunk_entries,
         )
 
-    def _compute_f2(self, hkl, two_theta, frac, occ, b_iso):
+    def _compute_f2(self, hkl, two_theta, lattice, frac, occ, b_iso, u_cart):
         return compute_F2(
             mode=self.mode,
             backend=self.backend,
@@ -287,6 +325,8 @@ class BraggCalculator:
             frac=frac,
             occ=occ,
             B=b_iso,
+            lattice=lattice,
+            U_cart=u_cart,
             neutron_scattering_lengths=self.neutron_scattering_lengths,
             phase_chunk_entries=self.phase_chunk_entries,
         )
@@ -324,10 +364,10 @@ class BraggCalculator:
         if not values or any(not np.isfinite(item) or item <= 0 for item in values):
             raise ValueError("wavelengths must contain positive finite values")
         indices = self._domain_indices(domain)
-        lattice, frac, occ, b_iso = self._parameter_values(parameters)
+        lattice, frac, occ, b_iso, u_cart = self._parameter_values(parameters)
         g, reference_two_theta = self._geometry(lattice, indices)
         hkl = self._hkl["hkl"][indices]
-        f2 = self._compute_f2(hkl, reference_two_theta, frac, occ, b_iso)
+        f2 = self._compute_f2(hkl, reference_two_theta, lattice, frac, occ, b_iso, u_cart)
         q = 2.0 * self.backend.pi() * g
         result = []
         for wavelength in values:
@@ -376,9 +416,17 @@ class BraggCalculator:
     def _individual_data(self, domain, parameters):
         self._ensure_loaded()
         indices = self._domain_indices(domain)
-        lattice, frac, occ, b_iso = self._parameter_values(parameters)
+        lattice, frac, occ, b_iso, u_cart = self._parameter_values(parameters)
         g, two_theta = self._geometry(lattice, indices)
-        structure_factor = self._compute_f(self._hkl["hkl"][indices], two_theta, frac, occ, b_iso)
+        structure_factor = self._compute_f(
+            self._hkl["hkl"][indices],
+            two_theta,
+            lattice,
+            frac,
+            occ,
+            b_iso,
+            u_cart,
+        )
         f2 = self.backend.real(structure_factor * self.backend.conj(structure_factor))
         intensity = apply_lp_and_multiplicity(
             self.mode, self.backend, f2, two_theta, multiplicity=None

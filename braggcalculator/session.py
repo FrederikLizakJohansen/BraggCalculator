@@ -25,6 +25,7 @@ from .experimental_profile import (
 from .io import to_pmg_structure
 from .optimization import OptimizationStage, staged_adam
 from .parameters import lattice_parameters
+from .restraints import StructuralRestraintSet
 from .sensitivity import analyze_jacobian
 
 
@@ -76,6 +77,11 @@ class RefinementPolicy:
     refine_b_iso: bool = False
     b_iso_restraint: float = 0.1
     default_b_iso: float = 0.5
+    refine_u_aniso: bool = False
+    u_aniso_restraint: float = 0.1
+    default_u_iso: float = 0.006
+    structural_restraints: dict[str, Any] | None = None
+    structural_restraint_weight: float = 1.0
     holdout_stride: int = 10
     restarts: int = 1
     diagnostic_points: int = 48
@@ -105,6 +111,20 @@ class RefinementPolicy:
             raise ValueError("b_iso_restraint must be finite and non-negative")
         if not np.isfinite(self.default_b_iso) or self.default_b_iso <= 0:
             raise ValueError("default_b_iso must be positive and finite")
+        if self.refine_b_iso and self.refine_u_aniso:
+            raise ValueError("isotropic and anisotropic displacement cannot be refined together")
+        if self.u_aniso_restraint < 0 or not np.isfinite(self.u_aniso_restraint):
+            raise ValueError("u_aniso_restraint must be finite and non-negative")
+        if not np.isfinite(self.default_u_iso) or self.default_u_iso <= 0:
+            raise ValueError("default_u_iso must be positive and finite")
+        if self.structural_restraint_weight < 0 or not np.isfinite(
+            self.structural_restraint_weight
+        ):
+            raise ValueError("structural_restraint_weight must be finite and non-negative")
+        if self.structural_restraints is not None and not isinstance(
+            self.structural_restraints, dict
+        ):
+            raise TypeError("structural_restraints must be a dictionary or None")
         if self.profile_model not in {"legacy", "tch"}:
             raise ValueError("profile_model must be 'legacy' or 'tch'")
         if self.goniometer_radius_mm is not None and (
@@ -121,6 +141,7 @@ class RefinementPolicy:
         refine_coordinates: bool = False,
         occupancy_mode: str = "fixed",
         refine_b_iso: bool = False,
+        refine_u_aniso: bool = False,
     ) -> "RefinementPolicy":
         active_joint = (
             "scale",
@@ -136,10 +157,13 @@ class RefinementPolicy:
             active_joint += ("occupancies",)
         if refine_b_iso:
             active_joint += ("b_iso",)
+        if refine_u_aniso:
+            active_joint += ("u_aniso",)
         return cls(
             refine_coordinates=refine_coordinates,
             occupancy_mode=occupancy_mode,
             refine_b_iso=refine_b_iso,
+            refine_u_aniso=refine_u_aniso,
             stages=(
                 OptimizationStage("scale/background", ("scale", "background"), 40, 0.04),
                 OptimizationStage(
@@ -159,6 +183,7 @@ class RefinementPolicy:
         refine_coordinates: bool = False,
         occupancy_mode: str = "fixed",
         refine_b_iso: bool = False,
+        refine_u_aniso: bool = False,
     ) -> "RefinementPolicy":
         active_joint = (
             "scale",
@@ -186,11 +211,15 @@ class RefinementPolicy:
         if refine_b_iso:
             stages.append(OptimizationStage("isotropic displacement", ("b_iso",), 140, 0.008))
             active_joint += ("b_iso",)
+        if refine_u_aniso:
+            stages.append(OptimizationStage("anisotropic displacement", ("u_aniso",), 180, 0.006))
+            active_joint += ("u_aniso",)
         stages.append(OptimizationStage("joint", active_joint, 250, 0.005))
         return cls(
             refine_coordinates=refine_coordinates,
             occupancy_mode=occupancy_mode,
             refine_b_iso=refine_b_iso,
+            refine_u_aniso=refine_u_aniso,
             stages=tuple(stages),
         )
 
@@ -277,6 +306,12 @@ class RefinementSession:
             if policy.refine_b_iso
             else None
         )
+        u_aniso_model = (
+            calculator.symmetry_u_aniso_parameterization(default_u_iso=policy.default_u_iso)
+            if policy.refine_u_aniso
+            else None
+        )
+        restraint_set = StructuralRestraintSet.from_dict(calculator, policy.structural_restraints)
         base_parameters = calculator.tensor_parameters()
         grid = torch.as_tensor(self.dataset.coordinate, dtype=torch.float64, device=self.device)
         observed = torch.as_tensor(self.dataset.intensity, dtype=torch.float64, device=self.device)
@@ -336,6 +371,11 @@ class RefinementSession:
             if b_iso_model is not None
             else None
         )
+        u_aniso = (
+            u_aniso_model.initial_values(calculator.backend, requires_grad=True)
+            if u_aniso_model is not None
+            else None
+        )
         if restart_index:
             generator = np.random.default_rng(1729 + restart_index)
             with torch.no_grad():
@@ -389,6 +429,14 @@ class RefinementSession:
                             device=self.device,
                         )
                     )
+                if u_aniso_model is not None:
+                    u_aniso.copy_(
+                        torch.as_tensor(
+                            generator.normal(0.0, 0.02, u_aniso_model.independent_count),
+                            dtype=torch.float64,
+                            device=self.device,
+                        )
+                    )
         groups = {
             "scale": scale,
             "background": background,
@@ -405,6 +453,8 @@ class RefinementSession:
             groups["occupancies"] = occupancies
         if b_iso_model is not None:
             groups["b_iso"] = b_iso
+        if u_aniso_model is not None:
+            groups["u_aniso"] = u_aniso
 
         normalized_x = torch.linspace(-1.0, 1.0, len(grid), dtype=torch.float64, device=self.device)
         background_basis = torch.stack(
@@ -419,8 +469,7 @@ class RefinementSession:
         ) and goniometer_radius is None:
             raise ValueError("a goniometer radius is required for specimen-displacement correction")
 
-        def calculate():
-            peaks = torch.zeros_like(grid)
+        def structural_parameters():
             structural = dict(base_parameters)
             structural["lattice"] = lattice_model.expand(lattice, calculator.backend)
             if policy.refine_coordinates and coordinate_model.independent_count:
@@ -428,7 +477,15 @@ class RefinementSession:
             if occupancy_model is not None and occupancy_model.independent_count:
                 structural["occupancies"] = occupancy_model.expand(occupancies, calculator.backend)
             if b_iso_model is not None:
+                structural.pop("u_cart", None)
                 structural["b_iso"] = b_iso_model.expand(b_iso, calculator.backend)
+            if u_aniso_model is not None:
+                structural["u_cart"] = u_aniso_model.expand(u_aniso, calculator.backend)
+            return structural
+
+        def calculate():
+            peaks = torch.zeros_like(grid)
+            structural = structural_parameters()
             component_patterns = calculator.line_components(
                 [component["wavelength_angstrom"] for component in components],
                 domain="two_theta",
@@ -530,6 +587,17 @@ class RefinementSession:
                     device=self.device,
                 )
                 loss = loss + policy.b_iso_restraint * torch.mean((b_iso - b_iso_initial) ** 2)
+            if u_aniso_model is not None:
+                loss = loss + policy.u_aniso_restraint * torch.mean(u_aniso**2)
+            if restraint_set.count:
+                structural = structural_parameters()
+                restraint_loss, _ = restraint_set.loss(
+                    structural["lattice"],
+                    structural["frac_coords"],
+                    structural["occupancies"],
+                    calculator.backend,
+                )
+                loss = loss + policy.structural_restraint_weight * restraint_loss
             return loss
 
         stages = (
@@ -538,6 +606,7 @@ class RefinementSession:
                 refine_coordinates=policy.refine_coordinates,
                 occupancy_mode=policy.occupancy_mode,
                 refine_b_iso=policy.refine_b_iso,
+                refine_u_aniso=policy.refine_u_aniso,
             ).stages
         )
         stages = tuple(
@@ -588,6 +657,16 @@ class RefinementSession:
                     (0.05 * torch.exp(profile[5])).detach().cpu() if policy.axial_asymmetry else 0.0
                 ),
             }
+        final_structural = structural_parameters()
+        restraint_loss, restraint_terms = restraint_set.loss(
+            final_structural["lattice"],
+            final_structural["frac_coords"],
+            final_structural["occupancies"],
+            calculator.backend,
+        )
+        restraint_contributions = {
+            name: float(value.detach().cpu()) for name, value in restraint_terms.items()
+        }
         physical = {
             "scale": float(scale0 * torch.exp(scale).detach().cpu()),
             "background_coefficients": background.detach().cpu().numpy().tolist(),
@@ -618,6 +697,13 @@ class RefinementSession:
                 if b_iso_model is not None
                 else []
             ),
+            "anisotropic_displacement_groups": (
+                list(u_aniso_model.physical_groups(u_aniso.detach().cpu().numpy()))
+                if u_aniso_model is not None
+                else []
+            ),
+            "structural_restraint_mean_chi_squared": float(restraint_loss.detach().cpu()),
+            "structural_restraint_contributions": restraint_contributions,
         }
         warnings = []
         declared_limitations = self.dataset.metadata.get("model_limitations", ())
@@ -634,13 +720,26 @@ class RefinementSession:
             warnings.append("Occupancy uncertainties are not yet calibrated for experimental use.")
         if policy.refine_b_iso:
             warnings.append("Biso uncertainties are not yet calibrated for experimental use.")
+        if policy.refine_u_aniso:
+            warnings.append(
+                "Anisotropic displacement uncertainties are not yet calibrated for "
+                "experimental use."
+            )
+        if restraint_set.count:
+            warnings.append(
+                "Structural restraints contribute prior information; inspect their separate "
+                "penalties before interpreting the fit."
+            )
         if r_wp > 0.15 or declared_limitations:
             recommendation = (
                 "Improve the wavelength, instrument-profile, background, or phase model before "
                 "interpreting structural parameters."
             )
         elif not (
-            policy.refine_coordinates or policy.occupancy_mode != "fixed" or policy.refine_b_iso
+            policy.refine_coordinates
+            or policy.occupancy_mode != "fixed"
+            or policy.refine_b_iso
+            or policy.refine_u_aniso
         ):
             recommendation = "Inspect parameter sensitivity and correlations before releasing structural coordinates."
         else:
@@ -660,6 +759,7 @@ class RefinementSession:
                 "lattice": lattice_model.labels,
                 "occupancies": (occupancy_model.labels if occupancy_model is not None else ()),
                 "b_iso": b_iso_model.labels if b_iso_model is not None else (),
+                "u_aniso": u_aniso_model.labels if u_aniso_model is not None else (),
                 "profile": (
                     ("U", "V", "W", "eta")
                     if policy.profile_model == "legacy"
@@ -707,6 +807,11 @@ class RefinementSession:
                     "refine_b_iso": policy.refine_b_iso,
                     "b_iso_restraint": policy.b_iso_restraint,
                     "default_b_iso": policy.default_b_iso,
+                    "refine_u_aniso": policy.refine_u_aniso,
+                    "u_aniso_restraint": policy.u_aniso_restraint,
+                    "default_u_iso": policy.default_u_iso,
+                    "structural_restraint_weight": policy.structural_restraint_weight,
+                    "structural_restraints": restraint_set.specification(),
                     "holdout_stride": policy.holdout_stride,
                     "diagnostic_points": policy.diagnostic_points,
                     "profile_model": policy.profile_model,
