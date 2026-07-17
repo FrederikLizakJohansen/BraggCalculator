@@ -375,7 +375,7 @@ class ProjectStore:
     ) -> dict[str, str]:
         profile_path = directory / "profiles.csv"
         with profile_path.open("w", newline="", encoding="utf-8") as stream:
-            writer = csv.writer(stream)
+            writer = csv.writer(stream, lineterminator="\n")
             header = ["coordinate", "observed", "sigma", "included"]
             for candidate in result.candidates:
                 header.extend([f"{candidate.name}.calculated", f"{candidate.name}.residual"])
@@ -390,7 +390,7 @@ class ProjectStore:
                 writer.writerow(row)
         parameter_path = directory / "parameters.csv"
         with parameter_path.open("w", newline="", encoding="utf-8") as stream:
-            writer = csv.writer(stream)
+            writer = csv.writer(stream, lineterminator="\n")
             writer.writerow(["candidate", "parameter_path", "value"])
             for candidate in encoded["candidates"]:
                 for path, value in _flatten(candidate["physical_parameters"]):

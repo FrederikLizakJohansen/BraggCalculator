@@ -656,6 +656,54 @@ resolution proxy. The dependency-free HTTP transport is intended for trusted
 local use and does not provide authentication or TLS. The MCP implementation is
 a compact stdio JSON-RPC server rather than a hosted multi-user service.
 
+### Milestone 7.5 -- Guided end-to-end characterization UI
+
+**Status: Implemented**
+
+Before beginning the publication benchmark, the scientist interface now also
+provides a complete local browser workflow through `bragg-ui`:
+
+- upload one XY/XYE pattern and one or more CIF candidates;
+- declare wavelength, radiation, uncertainty-column meaning and a staged
+  release policy;
+- require explicit acknowledgement before structural coordinates,
+  occupancies or displacement factors are released;
+- create a portable, checksummed project before any optimization occurs;
+- run every candidate fairly, or continue from the latest raw-parameter
+  checkpoint as an explicit child run;
+- inspect fit, standardized residual, structure relationship, complex
+  amplitude--phase mismatch, pair distribution, resolution-defined peak
+  groups, identifiability, physical parameters, experiment design, run lineage
+  and exports in separate linked tabs;
+- read a plain-language explanation, mathematical basis and concrete
+  interpretation checklist beside every diagnostic family.
+
+The application is dependency-free in the browser: plots are linked SVG and
+all calculations are performed by the existing project/refinement/diagnostic
+layers. It binds to localhost by default and remains a trusted-local tool
+without authentication or TLS.
+
+A bundled synthetic NaSiO2 dataset and two lattice-compatible candidates form
+an executable tutorial. The example intentionally teaches an honest
+non-discrimination conclusion: a good profile fit and a non-zero calculated
+complex mismatch can coexist when the supplied powder experiment does not
+contain enough candidate-separating information. The dataset is labeled as
+synthetic throughout and is not counted as independent validation.
+
+Evidence artifacts:
+
+- `braggcalculator/ui/index.html` is the complete guided application;
+- `braggcalculator/tutorial_data/` contains the copied/checksummed tutorial
+  inputs and their scope statement;
+- `demo/end_to_end_tutorial_project/` is a completed portable UI project;
+- `demo/end_to_end_ui.png` records the running application with calculated
+  tutorial results;
+- `demo/end_to_end_ui_mismatch.png` and
+  `demo/end_to_end_ui_identifiability.png` record the complex and local-rank
+  interpretations;
+- UI regression tests cover upload policy acknowledgement, tutorial creation,
+  diagnostics, local HTTP routes and artifact path confinement.
+
 ## Milestone 8 -- Publication package
 
 **Status: Research**
@@ -732,3 +780,6 @@ instrument, uncertainty and reference-validation milestones are complete.
 - Generated a two-model, two-run interface project and companion six-panel
   figure; the example correctly concludes that its candidate profiles are not
   experimentally discriminated.
+- Added the guided `bragg-ui` application with upload, declared release policy,
+  run/resume controls, nine diagnostic tabs, theory/lay explanations, a bundled
+  two-candidate tutorial and portable export links.

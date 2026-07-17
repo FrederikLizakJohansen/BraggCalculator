@@ -220,6 +220,19 @@ run records and export result JSON, profile/parameter CSV, refined CIF, audit
 JSON and an interactive HTML workspace. Local REST and MCP transports use the
 same versioned operations through `bragg-service` and `bragg-mcp`.
 
+For a complete guided browser workflow, launch the trusted-local application:
+
+```bash
+bragg-ui --root bragg-ui-projects
+```
+
+Then open `http://127.0.0.1:8766`. The UI can load the bundled two-candidate
+teaching project or ingest XY/XYE and CIF uploads, declare structural release,
+run/resume refinement, and explain fit, residual, structural, complex
+amplitude/phase, peak-overlap, identifiability and experiment-design
+diagnostics in separate tabs. The bundled data are synthetic and explicitly
+labeled as a tutorial, not independent validation.
+
 ## Data and model references
 
 - P. A. Doyle and P. S. Turner, *Acta Crystallographica A* **24**, 390–397

@@ -1,0 +1,217 @@
+{
+  "schema": "braggcalculator.project/v1",
+  "project_id": "31d0cf61-1736-427b-aa00-893485c790c7",
+  "title": "Guided NaSiO2 candidate-refinement tutorial",
+  "created_at": "2026-07-17T15:12:22+00:00",
+  "updated_at": "2026-07-17T15:12:47+00:00",
+  "dataset": {
+    "path": "inputs/pattern.xye",
+    "sha256": "0aec3e605d4e533ee2ccaaab602415d530f47fee4e07ef89ffcc9a7a559a49c6",
+    "format": "xye",
+    "third_column": "sigma",
+    "domain": "two_theta",
+    "radiation": "xray",
+    "wavelength_angstrom": 1.5406,
+    "metadata": {
+      "tutorial": true,
+      "synthetic": true,
+      "notice": "Synthetic teaching data with known compatible candidates; this is not independent experimental validation."
+    }
+  },
+  "models": [
+    {
+      "name": "reference motif",
+      "path": "inputs/model-01.cif",
+      "sha256": "276d0603aa8a36e9ee1ec61704e200aadc20d891a3cfa09a8183f8794632b0ef",
+      "original_filename": "model-a.cif"
+    },
+    {
+      "name": "oxygen-shift candidate",
+      "path": "inputs/model-02.cif",
+      "sha256": "616e1843187ca41a329baeb8ce064952e58a33c4806a1864b52ba2f667be8eb2",
+      "original_filename": "model-b.cif"
+    }
+  ],
+  "policy": {
+    "background_degree": 1,
+    "refine_lattice": true,
+    "refine_coordinates": true,
+    "coordinate_restraint": 0.05,
+    "occupancy_mode": "fixed",
+    "occupancy_restraint": 1.0,
+    "refine_b_iso": false,
+    "b_iso_restraint": 0.1,
+    "default_b_iso": 0.5,
+    "refine_u_aniso": false,
+    "u_aniso_restraint": 0.1,
+    "default_u_iso": 0.006,
+    "structural_restraints": null,
+    "structural_restraint_weight": 1.0,
+    "rigid_bodies": null,
+    "rigid_body_restraint": 0.1,
+    "rigid_translation_scale": 0.1,
+    "rigid_rotation_scale_degrees": 5.0,
+    "holdout_stride": 8,
+    "restarts": 1,
+    "diagnostic_points": 32,
+    "profile_model": "tch",
+    "axial_asymmetry": true,
+    "goniometer_radius_mm": null,
+    "specimen_displacement_mm": 0.0,
+    "refine_specimen_displacement": false,
+    "likelihood": "gaussian",
+    "validation_rollback_tolerance": null,
+    "adaptive_release": false,
+    "minimum_relative_sensitivity": 0.02,
+    "minimum_residual_support": 0.1,
+    "maximum_release_correlation": 0.98,
+    "restart_seed": 1729,
+    "stages": [
+      {
+        "name": "scale/background",
+        "active": [
+          "scale",
+          "background"
+        ],
+        "steps": 25,
+        "learning_rate": 0.025,
+        "optimizer": "adam",
+        "width_multiplier": 1.0
+      },
+      {
+        "name": "profile/lattice",
+        "active": [
+          "profile",
+          "lattice"
+        ],
+        "steps": 35,
+        "learning_rate": 0.008,
+        "optimizer": "adam",
+        "width_multiplier": 1.0
+      },
+      {
+        "name": "coordinates",
+        "active": [
+          "coordinates"
+        ],
+        "steps": 35,
+        "learning_rate": 0.004,
+        "optimizer": "adam",
+        "width_multiplier": 1.0
+      },
+      {
+        "name": "joint",
+        "active": [
+          "scale",
+          "background",
+          "profile",
+          "lattice",
+          "coordinates"
+        ],
+        "steps": 45,
+        "learning_rate": 0.002,
+        "optimizer": "adam",
+        "width_multiplier": 1.0
+      }
+    ]
+  },
+  "runs": [
+    {
+      "run_id": "run-0001",
+      "created_at": "2026-07-17T15:12:27+00:00",
+      "parent_run_id": null,
+      "resumed": false,
+      "result": "runs/run-0001/result.json",
+      "ranking": [
+        "oxygen-shift candidate",
+        "reference motif"
+      ],
+      "trace_segments": [
+        {
+          "candidate": "reference motif",
+          "points": 140,
+          "first_loss": 0.5113819343721695,
+          "last_loss": 0.14431096141228494,
+          "resumed_from_checkpoint": false
+        },
+        {
+          "candidate": "oxygen-shift candidate",
+          "points": 140,
+          "first_loss": 0.5643812756902353,
+          "last_loss": 0.14359604195261708,
+          "resumed_from_checkpoint": false
+        }
+      ],
+      "artifacts": {
+        "result_json": "runs/run-0001/result.json",
+        "profiles_csv": "runs/run-0001/profiles.csv",
+        "parameters_csv": "runs/run-0001/parameters.csv",
+        "refined_cif": {
+          "reference motif": "runs/run-0001/reference-motif-refined.cif",
+          "oxygen-shift candidate": "runs/run-0001/oxygen-shift-candidate-refined.cif"
+        },
+        "workspace_html": "runs/run-0001/workspace.html",
+        "audit_json": "audit.json"
+      }
+    },
+    {
+      "run_id": "run-0002",
+      "created_at": "2026-07-17T15:12:47+00:00",
+      "parent_run_id": "run-0001",
+      "resumed": true,
+      "result": "runs/run-0002/result.json",
+      "ranking": [
+        "oxygen-shift candidate",
+        "reference motif"
+      ],
+      "trace_segments": [
+        {
+          "candidate": "reference motif",
+          "points": 140,
+          "first_loss": 0.14351922275984935,
+          "last_loss": 0.0635774726166863,
+          "resumed_from_checkpoint": true
+        },
+        {
+          "candidate": "oxygen-shift candidate",
+          "points": 140,
+          "first_loss": 0.14274354932479885,
+          "last_loss": 0.06166821038015674,
+          "resumed_from_checkpoint": true
+        }
+      ],
+      "artifacts": {
+        "result_json": "runs/run-0002/result.json",
+        "profiles_csv": "runs/run-0002/profiles.csv",
+        "parameters_csv": "runs/run-0002/parameters.csv",
+        "refined_cif": {
+          "reference motif": "runs/run-0002/reference-motif-refined.cif",
+          "oxygen-shift candidate": "runs/run-0002/oxygen-shift-candidate-refined.cif"
+        },
+        "workspace_html": "runs/run-0002/workspace.html",
+        "audit_json": "audit.json"
+      }
+    }
+  ],
+  "audit": [
+    {
+      "timestamp": "2026-07-17T15:12:22+00:00",
+      "action": "project_created",
+      "detail": "Input files copied and checksummed into the project bundle"
+    },
+    {
+      "timestamp": "2026-07-17T15:12:27+00:00",
+      "action": "refinement_run",
+      "run_id": "run-0001",
+      "parent_run_id": null,
+      "detail": "The supplied experiment does not discriminate the refined candidates."
+    },
+    {
+      "timestamp": "2026-07-17T15:12:47+00:00",
+      "action": "refinement_resumed",
+      "run_id": "run-0002",
+      "parent_run_id": "run-0001",
+      "detail": "The supplied experiment does not discriminate the refined candidates."
+    }
+  ]
+}

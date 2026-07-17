@@ -411,6 +411,33 @@ for the same scientific operations. MCP project creation requires
 structural family; an agent cannot silently opt into broad structural
 refinement.
 
+## Guided local web application
+
+`bragg-ui` serves a dependency-free browser client and a small local JSON API
+on top of `ProjectStore`:
+
+```bash
+bragg-ui --root bragg-ui-projects --host 127.0.0.1 --port 8766
+```
+
+The application supports browser-side XY/XYE and CIF upload, checksummed
+project creation, staged run/resume, a bundled synthetic tutorial, linked SVG
+diagnostics and project artifact download. Existing completed projects can be
+opened by identifier or with `?project=<identifier>`.
+
+The UI endpoints are:
+
+- `POST /api/examples/tutorial`;
+- `POST /api/projects`;
+- `POST /api/projects/<id>/run` and `/resume`;
+- `GET /api/projects/<id>/diagnostics`;
+- `GET /api/projects/<id>/artifacts/<project-relative-path>`.
+
+Structural parameter release through upload requires
+`release_policy_acknowledged=true`. Artifact and project paths are confined to
+the declared root. This is a trusted-local interface without authentication or
+TLS; it must not be exposed directly as a multi-user network service.
+
 ## Backends
 
 ```python

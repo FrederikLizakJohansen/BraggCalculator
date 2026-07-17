@@ -1,0 +1,25 @@
+{
+  "schema": "braggcalculator.audit/v1",
+  "project_id": "31d0cf61-1736-427b-aa00-893485c790c7",
+  "events": [
+    {
+      "timestamp": "2026-07-17T15:12:22+00:00",
+      "action": "project_created",
+      "detail": "Input files copied and checksummed into the project bundle"
+    },
+    {
+      "timestamp": "2026-07-17T15:12:27+00:00",
+      "action": "refinement_run",
+      "run_id": "run-0001",
+      "parent_run_id": null,
+      "detail": "The supplied experiment does not discriminate the refined candidates."
+    },
+    {
+      "timestamp": "2026-07-17T15:12:47+00:00",
+      "action": "refinement_resumed",
+      "run_id": "run-0002",
+      "parent_run_id": "run-0001",
+      "detail": "The supplied experiment does not discriminate the refined candidates."
+    }
+  ]
+}

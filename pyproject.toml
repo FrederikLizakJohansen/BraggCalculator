@@ -40,6 +40,7 @@ bragg-diagnose = "braggcalculator.cli:main"
 bragg-service = "braggcalculator.service:main"
 bragg-mcp = "braggcalculator.mcp:main"
 bragg-project = "braggcalculator.project_cli:main"
+bragg-ui = "braggcalculator.ui:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
