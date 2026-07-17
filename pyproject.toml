@@ -35,6 +35,9 @@ torch = ["torch"]
 ase = ["ase"]
 all = ["torch", "ase"]
 
+[tool.poetry.scripts]
+bragg-diagnose = "braggcalculator.cli:main"
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
 pytest-cov = "^6.2.1"

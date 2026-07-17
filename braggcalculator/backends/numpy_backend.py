@@ -41,6 +41,9 @@ class NumpyBackend:
     def cos(self, x):
         return np.cos(x)
 
+    def sigmoid(self, x):
+        return 1.0 / (1.0 + np.exp(-x))
+
     def arcsin(self, x):
         return np.arcsin(x)
 

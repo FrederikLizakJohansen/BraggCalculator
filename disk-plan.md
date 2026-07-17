@@ -2370,3 +2370,26 @@ access.
   a declared-stage Adam runner can release structural and nuisance groups in a
   recorded order. More realistic backgrounds, pseudo-Voigt/asymmetric profiles
   and instrument-specific corrections remain required for experimental work.
+
+---
+
+# 30. Experimental characterization implementation
+
+The first end-to-end materials-characterization slice now implements roadmap
+layers 8–14 within a narrow scope:
+
+- immutable XY/XYE datasets with uncertainty, masks, metadata and SHA-256
+  provenance;
+- wavelength components, pseudo-Voigt peaks, positive Caglioti widths and
+  polynomial background;
+- cautious/quick release policies, coordinate restraints, held-out bins and
+  deterministic multistart refinement;
+- observed/calculated/residual diagnostics, informative regions, candidate
+  ranking and explicit non-discrimination conclusions;
+- Python API, command-line entry point and self-contained HTML report;
+- synthetic candidate-selection validation and a public NIST SRM 660c LaB6
+  real-data regression.
+
+The NIST regression is a pipeline validation, not a certification-quality
+refinement. Its residual warning is expected because the implemented model
+does not reproduce the full NIST fundamental-parameters instrument model.

@@ -169,6 +169,16 @@ python demo/compare_with_pymatgen.py
 The script stops if either implementation departs from the stated numerical
 tolerances.
 
+An experimental candidate-guided workflow is also available. It reads XY/XYE
+data with uncertainties, refines plausible CIF models under a declared policy,
+compares candidates and writes a self-contained HTML diagnostic report. See
+[`docs/experimental.md`](docs/experimental.md) and the public NIST SRM 660c
+example:
+
+```bash
+python demo/characterize_nist_lab6.py
+```
+
 ## Data and model references
 
 - P. A. Doyle and P. S. Turner, *Acta Crystallographica A* **24**, 390–397

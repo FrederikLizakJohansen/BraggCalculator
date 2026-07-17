@@ -1,0 +1,70 @@
+data_LaB6_SRM660c
+_audit_creation_method 'Transcribed from NIST SRM 660c certification pdCIF'
+_chemical_formula_sum 'B6 La'
+_cell_length_a 4.156780
+_cell_length_b 4.156780
+_cell_length_c 4.156780
+_cell_angle_alpha 90
+_cell_angle_beta 90
+_cell_angle_gamma 90
+_space_group_name_H-M_alt 'P m -3 m'
+loop_
+_space_group_symop_operation_xyz
+'x,y,z'
+'-x,-y,-z'
+'x,-y,-z'
+'-x,y,z'
+'-x,y,-z'
+'x,-y,z'
+'x,y,-z'
+'-x,-y,z'
+'y,x,z'
+'-y,-x,-z'
+'y,-x,-z'
+'-y,x,z'
+'-y,x,-z'
+'y,-x,z'
+'y,x,-z'
+'-y,-x,z'
+'z,y,x'
+'-z,-y,-x'
+'z,-y,-x'
+'-z,y,x'
+'-z,y,-x'
+'z,-y,x'
+'z,y,-x'
+'-z,-y,x'
+'x,z,y'
+'-x,-z,-y'
+'x,-z,-y'
+'-x,z,y'
+'-x,z,-y'
+'x,-z,y'
+'x,z,-y'
+'-x,-z,y'
+'y,z,x'
+'-y,-z,-x'
+'y,-z,-x'
+'-y,z,x'
+'-y,z,-x'
+'y,-z,x'
+'y,z,-x'
+'-y,-z,x'
+'z,x,y'
+'-z,-x,-y'
+'z,-x,-y'
+'-z,x,y'
+'-z,x,-y'
+'z,-x,y'
+'z,x,-y'
+'-z,-x,y'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_U_iso_or_equiv
+La1 La 0 0 0 1 0.0045
+B1 B 0.198 0.5 0.5 1 0.0035

@@ -43,6 +43,9 @@ class TorchBackend:
     def cos(self, x):
         return torch.cos(x)
 
+    def sigmoid(self, x):
+        return torch.sigmoid(x)
+
     def arcsin(self, x):
         return torch.arcsin(x)
 
