@@ -128,6 +128,45 @@ grid, profile = calculator.pattern(domain="two_theta", parameters=None)
 
 Broadens all individual reciprocal-point intensities onto the configured
 regular grid. The profile is area-normalized, not maximum-normalized.
+`experiment_parameters` may provide differentiable physical `scale`,
+`background`, `zero_shift`, and `fwhm` values.
+
+```python
+from braggcalculator import ProfileNuisanceParameterization
+
+nuisance_model = ProfileNuisanceParameterization.from_calculator(
+    calculator, domain="q", initial_background=1.0
+)
+raw_nuisance = nuisance_model.initial_values(
+    calculator.backend, requires_grad=True
+)
+physical_nuisance = nuisance_model.physical(raw_nuisance, calculator.backend)
+grid, profile = calculator.pattern(
+    domain="q", experiment_parameters=physical_nuisance
+)
+```
+
+Scale, FWHM and background use exponential transforms and remain positive;
+zero shift uses a declared characteristic step. The raw values are separate
+scalar leaves so an optimization schedule can release them in stages.
+
+```python
+from braggcalculator import OptimizationStage, staged_adam
+
+trace = staged_adam(
+    objective,
+    raw_nuisance,
+    [
+        OptimizationStage("scale/background", ("scale", "background"), 100, 0.03),
+        OptimizationStage("position/width", ("zero_shift", "fwhm"), 100, 0.02),
+        OptimizationStage("joint", tuple(raw_nuisance), 100, 0.01),
+    ],
+)
+```
+
+Only the named Torch leaf tensors are passed to each stage's optimizer. This
+makes the release policy explicit and records the stage associated with every
+loss value.
 
 ```python
 table = calculator.reflection_table(domain="two_theta", parameters=None)

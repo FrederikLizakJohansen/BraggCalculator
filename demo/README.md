@@ -58,3 +58,17 @@ python demo/refine_symmetry_coordinates.py
 
 The default `demo/symmetry_refinement.png` shows convergence and recovery of
 the known independent displacements.
+
+## Joint staged refinement
+
+`refine_staged.py` combines symmetry-compatible coordinates with positive
+scale, background and peak width plus a free zero shift. It creates an exact
+synthetic target, deliberately starts every group at the wrong value, and
+releases groups in a declared sequence before a final joint stage:
+
+```bash
+python demo/refine_staged.py
+```
+
+The default `demo/staged_refinement.png` shows the stage-wise loss and final
+target/recovered parameter ratios.

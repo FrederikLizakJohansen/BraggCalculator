@@ -357,20 +357,36 @@ class BraggCalculator:
         self,
         domain: Literal["two_theta", "q"] = "two_theta",
         parameters: ParameterDict | None = None,
+        experiment_parameters: ParameterDict | None = None,
     ):
-        """Return an area-normalized, gridded powder profile."""
+        """Return a gridded powder profile with optional physical nuisance controls."""
         positions, intensities = self.iq(domain=domain, parameters=parameters)
+        nuisance = {} if experiment_parameters is None else dict(experiment_parameters)
+        allowed = {"scale", "zero_shift", "fwhm", "background"}
+        unknown = set(nuisance) - allowed
+        if unknown:
+            raise ValueError(f"unknown experiment parameters: {sorted(unknown)}")
+        scale = nuisance.get("scale", 1.0)
+        zero_shift = nuisance.get("zero_shift", 0.0)
+        fwhm = nuisance.get("fwhm")
+        background = nuisance.get("background", 0.0)
+        positions = positions + zero_shift
+        intensities = intensities * scale
         if domain == "two_theta":
             lower, upper = self.two_theta_range
             grid = self._regular_grid(lower, upper, self.two_theta_step)
-            values = render_profile(self.profile, self.backend, grid, positions, intensities)
+            values = render_profile(
+                self.profile, self.backend, grid, positions, intensities, fwhm=fwhm
+            )
         elif domain == "q":
             lower, upper = self.q_range
             grid = self._regular_grid(lower, upper, self.q_step)
-            values = render_profile_q(self.profile_q, self.backend, grid, positions, intensities)
+            values = render_profile_q(
+                self.profile_q, self.backend, grid, positions, intensities, fwhm=fwhm
+            )
         else:
             raise ValueError("domain must be 'two_theta' or 'q'")
-        return grid, values
+        return grid, values + background
 
     def _regular_grid(self, lower: float, upper: float, step: float):
         intervals = int(np.floor((upper - lower) / step + 8 * np.finfo(float).eps))

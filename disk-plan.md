@@ -2365,5 +2365,8 @@ access.
   orbit operations expand them to all scattering contributions. Symmetry-aware
   lattice, occupancy and displacement-factor parameterizations remain future
   extensions of this layer.
-- Step 7 remains: refinable experimental nuisance/profile parameters and staged
-  optimization.
+- Step 7 is implemented for differentiable scale, constant background, zero
+  shift and Gaussian FWHM. Positive quantities use constrained transforms, and
+  a declared-stage Adam runner can release structural and nuisance groups in a
+  recorded order. More realistic backgrounds, pseudo-Voigt/asymmetric profiles
+  and instrument-specific corrections remain required for experimental work.

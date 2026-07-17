@@ -27,19 +27,23 @@ def apply_lp_and_multiplicity(mode, backend, F2, two_theta, multiplicity=None):
     return intensity
 
 
-def render_profile(profile, backend, grid, centers, amplitudes):
-    return profile.render(
+def render_profile(profile, backend, grid, centers, amplitudes, *, fwhm=None):
+    arguments = (
         grid,
         backend.asarray(centers, dtype=backend.dtype),
         backend.asarray(amplitudes, dtype=backend.dtype),
         backend,
     )
+    return profile.render(*arguments) if fwhm is None else profile.render(*arguments, fwhm=fwhm)
 
 
-def render_profile_q(profile_q, backend, grid_q, centers_q, amplitudes):
-    return profile_q.render(
+def render_profile_q(profile_q, backend, grid_q, centers_q, amplitudes, *, fwhm=None):
+    arguments = (
         grid_q,
         backend.asarray(centers_q, dtype=backend.dtype),
         backend.asarray(amplitudes, dtype=backend.dtype),
         backend,
+    )
+    return profile_q.render(*arguments) if fwhm is None else profile_q.render(
+        *arguments, fwhm=fwhm
     )

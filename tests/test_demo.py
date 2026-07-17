@@ -1,9 +1,11 @@
 import numpy as np
+import pytest
 
 from demo.compare_with_pymatgen import calculate_patterns, plot_comparison
 from demo.analyze_profile_information import calculate_information, plot_information
 from demo.diagnose_compatible_models import calculate_diagnostics, plot_disk
 from demo.refine_symmetry_coordinates import plot_refinement, run_refinement
+from demo.refine_staged import plot_staged_refinement, run_staged_example
 
 
 def test_demo_matches_pymatgen_and_writes_figure(tmp_path):
@@ -54,3 +56,20 @@ def test_symmetry_refinement_demo_recovers_displacement_and_writes_figure(tmp_pa
     plotted_target, plotted_recovered, _, _ = plot_refinement(output)
     assert output.stat().st_size > 0
     np.testing.assert_allclose(plotted_recovered, plotted_target, atol=1e-5)
+
+
+def test_staged_refinement_demo_recovers_structure_and_profile(tmp_path):
+    result = run_staged_example()
+    np.testing.assert_allclose(
+        result["recovered_coordinates"], result["target_coordinates"], atol=2e-5
+    )
+    tolerances = {"scale": 2e-3, "background": 1.0, "zero_shift": 2e-5, "fwhm": 2e-4}
+    for name, tolerance in tolerances.items():
+        assert result["recovered_physical"][name] == pytest.approx(
+            result["target_physical"][name], abs=tolerance
+        )
+    assert result["trace"].loss[-1] < 0.05
+
+    output = tmp_path / "staged.png"
+    plot_staged_refinement(output, result=result)
+    assert output.stat().st_size > 0
