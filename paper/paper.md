@@ -43,8 +43,8 @@ python -m pip install braggcalculator
 ```
 
 Source code, documentation, examples, and the reproducibility material for
-this paper are available in the
-[GitHub repository](https://github.com/FrederikLizakJohansen/BraggCalculator).
+this paper are available at:
+<https://github.com/FrederikLizakJohansen/BraggCalculator>.
 
 The package deliberately solves a bounded problem: kinematic diffraction from
 an ideal periodic structure. It includes occupancies, isotropic displacement
