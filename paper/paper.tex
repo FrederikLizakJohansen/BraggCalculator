@@ -233,8 +233,7 @@ experimental validation of the deposited structures or the kinematic model.
   \label{fig:cif-validation}
 \end{figure}
 
-The scaling benchmark validates every case before timing and retains the raw
-samples, software versions, hardware, thread settings, and exact Git revision.
+The scaling benchmark validates every case before timing.
 Figure~\ref{fig:scaling} reports seven interleaved repeats for NumPy CPU,
 PyTorch CPU, and float64 PyTorch CUDA execution on one WSL2 host with an NVIDIA
 RTX A3000 Laptop GPU. The three records use the same revision, dependencies,
@@ -294,8 +293,8 @@ the diffraction equations in a tensor framework.
 
 \section{AI usage disclosure}
 
-OpenAI GPT-5 assisted with code review and refactoring, validation and figure
-workflow scaffolding, and editorial development of the manuscript.
+OpenAI GPT-5 assisted with code review and refactoring, validation, and figure
+workflow scaffolding.
 The author made the scientific and architectural decisions and reviewed,
 edited, and validated all retained outputs. Numerical claims are checked by
 executable tests against pymatgen and by the versioned benchmark data included

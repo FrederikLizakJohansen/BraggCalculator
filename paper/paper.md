@@ -228,8 +228,7 @@ respective acceptance tolerances. Every comparison has at least a 5.1-order
 margin.
 \label{fig:cif-validation}](figures/cif_validation_summary.pdf){width="100%"}
 
-The scaling benchmark validates every case before timing and retains the raw
-samples, software versions, hardware, thread settings, and exact Git revision.
+The scaling benchmark validates every case before timing.
 \autoref{fig:scaling} reports seven interleaved repeats for NumPy CPU, PyTorch
 CPU, and float64 PyTorch CUDA execution on one WSL2 host with an NVIDIA RTX
 A3000 Laptop GPU. The three records use the same revision, dependencies, cases,
@@ -283,8 +282,8 @@ the diffraction equations in a tensor framework.
 
 # AI usage disclosure
 
-OpenAI GPT-5 assisted with code review and refactoring, validation and figure
-workflow scaffolding, and editorial development of the manuscript.
+OpenAI GPT-5 assisted with code review and refactoring, validation, and figure
+workflow scaffolding.
 The author made the scientific and architectural decisions and reviewed,
 edited, and validated all retained outputs. Numerical claims are checked by
 executable tests against pymatgen and by the versioned benchmark data included

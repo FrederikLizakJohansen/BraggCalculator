@@ -75,6 +75,42 @@ tolerances. Crystal-system colors and disordered-structure squares describe
 the 70-CIF coverage; X-ray circles and neutron triangles distinguish the 140
 oracle comparisons.
 
+## COD corpus throughput benchmark
+
+The corpus benchmark complements the repeated synthetic scaling cases with a
+single pass over varied experimental structures. All CIFs are parsed before
+timing. Each of the 70 structures is then evaluated exactly once per radiation
+mode by BraggCalculator and once by pymatgen, with the implementation order
+alternated between consecutive evaluations. BraggCalculator timing includes
+symmetry reduction, reflection preparation, and line calculation. The exact
+timed outputs must pass the same line-pattern comparison used for validation.
+
+Run the NumPy CPU, PyTorch CPU, and PyTorch CUDA paths on the same machine:
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python benchmarks/benchmark_cif_corpus.py \
+  --backend numpy --device cpu \
+  --output paper/data/cod_throughput_cpu_numpy_A3000.json
+
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python benchmarks/benchmark_cif_corpus.py \
+  --backend torch --device cpu \
+  --output paper/data/cod_throughput_cpu_torch_A3000.json
+
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python benchmarks/benchmark_cif_corpus.py \
+  --backend torch --device cuda \
+  --output paper/data/cod_throughput_gpu_torch_A3000.json
+```
+
+The headline `total_corpus_speedup` is the ratio of summed pymatgen runtime to
+summed BraggCalculator runtime for the full heterogeneous workload. The JSON
+also records X-ray and neutron totals, evaluation and line throughput, and
+each structure's runtime and speedup for subsequent distribution plots. CUDA
+is synchronized around every timed call. A warm-up uses `demo/NaCl.cif`, which
+is outside the measured COD corpus, so no measured structure is repeated.
+
 ## Scaling and multi-hardware benchmark
 
 The scaling benchmark contains two controlled series. “Supplied sites” means
