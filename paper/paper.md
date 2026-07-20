@@ -91,7 +91,8 @@ crystals.
 # Software design
 
 Bragg diffraction is the constructive interference of waves scattered by a
-periodic crystal. The Miller-index triplet $\mathbf{h}=(h,k,l)$ labels a family
+periodic crystal [@degraef2012]. The Miller-index triplet
+$\mathbf{h}=(h,k,l)$ labels a family
 of lattice planes with spacing $d_{\mathbf h}$. Writing higher diffraction
 orders as integer multiples of $\mathbf h$ gives Bragg's law in first-order
 form,
@@ -115,8 +116,8 @@ $Q_{\mathbf h}=2\pi|\mathbf g_{\mathbf h}|=
 $|\mathbf g_{\mathbf h}|^2$ is a quadratic form in the integer components of
 $\mathbf h$, finding every peak in an angular or $Q$ range becomes an
 integer-point search inside an ellipsoid. `BraggCalculator` performs this
-complete search after pymatgen and spglib [@togo2024] identify a consistent
-primitive cell.
+complete search after pymatgen and spglib [@ong2013; @togo2024] identify a
+consistent primitive cell.
 
 Peak strength follows from the same interference argument within one unit
 cell. In the kinematic approximation, each atomic site scatters the incident
@@ -136,8 +137,10 @@ $$
 where $\mathbf r_j$ is a fractional coordinate, $o_j$ is occupancy, and $B_j$
 is the isotropic displacement parameter. The generic scattering amplitude
 $f_j$ is the angle-dependent atomic form factor for X-rays, evaluated with the
-Doyle--Turner parameterization [@doyle1968], and the coherent nuclear
-scattering length for neutrons [@sears1992]. The Debye--Waller factor
+Doyle--Turner parameterization [@doyle1968], and the coherent bound nuclear
+scattering length for neutrons [@sears1992]. The numerical neutron table is
+imported from pymatgen, whose source identifies the second-edition *Neutron Data
+Booklet* [@dianoux2003]. The Debye--Waller factor
 $\exp(-B_js_{\mathbf h}^2)$ attenuates high-angle coherence. The ideal
 reflection intensity is proportional to $|F_{\mathbf h}|^2$. Exact phase
 cancellation produces systematic absences directly, without a separate table
@@ -204,11 +207,12 @@ scale.
 \label{fig:oracle}](figures/pattern_comparison_xray.pdf){width="100%"}
 
 A frozen corpus test, summarized in \autoref{fig:cif-validation}, broadens this
-implementation comparison beyond constructed examples. Seventy CC0 CIF records
+implementation comparison beyond constructed examples. Seventy CIF records
 from the Crystallography Open Database [@grazulis2009] were selected before
 comparison, with ten structures from each
 crystal system, 62 declared space groups, 3--992 supplied sites, and 31
-disordered structures. The corpus records every COD revision and file hash.
+disordered structures. COD releases its data under CC0 [@cod2026]. The corpus
+records every COD revision and file hash.
 Across 57,693 X-ray and 58,819 neutron powder lines, all 140 structure--radiation
 comparisons pass. The largest line-position difference is
 $7.1\times10^{-14}$ degrees and the largest normalized-intensity difference is
