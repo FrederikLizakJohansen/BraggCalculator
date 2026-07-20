@@ -80,18 +80,11 @@ count. These changes reorganize exact work: every reflection and the full
 structure factor remain present. Oracle tests verify pymatgen's convention.
 
 `BraggCalculator` was developed alongside `DebyeCalculator` [@johansen2024], a
-complementary GPU-accelerated package that computes powder and total scattering
-from atomic pair distances using the Debye scattering equation. Together, the
-packages provide two routes from atom coordinates to scattering for different
-structural regimes. `DebyeCalculator` is suited to finite, disordered, and
-non-crystalline structures, where retaining every atomic pair preserves
-finite-size and non-periodic information, at the cost of a pair sum that scales
-quadratically with atom count. `BraggCalculator` addresses periodic crystals
-instead: it uses translational symmetry and evaluates the finite set of
-reciprocal-space reflections in the requested range. Keeping the two engines
-separate reflects this physical and computational division, while giving
-`BraggCalculator` a focused scope distinct from both real-space scattering
-codes and general refinement suites.
+GPU-accelerated package that computes powder and total scattering from atomic
+pair distances using the Debye scattering equation. `DebyeCalculator` supports
+finite, disordered, and non-crystalline structures through real-space pair
+summation, while `BraggCalculator` uses translational symmetry and
+reciprocal-space reflections for periodic crystals.
 
 # Software design
 
