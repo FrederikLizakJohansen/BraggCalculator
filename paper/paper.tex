@@ -233,7 +233,36 @@ experimental validation of the deposited structures or the kinematic model.
   \label{fig:cif-validation}
 \end{figure}
 
-The scaling benchmark validates every case before timing.
+To complement repeated measurements on constructed scaling cases, a one-pass
+throughput benchmark measures the complete heterogeneous corpus after CIF
+parsing. Each structure is evaluated exactly once per radiation mode and
+implementation, giving 140 distinct calculations per execution path; the
+implementation order alternates between successive timings, and every timed
+output passes the line-pattern comparison. NumPy CPU completes the corpus in
+20.64 s versus 94.75 s for its same-record pymatgen reference, a 4.59-fold
+speedup. PyTorch CPU takes 19.08 s versus 94.88 s (4.97-fold), while PyTorch
+CUDA takes 7.37 s versus 97.09 s (13.17-fold). The matched PyTorch totals give
+a 2.59-fold direct CUDA acceleration. CUDA is faster than PyTorch CPU for 74 of
+140 individual calculations; its larger gains on the more expensive structures
+therefore dominate the summed runtime despite overhead on smaller cases
+(Figure~\ref{fig:cod-throughput}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/cod_throughput.pdf}
+  \caption{One-pass throughput on the frozen COD corpus after CIF parsing. (a)
+  Summed runtime for 70 X-ray and 70 neutron calculations; unhatched and
+  hatched segments denote the two modes, and the pymatgen bar uses the median
+  per-mode totals from the three matched records. (b) Same-record
+  pymatgen-to-BraggCalculator ratios for X-ray circles, neutron triangles, and
+  the combined-total diamonds. (c) Per-structure CUDA speedup over pymatgen.
+  (d) Direct matched PyTorch CPU-to-CUDA runtime ratio, where values above one
+  favor CUDA. Points in (c,d) are single distinct structure--radiation
+  calculations; aggregate ratios use summed runtimes across the full corpus.}
+  \label{fig:cod-throughput}
+\end{figure}
+
+The controlled scaling benchmark validates every case before timing.
 Figure~\ref{fig:scaling} reports seven interleaved repeats for NumPy CPU,
 PyTorch CPU, and float64 PyTorch CUDA execution on one WSL2 host with an NVIDIA
 RTX A3000 Laptop GPU. The three records use the same revision, dependencies,

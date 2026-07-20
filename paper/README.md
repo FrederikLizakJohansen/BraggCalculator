@@ -14,7 +14,7 @@ pdflatex paper.tex
 pdflatex paper.tex
 ```
 
-The three manuscript figures are generated from versioned structures and records
+The four manuscript figures are generated from versioned structures and records
 of the software environment and numerical results in JSON.
 
 The left column of the pattern
@@ -110,6 +110,17 @@ also records X-ray and neutron totals, evaluation and line throughput, and
 each structure's runtime and speedup for subsequent distribution plots. CUDA
 is synchronized around every timed call. A warm-up uses `demo/NaCl.cif`, which
 is outside the measured COD corpus, so no measured structure is repeated.
+
+Generate the publication throughput figure from the three matched records:
+
+```bash
+python scripts/plot_cod_throughput.py
+```
+
+The top row compares full-corpus runtime and same-record pymatgen speedup. The
+bottom row shows individual CUDA speedups and direct PyTorch CPU-to-CUDA runtime
+ratios against primitive-cell size. PDF and SVG are the editable vector
+outputs; the PNG is a 450 dpi review preview.
 
 ## Scaling and multi-hardware benchmark
 
