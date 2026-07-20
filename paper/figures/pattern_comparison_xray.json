@@ -1,6 +1,6 @@
 {
   "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 16:09:02) [GCC 11.2.0]",
-  "platform": "Linux-6.17.0-40-generic-x86_64-with-glibc2.42",
+  "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.42",
   "versions": {
     "braggcalculator": "0.1.0",
     "matplotlib": "3.10.8",

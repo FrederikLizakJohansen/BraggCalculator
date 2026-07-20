@@ -24,6 +24,7 @@ from pymatgen.analysis.diffraction.xrd import XRDCalculator
 
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -185,6 +186,7 @@ def plot_comparisons(
             "legend.fontsize": 6,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
+            "svg.hashsalt": "braggcalculator-pattern-comparison",
             "svg.fonttype": "none",
             "xtick.labelsize": 6,
             "xtick.major.size": 2.5,
@@ -194,14 +196,15 @@ def plot_comparisons(
             "ytick.major.width": 0.6,
         }
     )
-    figure, axes = plt.subplots(
-        rows,
-        columns,
-        figsize=(NATURE_DOUBLE_COLUMN_MM / MM_PER_INCH, 145.0 / MM_PER_INCH),
-        sharex=True,
+    figure = plt.figure(
+        figsize=(NATURE_DOUBLE_COLUMN_MM / MM_PER_INCH, 158.0 / MM_PER_INCH),
         layout="constrained",
     )
-    axes = np.asarray(axes).reshape(rows, columns)
+    grid = figure.add_gridspec(
+        2 * rows,
+        columns,
+        height_ratios=[3.2, 1.0] * rows,
+    )
     display_names = {
         "NaCl": "NaCl",
         "Si": "Si",
@@ -211,9 +214,13 @@ def plot_comparisons(
         "P1-40-atom": "40-site P1 cell",
     }
 
-    line_width = 0.9
+    line_width = 1.0
+    line_axes = []
+    profile_axes: list[list[plt.Axes]] = []
+    residual_axes: list[list[plt.Axes]] = []
     for index, line_comparison in enumerate(comparisons):
-        line_axis = axes[index, 0]
+        line_axis = figure.add_subplot(grid[2 * index : 2 * index + 2, 0])
+        line_axes.append(line_axis)
 
         line_axis.axhline(0.0, color="0.6", linewidth=0.55)
         line_axis.vlines(
@@ -233,11 +240,14 @@ def plot_comparisons(
             label="BraggCalculator",
         )
         line_axis.set_ylim(-110, 110)
+        line_axis.set_xlim(
+            float(line_comparison.grid[0]), float(line_comparison.grid[-1])
+        )
         line_axis.set_yticks((-100, -50, 0, 50, 100), ("100", "50", "0", "50", "100"))
         line_axis.set_ylabel("Relative intensity (%)")
         line_axis.text(
             0.98,
-            0.06,
+            0.05,
             f"max |Δ2θ| {line_comparison.metrics.max_position_error_deg:.1e}°\n"
             f"max |ΔI| {line_comparison.metrics.max_line_intensity_error_percent:.1e}",
             transform=line_axis.transAxes,
@@ -260,9 +270,16 @@ def plot_comparisons(
             color="0.1",
         )
 
+        row_profiles = []
+        row_residuals = []
         for column, fwhm_deg in enumerate(fwhm_values, start=1):
             comparison = comparisons_by_fwhm[fwhm_deg][index]
-            profile_axis = axes[index, column]
+            profile_axis = figure.add_subplot(grid[2 * index, column])
+            residual_axis = figure.add_subplot(
+                grid[2 * index + 1, column], sharex=profile_axis
+            )
+            row_profiles.append(profile_axis)
+            row_residuals.append(residual_axis)
             x = comparison.grid
             expected = comparison.pymatgen_profile
             actual = comparison.braggcalculator_profile
@@ -285,29 +302,64 @@ def plot_comparisons(
             )
             profile_axis.set_ylim(-2, 104)
             profile_axis.grid(axis="y", color="0.9", linewidth=0.45)
-            profile_axis.text(
-                0.98,
-                0.94,
-                f"max |Δ| {comparison.metrics.max_profile_error_percent:.1e}",
-                transform=profile_axis.transAxes,
-                ha="right",
-                va="top",
-                fontsize=5.2,
-                color="0.25",
-            )
+            profile_axis.tick_params(labelbottom=False)
             profile_axis.set_xlim(float(x[0]), float(x[-1]))
 
-    for axis in axes[-1]:
+            difference = actual - expected
+            maximum = float(np.max(np.abs(difference), initial=0.0))
+            exponent = int(np.floor(np.log10(maximum))) if maximum > 0 else 0
+            scale = 10.0**exponent
+            scaled_difference = difference / scale
+            limit = max(1.0, 1.12 * float(np.max(np.abs(scaled_difference), initial=0.0)))
+            residual_axis.axhline(0.0, color="0.55", linewidth=0.55)
+            residual_axis.plot(x, scaled_difference, color="#CC79A7", linewidth=0.85)
+            residual_axis.set_ylim(-limit, limit)
+            residual_axis.set_yticks((-limit, 0.0, limit))
+            residual_axis.set_yticklabels((f"{-limit:.1f}", "0", f"{limit:.1f}"))
+            residual_axis.grid(axis="x", color="0.92", linewidth=0.4)
+            residual_axis.text(
+                0.98,
+                0.88,
+                rf"$\times 10^{{{exponent}}}$",
+                transform=residual_axis.transAxes,
+                ha="right",
+                va="top",
+                fontsize=5.0,
+                color="0.3",
+            )
+            if column == 1:
+                residual_axis.set_ylabel("ΔI (%)", fontsize=5.4, labelpad=1.5)
+            if index < rows - 1:
+                residual_axis.tick_params(labelbottom=False)
+
+        profile_axes.append(row_profiles)
+        residual_axes.append(row_residuals)
+
+    for axis in [line_axes[-1], *residual_axes[-1]]:
         axis.set_xlabel(r"$2\theta$ (degrees)")
-    axes[0, 0].set_title("Powder lines: no broadening", pad=8)
+    for axis in line_axes[:-1]:
+        axis.tick_params(labelbottom=False)
+    line_axes[0].set_title("Powder lines: no broadening", pad=8)
     for column, fwhm_deg in enumerate(fwhm_values, start=1):
-        axes[0, column].set_title(f"Both profiles: FWHM {fwhm_deg:g}°", pad=8)
-    legend_handles, legend_labels = axes[0, 1].get_legend_handles_labels()
+        profile_axes[0][column - 1].set_title(
+            f"Both profiles: FWHM {fwhm_deg:g}°", pad=8
+        )
+    legend_handles = [
+        Line2D([0], [0], color="#D55E00", linewidth=1.2, label="pymatgen"),
+        Line2D(
+            [0],
+            [0],
+            color="#0072B2",
+            linewidth=1.2,
+            linestyle=(0, (3, 2)),
+            label="BraggCalculator",
+        ),
+        Line2D([0], [0], color="#CC79A7", linewidth=1.0, label="Difference"),
+    ]
     figure.legend(
-        legend_handles,
-        legend_labels,
+        handles=legend_handles,
         loc="outside upper center",
-        ncols=2,
+        ncols=3,
         frameon=False,
         handlelength=2.6,
         columnspacing=1.6,
@@ -318,7 +370,12 @@ def plot_comparisons(
         pdf_path,
         metadata={"Title": "Powder-pattern agreement with pymatgen", "CreationDate": None},
     )
-    figure.savefig(svg_path, metadata={"Title": "Powder-pattern agreement with pymatgen"})
+    figure.savefig(
+        svg_path,
+        metadata={"Title": "Powder-pattern agreement with pymatgen", "Date": None},
+    )
+    svg_text = svg_path.read_text()
+    svg_path.write_text("\n".join(line.rstrip() for line in svg_text.splitlines()) + "\n")
     plt.close(figure)
 
 

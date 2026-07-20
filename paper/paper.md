@@ -190,8 +190,16 @@ points, respectively. Agreement remains at the same numerical level after the
 stronger broadening, confirming that peak overlap does not conceal a
 line-pattern discrepancy.
 
-A frozen corpus test broadens this oracle comparison beyond constructed
-examples. Seventy CC0 CIF records from the Crystallography Open Database
+![Oracle comparison before broadening (left) and after applying the same
+area-normalized Gaussian to both implementations at 0.1 degrees (centre) and
+0.5 degrees (right) full width at half maximum. Orange pymatgen and dashed blue
+BraggCalculator profiles are overlaid; the magenta lower trace is their
+pointwise difference on the displayed scientific scale.
+\label{fig:oracle}](figures/pattern_comparison_xray.pdf){width="100%"}
+
+A frozen corpus test, summarized in \autoref{fig:cif-validation}, broadens this
+oracle comparison beyond constructed examples. Seventy CC0 CIF records from
+the Crystallography Open Database
 [@grazulis2009] were selected before comparison, with ten structures from each
 crystal system, 62 declared space groups, 3--992 supplied sites, and 31
 disordered structures. Every COD revision and file hash is versioned. Across
@@ -203,10 +211,14 @@ pymatgen-parsed structure; parser warnings are retained in the result artifact,
 so this establishes implementation agreement rather than experimental
 validation of the deposited structures or the kinematic model.
 
-![Oracle comparison before broadening (left) and after applying the same
-area-normalized Gaussian to both implementations at 0.1 degrees (centre) and
-0.5 degrees (right) full width at half maximum. The lower trace in each profile
-panel is their pointwise difference.\label{fig:oracle}](figures/pattern_comparison_xray.pdf){width="100%"}
+![Frozen COD corpus coverage and pymatgen agreement. (a) Supplied and
+primitive-cell sites for 70 structures; color denotes crystal system, squares
+denote disorder, and the dashed line is equality. (b) BraggCalculator and
+pymatgen powder-line counts for X-ray circles and neutron triangles; all 140
+comparisons lie on equality. (c,d) Maximum line-position and normalized-
+intensity errors expressed as decimal orders below their respective acceptance
+tolerances. Every comparison has at least a 5.1-order margin.
+\label{fig:cif-validation}](figures/cif_validation_summary.pdf){width="100%"}
 
 The scaling benchmark validates every case before timing and records raw
 samples, software versions, hardware, thread settings, and the exact Git

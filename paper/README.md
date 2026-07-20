@@ -14,13 +14,15 @@ pdflatex paper.tex
 pdflatex paper.tex
 ```
 
-The two manuscript figures are generated from versioned structures and records
+The three manuscript figures are generated from versioned structures and records
 of the software environment and numerical results in JSON.
 
 The left column of the pattern
 comparison mirrors the unbroadened powder lines. The other columns apply the
 same area-normalized Gaussian broadening to both sets of lines at FWHM 0.1° and
 at a deliberately stronger FWHM 0.5°, then overlay the resulting profiles.
+Dedicated residual axes show the pointwise BraggCalculator-minus-pymatgen
+difference with a per-panel scientific scale.
 This separates agreement in the diffraction calculation from agreement after
 an explicitly identical instrument broadening step and checks that stronger
 peak overlap does not conceal a discrepancy.
@@ -32,9 +34,9 @@ python scripts/plot_pattern_comparison.py
 ```
 
 This writes a 450 dpi PNG preview, editable vector PDF and SVG figures, plus
-exact error metrics to `paper/figures/`. Both implementations use the same
-0.9 pt stroke weight; solid orange and dashed blue profiles remain visible
-even when their values overlap exactly. To inspect every deterministic
+exact error metrics to `paper/figures/`. Solid orange and dashed blue profiles
+remain visible even when their values overlap exactly; the magenta residuals
+expose their numerical-scale differences. To inspect every deterministic
 reference case, run:
 
 ```bash
@@ -60,6 +62,18 @@ python scripts/validate_cif_corpus.py \
 
 The command compares both X-ray and neutron line patterns, writes every result
 and CIF parser warning to JSON, and exits nonzero if any comparison fails.
+
+Generate the corpus coverage and agreement figure from that frozen artifact:
+
+```bash
+python scripts/plot_cif_validation.py
+```
+
+The four panels show supplied versus primitive-cell size, peak-count parity,
+and the line-position and intensity error margins below their acceptance
+tolerances. Crystal-system colors and disordered-structure squares describe
+the 70-CIF coverage; X-ray circles and neutron triangles distinguish the 140
+oracle comparisons.
 
 ## Scaling and multi-hardware benchmark
 
