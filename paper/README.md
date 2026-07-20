@@ -72,15 +72,24 @@ sites, while BraggCalculator reduces every member to the same two-site
 primitive cell. This separates irreducible atom-count scaling from the benefit
 and preprocessing cost of symmetry reduction.
 
-Run this exact command on each machine and return the resulting JSON file:
+Run both CPU backends on the comparison host:
 
 ```bash
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
 python benchmarks/benchmark_scaling.py \
+  --backend numpy --device cpu \
   --p1-sites 4 8 16 32 64 128 256 \
   --symmetry-factors 1 2 3 4 \
   --number 10 --repeat 7 \
-  --output scaling_results.json
+  --output scaling_cpu_numpy.json
+
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python benchmarks/benchmark_scaling.py \
+  --backend torch --device cpu \
+  --p1-sites 4 8 16 32 64 128 256 \
+  --symmetry-factors 1 2 3 4 \
+  --number 10 --repeat 7 \
+  --output scaling_cpu_torch.json
 ```
 
 The hardware label defaults to the detected CPU model. Use
@@ -88,22 +97,25 @@ The hardware label defaults to the detected CPU model. Use
 Every case is checked against pymatgen before timing, and the JSON retains all
 repeat samples together with summary values.
 
-Combine any number of returned runs into the scaling figure. The versioned
-paper figure currently compares the Intel CPU run with the CUDA run:
+Combine one record per execution path into the scaling figure. The versioned
+paper figure uses the NumPy CPU, PyTorch CPU, and PyTorch CUDA measurements from
+the same A3000 WSL2 host:
 
 ```bash
 python scripts/plot_scaling_benchmark.py \
-  paper/data/scaling_intel_core_ultra_5_225u.json \
-  paper/data/scaling_pytorch_cpu_wsl2.json \
+  paper/data/scaling_cpu_numpy_A3000.json \
+  paper/data/scaling_cpu_torch_A3000.json \
   paper/data/scaling_nvidia_rtx_a3000_laptop.json
 ```
 
 The primary publication outputs are editable vector PDF and SVG at Nature's
-183 mm two-column width. The PNG is a 450 dpi review preview. Faint points show
-all seven retained timing samples. Runtime bars span their interquartile range;
-speedup observations are paired by repeat and their bars span the interquartile
-range of those ratios. Large speedup points retain the reported ratio of
-median runtimes.
+183 mm two-column width. The PNG is a 450 dpi review preview. Color distinguishes
+the NumPy CPU, PyTorch CPU, and PyTorch CUDA paths; line style distinguishes
+cached from end-to-end timing. Runtime lines show medians, speedup lines show
+ratios of medians, and bands show interquartile ranges over the raw timings or
+paired speedup ratios. The pymatgen runtime trace pools all same-host repeats,
+while each speedup series uses the pymatgen repeats in its own timing record.
+The bottom row plots the direct ratio of PyTorch CPU and CUDA median runtimes.
 
 ### CUDA machine
 
@@ -125,10 +137,10 @@ immediately before and after every timed block. “Cached” measures repeated G
 diffraction with a prepared topology. “End-to-end” includes CPU symmetry and
 HKL preprocessing, host-to-device transfers, and synchronized GPU execution.
 pymatgen remains on the same machine's CPU, which is recorded explicitly in
-the JSON. Consequently, the speedup panels compare each BraggCalculator run
-with pymatgen on that run's host. The PyTorch CPU and CUDA records share the
-same WSL2 host, Git revision, dependencies, cases, dtype, and timing protocol,
-so their absolute runtimes also provide a controlled device comparison. The
-separate Intel record measures the package's NumPy backend. The NaCl series
-becomes the same two-site, 410-HKL workload after reduction, so CUDA launch,
-transfer, and synchronization costs dominate its cached time.
+the JSON. Consequently, each speedup series compares BraggCalculator with the
+pymatgen samples in its own record. All three versioned records share the same
+WSL2 host, Git revision, dependencies, cases, dtype, thread limits, and timing
+protocol, so the NumPy CPU, PyTorch CPU, and CUDA runtimes form a controlled
+same-machine comparison. The NaCl series becomes the same two-site, 410-HKL
+workload after reduction, so CUDA launch, transfer, and synchronization costs
+dominate its cached time.

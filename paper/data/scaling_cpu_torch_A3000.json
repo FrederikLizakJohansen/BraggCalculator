@@ -3,7 +3,7 @@
   "created_utc": "2026-07-20T10:50:13.924148+00:00",
   "git_revision": "01faa77f105f9429f6481aca3caf38f2017cb30f",
   "hardware": {
-    "label": "PyTorch CPU (WSL2)",
+    "label": "PyTorch cpu; oracle on x86_64 CPU",
     "cpu_model": "x86_64",
     "logical_cpus": 16,
     "machine": "x86_64",

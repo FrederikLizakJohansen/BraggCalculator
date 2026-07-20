@@ -17,27 +17,36 @@ from matplotlib.ticker import ScalarFormatter  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
-METHODS = {
-    "pymatgen": ("pymatgen", "#D55E00"),
-    "end_to_end": ("BraggCalculator end-to-end", "#0072B2"),
-    "cached": ("BraggCalculator cached", "#009E73"),
+EXECUTIONS = {
+    ("numpy", "cpu"): ("NumPy CPU", "#0072B2"),
+    ("torch", "cpu"): ("PyTorch CPU", "#E69F00"),
+    ("torch", "cuda"): ("PyTorch CUDA", "#009E73"),
 }
-MARKERS = ("o", "s", "^", "D", "P", "X")
+TIMINGS = {
+    "cached": ("Cached", "-", "o"),
+    "end_to_end": ("End-to-end", (0, (4, 2)), "s"),
+}
+FALLBACK_COLORS = ("#CC79A7", "#56B4E9", "#D55E00")
 MM_PER_INCH = 25.4
 NATURE_DOUBLE_COLUMN_MM = 183.0
 
 
 def load_runs(paths: list[Path]) -> list[dict]:
     runs = []
-    labels = set()
+    executions = set()
     for path in paths:
         run = json.loads(path.read_text())
         if run.get("schema_version") != 1:
             raise ValueError(f"{path} has an unsupported schema version")
-        label = run["hardware"]["label"]
-        if label in labels:
-            raise ValueError(f"hardware label {label!r} occurs more than once")
-        labels.add(label)
+        execution = run.get("execution", {})
+        key = (
+            execution.get("braggcalculator_backend", "numpy"),
+            execution.get("braggcalculator_device", "cpu"),
+        )
+        if key in executions:
+            raise ValueError(f"execution {key!r} occurs more than once")
+        executions.add(key)
+        run["_execution_key"] = key
         runs.append(run)
     return runs
 
@@ -63,10 +72,54 @@ def paired_speedup_samples(result: dict, method: str) -> np.ndarray:
     return reference / measured
 
 
-def _jittered_positions(site_count: int, sample_count: int, offset: float) -> np.ndarray:
-    """Separate repeat samples slightly on a base-two logarithmic axis."""
-    spread = np.linspace(-0.012, 0.012, sample_count)
-    return site_count * np.power(2.0, offset + spread)
+def _execution_style(run: dict, fallback_index: int) -> tuple[str, str]:
+    key = run["_execution_key"]
+    if key in EXECUTIONS:
+        return EXECUTIONS[key]
+    backend, device = key
+    return (
+        f"{backend.title()} {device.upper()}",
+        FALLBACK_COLORS[fallback_index % len(FALLBACK_COLORS)],
+    )
+
+
+def _summary(sample_sets: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    medians = np.asarray([np.median(samples) for samples in sample_sets])
+    lower = np.asarray([np.percentile(samples, 25) for samples in sample_sets])
+    upper = np.asarray([np.percentile(samples, 75) for samples in sample_sets])
+    return medians, lower, upper
+
+
+def _plot_summary(
+    axis: plt.Axes,
+    sites: np.ndarray,
+    sample_sets: list[np.ndarray],
+    *,
+    color: str,
+    linestyle: str | tuple,
+    marker: str,
+    central_values: np.ndarray | None = None,
+    zorder: int = 3,
+) -> None:
+    medians, lower, upper = _summary(sample_sets)
+    if central_values is not None:
+        medians = central_values
+    axis.fill_between(sites, lower, upper, color=color, alpha=0.13, linewidth=0)
+    axis.plot(
+        sites,
+        medians,
+        color=color,
+        linestyle=linestyle,
+        marker=marker,
+        markersize=3.1,
+        linewidth=1.05,
+        markeredgewidth=0.45,
+        zorder=zorder,
+    )
+
+
+def _matched_run(runs: list[dict], key: tuple[str, str]) -> dict | None:
+    return next((run for run in runs if run["_execution_key"] == key), None)
 
 
 def plot_scaling(
@@ -76,8 +129,6 @@ def plot_scaling(
     pdf_path: Path,
     svg_path: Path,
 ) -> None:
-    if len(runs) > len(MARKERS):
-        raise ValueError(f"at most {len(MARKERS)} hardware runs can be plotted")
     plt.rcParams.update(
         {
             "axes.labelsize": 6.5,
@@ -103,9 +154,9 @@ def plot_scaling(
         }
     )
     figure, axes = plt.subplots(
+        3,
         2,
-        2,
-        figsize=(NATURE_DOUBLE_COLUMN_MM / MM_PER_INCH, 122.0 / MM_PER_INCH),
+        figsize=(NATURE_DOUBLE_COLUMN_MM / MM_PER_INCH, 158.0 / MM_PER_INCH),
         sharex="col",
         layout="constrained",
     )
@@ -117,108 +168,128 @@ def plot_scaling(
     for column, (series, title) in enumerate(series_info.items()):
         runtime_axis = axes[0, column]
         speedup_axis = axes[1, column]
+        acceleration_axis = axes[2, column]
         runtime_axis.set_title(title)
         for run_index, run in enumerate(runs):
             results = _series_results(run, series)
             if not results:
                 continue
-            marker = MARKERS[run_index]
+            _, color = _execution_style(run, run_index)
             sites = np.asarray([result["input_sites"] for result in results])
-            for method_index, (method, (_, color)) in enumerate(METHODS.items()):
-                samples_key = method
-                sample_sets = [result["samples_seconds"][samples_key] for result in results]
-                method_offset = (-0.052, 0.0, 0.052)[method_index]
-                for site_count, samples in zip(sites, sample_sets):
-                    runtime_axis.scatter(
-                        _jittered_positions(site_count, len(samples), method_offset),
-                        1e3 * np.asarray(samples),
-                        color=color,
-                        marker=marker,
-                        s=5.0,
-                        linewidths=0,
-                        alpha=0.24,
-                        zorder=1,
-                    )
-                medians = 1e3 * np.asarray([np.median(samples) for samples in sample_sets])
-                lower = medians - 1e3 * np.asarray(
-                    [np.percentile(samples, 25) for samples in sample_sets]
-                )
-                upper = (
-                    1e3 * np.asarray([np.percentile(samples, 75) for samples in sample_sets])
-                    - medians
-                )
-                runtime_axis.errorbar(
+            for method, (_, linestyle, marker) in TIMINGS.items():
+                runtime_sets = [
+                    1e3 * np.asarray(result["samples_seconds"][method], dtype=float)
+                    for result in results
+                ]
+                _plot_summary(
+                    runtime_axis,
                     sites,
-                    medians,
-                    yerr=np.vstack((lower, upper)),
+                    runtime_sets,
                     color=color,
+                    linestyle=linestyle,
                     marker=marker,
-                    markersize=3.2,
-                    linewidth=0.9,
-                    capsize=1.5,
-                    elinewidth=0.65,
-                    markeredgewidth=0.5,
-                    zorder=3,
                 )
-
-            for method_index, (method, speedup_key) in enumerate(
-                (
-                    ("end_to_end", "end_to_end_speedup"),
-                    ("cached", "cached_speedup"),
-                )
-            ):
-                _, color = METHODS[method]
                 speedup_sets = [paired_speedup_samples(result, method) for result in results]
-                method_offset = (-0.032, 0.032)[method_index]
-                for site_count, samples in zip(sites, speedup_sets):
-                    speedup_axis.scatter(
-                        _jittered_positions(site_count, len(samples), method_offset),
-                        samples,
-                        color=color,
-                        marker=marker,
-                        s=5.0,
-                        linewidths=0,
-                        alpha=0.24,
-                        zorder=1,
-                    )
-                quartiles = np.asarray(
-                    [np.percentile(samples, (25, 75)) for samples in speedup_sets]
-                )
-                midpoints = quartiles.mean(axis=1)
-                speedup_axis.errorbar(
+                _plot_summary(
+                    speedup_axis,
                     sites,
-                    midpoints,
-                    yerr=(quartiles[:, 1] - quartiles[:, 0]) / 2.0,
+                    speedup_sets,
                     color=color,
-                    linestyle="none",
-                    capsize=1.5,
-                    elinewidth=0.65,
-                    zorder=2,
-                )
-                speedup_axis.plot(
-                    sites,
-                    [result[speedup_key] for result in results],
-                    color=color,
+                    linestyle=linestyle,
                     marker=marker,
-                    markersize=3.2,
-                    linewidth=0.9,
-                    markeredgewidth=0.5,
-                    zorder=3,
+                    central_values=np.asarray(
+                        [result[f"{method}_speedup"] for result in results]
+                    ),
                 )
 
-        runtime_axis.set_xscale("log", base=2)
-        runtime_axis.set_yscale("log")
-        speedup_axis.set_xscale("log", base=2)
-        speedup_axis.set_yscale("log")
+        # All pymatgen measurements are CPU runs from the same A3000 host. Pool
+        # their repeats into one reference trace to avoid plotting it three times.
+        pooled_pymatgen: dict[int, list[float]] = {}
+        for run in runs:
+            for result in _series_results(run, series):
+                pooled_pymatgen.setdefault(result["input_sites"], []).extend(
+                    result["samples_seconds"]["pymatgen"]
+                )
+        pooled_sites = np.asarray(sorted(pooled_pymatgen))
+        pooled_samples = [
+            1e3 * np.asarray(pooled_pymatgen[site_count], dtype=float)
+            for site_count in pooled_sites
+        ]
+        _plot_summary(
+            runtime_axis,
+            pooled_sites,
+            pooled_samples,
+            color="0.3",
+            linestyle=(0, (1.2, 1.6)),
+            marker="D",
+            zorder=2,
+        )
+
+        torch_cpu = _matched_run(runs, ("torch", "cpu"))
+        torch_cuda = _matched_run(runs, ("torch", "cuda"))
+        if torch_cpu is not None and torch_cuda is not None:
+            cpu_results = {
+                result["input_sites"]: result
+                for result in _series_results(torch_cpu, series)
+            }
+            cuda_results = {
+                result["input_sites"]: result
+                for result in _series_results(torch_cuda, series)
+            }
+            matched_sites = np.asarray(sorted(cpu_results.keys() & cuda_results.keys()))
+            _, cuda_color = EXECUTIONS[("torch", "cuda")]
+            for method, (_, linestyle, marker) in TIMINGS.items():
+                ratios = [
+                    cpu_results[site_count][f"{method}_seconds"]
+                    / cuda_results[site_count][f"{method}_seconds"]
+                    for site_count in matched_sites
+                ]
+                acceleration_axis.plot(
+                    matched_sites,
+                    ratios,
+                    color=cuda_color,
+                    linestyle=linestyle,
+                    marker=marker,
+                    markersize=3.1,
+                    linewidth=1.05,
+                    markeredgewidth=0.45,
+                )
+        else:
+            acceleration_axis.text(
+                0.5,
+                0.5,
+                "PyTorch CPU and CUDA records required",
+                transform=acceleration_axis.transAxes,
+                ha="center",
+                va="center",
+                color="0.4",
+            )
+
+        for axis in (runtime_axis, speedup_axis, acceleration_axis):
+            axis.set_xscale("log", base=2)
+            axis.set_yscale("log")
+            axis.grid(which="major", color="0.9", linewidth=0.45)
         speedup_axis.axhline(1.0, color="0.45", linestyle=(0, (2, 2)), linewidth=0.7)
-        speedup_axis.set_xlabel("Supplied sites (atoms)")
-        runtime_axis.grid(which="major", color="0.9", linewidth=0.45)
-        speedup_axis.grid(which="major", color="0.9", linewidth=0.45)
-        speedup_axis.xaxis.set_major_formatter(ScalarFormatter())
+        acceleration_axis.axhline(
+            1.0, color="0.45", linestyle=(0, (2, 2)), linewidth=0.7
+        )
+        acceleration_axis.set_xlabel("Supplied sites (atoms)")
+        acceleration_axis.xaxis.set_major_formatter(ScalarFormatter())
+        acceleration_axis.text(
+            0.98,
+            0.94,
+            "CUDA faster above 1",
+            transform=acceleration_axis.transAxes,
+            ha="right",
+            va="top",
+            fontsize=5.3,
+            color="0.3",
+        )
 
     axes[0, 0].set_ylabel("Median runtime (ms)")
     axes[1, 0].set_ylabel("Speedup over pymatgen")
-    for label, axis in zip("abcd", axes.flat):
+    axes[2, 0].set_ylabel("CUDA acceleration\n(PyTorch CPU / CUDA)")
+    for label, axis in zip("abcdef", axes.flat):
         axis.text(
             -0.13,
             1.03,
@@ -229,39 +300,42 @@ def plot_scaling(
             ha="left",
             va="bottom",
         )
-    axes[0, 0].text(
-        0.02,
-        0.96,
-        "Large points: central values; small points: repeats; bars: IQR",
-        transform=axes[0, 0].transAxes,
-        ha="left",
-        va="top",
-        fontsize=5.3,
-        color="0.25",
-    )
-    method_handles = [
-        Line2D([0], [0], color=color, linewidth=1.1, label=label)
-        for label, color in METHODS.values()
+    execution_handles = [
+        Line2D([0], [0], color=color, linewidth=1.4, label=label)
+        for label, color in (
+            _execution_style(run, index) for index, run in enumerate(runs)
+        )
     ]
-    hardware_handles = [
+    timing_handles = [
         Line2D(
             [0],
             [0],
-            color="0.25",
-            marker=MARKERS[index],
-            markersize=3.5,
-            linestyle="none",
-            label=run["hardware"]["label"],
+            color="0.2",
+            linestyle=linestyle,
+            marker=marker,
+            markersize=3.2,
+            linewidth=1.05,
+            label=label,
         )
-        for index, run in enumerate(runs)
+        for label, linestyle, marker in TIMINGS.values()
     ]
+    reference_handle = Line2D(
+        [0],
+        [0],
+        color="0.3",
+        linestyle=(0, (1.2, 1.6)),
+        marker="D",
+        markersize=3.0,
+        linewidth=1.05,
+        label="pymatgen CPU (pooled)",
+    )
     figure.legend(
-        handles=method_handles + hardware_handles,
+        handles=execution_handles + timing_handles + [reference_handle],
         loc="outside upper center",
-        ncols=4 if len(method_handles) + len(hardware_handles) <= 4 else 3,
+        ncols=6,
         frameon=False,
         handlelength=2.2,
-        columnspacing=1.4,
+        columnspacing=1.15,
     )
     png_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(png_path, dpi=450)
