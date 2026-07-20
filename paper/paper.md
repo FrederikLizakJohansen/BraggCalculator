@@ -79,18 +79,19 @@ supercells gain further because numerical work follows the primitive site
 count. These changes reorganize exact work: every reflection and the full
 structure factor remain present. Oracle tests verify pymatgen's convention.
 
-The Debye scattering equation provides another route from atom coordinates to
-scattering and is especially valuable for finite, disordered, or
-non-crystalline systems. `DebyeCalculator`, for example, provides GPU-accelerated
-powder and total-scattering calculations for such structures [@johansen2024].
-Its pair sum scales quadratically with atom count. For an ideal periodic
-crystal, reciprocal-space Bragg diffraction instead evaluates the finite set of
-reflections in the requested range. The two approaches therefore cover
-different physical models: `BraggCalculator` uses translational symmetry for
-periodic crystals, while a Debye calculation retains finite-size and
-non-periodic information. This narrower architecture is the reason for a
-separate package: its physical scope and computational structure differ from
-those of general refinement suites and real-space scattering codes.
+`BraggCalculator` was developed alongside `DebyeCalculator` [@johansen2024], a
+complementary GPU-accelerated package that computes powder and total scattering
+from atomic pair distances using the Debye scattering equation. Together, the
+packages provide two routes from atom coordinates to scattering for different
+structural regimes. `DebyeCalculator` is suited to finite, disordered, and
+non-crystalline structures, where retaining every atomic pair preserves
+finite-size and non-periodic information, at the cost of a pair sum that scales
+quadratically with atom count. `BraggCalculator` addresses periodic crystals
+instead: it uses translational symmetry and evaluates the finite set of
+reciprocal-space reflections in the requested range. Keeping the two engines
+separate reflects this physical and computational division, while giving
+`BraggCalculator` a focused scope distinct from both real-space scattering
+codes and general refinement suites.
 
 # Software design
 
