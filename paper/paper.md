@@ -1,5 +1,5 @@
 ---
-title: "BraggCalculator: Fast and differentiable Bragg powder diffraction in Python"
+title: "BraggCalculator: Fast and differentiable powder X-ray and neutron diffraction for periodic crystals"
 tags:
   - Python
   - crystallography
