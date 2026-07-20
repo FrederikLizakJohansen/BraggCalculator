@@ -213,38 +213,40 @@ validation of the deposited structures or the kinematic model.
 The scaling benchmark validates every case before timing and records raw
 samples, software versions, hardware, thread settings, and the exact Git
 revision. Figure~\ref{fig:scaling} reports seven interleaved repeats from a
-single-threaded NumPy run on an Intel Core Ultra 5 225U and a float64 PyTorch
-run on an NVIDIA RTX A3000 Laptop GPU under WSL2. ``Supplied sites'' means sites
-in the structure passed to both calculators, before primitive-cell reduction.
+single-threaded NumPy run on an Intel Core Ultra 5 225U and matched float64
+PyTorch CPU and CUDA runs on one WSL2 host with an NVIDIA RTX A3000 Laptop GPU.
+``Supplied sites'' means sites in the structure passed to both calculators,
+before primitive-cell reduction.
 For P1 cells containing 4--256 irreducible sites, the NumPy cached speedup over
 pymatgen is 8.5--35.5 times and its end-to-end speedup is 7.9--13.7 times. The
 CUDA run becomes increasingly effective as the reflection-by-site workload
-grows, reaching cached and end-to-end speedups over its host pymatgen of 190
-and 132 times, respectively, at 256 sites.
+grows. It crosses the matched PyTorch CPU runtime at 64 sites and is 8.7 times
+faster cached and 6.5 times faster end-to-end at 256 sites; its corresponding
+speedups over host pymatgen are 190 and 132 times.
 
 For NaCl supercells containing 8--512 supplied sites, BraggCalculator reduces
 every case to the same two-site primitive cell and 410 reciprocal points. The
 CUDA calculation is therefore launch-, transfer-, and synchronization-bound
-rather than throughput-bound. Its end-to-end speedup over host pymatgen rises
-from 0.81 to 77.1 times, closely matching the NumPy run's 0.83 to 79.6 times;
-the increasing advantage comes from symmetry reduction rather than additional
-GPU work. Because the two records were collected on different host machines
-and dependency versions, each plotted speedup uses pymatgen from the same
-record. Absolute runtimes across the circle and square series are descriptive
-multi-hardware measurements, not controlled CPU-versus-GPU acceleration
-ratios.
+rather than throughput-bound. Against the matched PyTorch CPU run, CUDA is
+5.2--5.7 times slower cached and 1.4--1.5 times slower end-to-end across these
+four cases. Its end-to-end speedup over host pymatgen nevertheless rises from
+0.81 to 77.1 times because the increasing advantage comes from primitive-cell
+reduction rather than additional GPU work. Each plotted speedup uses pymatgen
+from the same timing record; direct device ratios are drawn only from the
+matched WSL2 PyTorch pair.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{figures/scaling_speedup.pdf}
   \caption{Runtime and speedup for increasing irreducible P1 cells (left) and
-  symmetry-reducible NaCl supercells (right). Circles denote the Intel CPU
-  record and squares the NVIDIA CUDA record. Small points show the seven timing
-  repeats or their paired speedup ratios. Large runtime points are medians;
-  large speedup points are ratios of medians; error bars span the corresponding
-  interquartile ranges. Cached timings reuse symmetry and reflection topology;
-  end-to-end timings include all preprocessing. Each speedup is relative to
-  pymatgen on the same host.}
+  symmetry-reducible NaCl supercells (right). Circles denote the Intel NumPy
+  record, squares the WSL2 PyTorch CPU record, and triangles its matched NVIDIA
+  CUDA record. Small points show the seven timing repeats or their paired
+  speedup ratios. Large runtime points are medians; large speedup points are
+  ratios of medians; error bars span the corresponding interquartile ranges.
+  Cached timings reuse symmetry and reflection topology; end-to-end timings
+  include all preprocessing. Each speedup is relative to pymatgen on the same
+  host.}
   \label{fig:scaling}
 \end{figure}
 

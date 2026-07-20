@@ -94,6 +94,7 @@ paper figure currently compares the Intel CPU run with the CUDA run:
 ```bash
 python scripts/plot_scaling_benchmark.py \
   paper/data/scaling_intel_core_ultra_5_225u.json \
+  paper/data/scaling_pytorch_cpu_wsl2.json \
   paper/data/scaling_nvidia_rtx_a3000_laptop.json
 ```
 
@@ -125,6 +126,9 @@ diffraction with a prepared topology. “End-to-end” includes CPU symmetry and
 HKL preprocessing, host-to-device transfers, and synchronized GPU execution.
 pymatgen remains on the same machine's CPU, which is recorded explicitly in
 the JSON. Consequently, the speedup panels compare each BraggCalculator run
-with pymatgen on that run's host; they are not direct CPU-versus-GPU ratios.
-The NaCl series becomes the same two-site, 410-HKL workload after reduction,
-so CUDA launch, transfer, and synchronization costs dominate its cached time.
+with pymatgen on that run's host. The PyTorch CPU and CUDA records share the
+same WSL2 host, Git revision, dependencies, cases, dtype, and timing protocol,
+so their absolute runtimes also provide a controlled device comparison. The
+separate Intel record measures the package's NumPy backend. The NaCl series
+becomes the same two-site, 410-HKL workload after reduction, so CUDA launch,
+transfer, and synchronization costs dominate its cached time.
