@@ -1,0 +1,183 @@
+#------------------------------------------------------------------------------
+#$Date: 2025-08-21 04:34:05 +0300 (Thu, 21 Aug 2025) $
+#$Revision: 301843 $
+#$URL: file:///home/coder/svn-repositories/_RELOADED_COD/cod-reloaded/cif/4/51/12/4511231.cif $
+#------------------------------------------------------------------------------
+#
+# This file is available in the Crystallography Open Database (COD),
+# http://www.crystallography.net/
+#
+# All data on this site have been placed in the public domain by the
+# contributors.
+#
+data_4511231
+loop_
+_publ_author_name
+'Vladiskovic, Chiara'
+'Masciocchi, Norberto'
+_publ_section_title
+;
+ Persistency of a Two-Fold Embrace in Crystalline Phases of Bupropion
+ Hydrohalides: A Thoroughab InitioX-ray Powder Diffraction Study
+;
+_journal_issue                   7
+_journal_name_full               'Crystal Growth &amp; Design'
+_journal_page_first              3603
+_journal_paper_doi               10.1021/cg5005374
+_journal_volume                  14
+_journal_year                    2014
+_chemical_formula_moiety         'C13 H18 Cl N O . HI'
+_chemical_formula_structural     'C13 H18 Cl N O . HI'
+_chemical_formula_sum            'C13 H19 Cl I N O'
+_chemical_formula_weight         367.66
+_chemical_melting_point          196
+_chemical_name_common            'bupropion hydroiodide'
+_chemical_name_systematic
+;
+2-(ter-butylamino)-1-(3-chlorophenyl)propan-1-one Hydroiodide
+;
+_space_group_crystal_system      monoclinic
+_space_group_IT_number           15
+_space_group_name_H-M_alt        'C 1 2/c 1'
+_symmetry_space_group_name_Hall  '-C 2yc'
+_symmetry_space_group_name_H-M   'C 1 2/c 1'
+_cell_angle_alpha                90
+_cell_angle_beta                 92.626(2)
+_cell_angle_gamma                90
+_cell_formula_units_Z            8
+_cell_length_a                   8.5910(2)
+_cell_length_b                   14.6100(3)
+_cell_length_c                   25.6710(6)
+_cell_measurement_temperature    298
+_cell_volume                     3218.70(13)
+_computing_cell_refinement       'TOPAS, Bruker AXS 2005, Karlsruhe, Germany'
+_computing_publication_material  'TOPAS, Bruker AXS 2005, Karlsruhe, Germany'
+_computing_structure_refinement  'TOPAS, Bruker AXS 2005, Karlsruhe, Germany'
+_computing_structure_solution    'TOPAS, Bruker AXS 2005, Karlsruhe, Germany'
+_diffrn_ambient_temperature      298
+_diffrn_detector_type            'Bruker Lynxeye linear PSD'
+_diffrn_measurement_device_type  'Bruker AXS D8 Advance'
+_diffrn_radiation_monochromator  'Ni filter'
+_diffrn_radiation_wavelength     1.5418
+_diffrn_source_target            Cu
+_diffrn_source_type              'sealed X-ray tube'
+_exptl_crystal_density_diffrn    1.517
+_exptl_crystal_density_method    'not measured'
+_exptl_crystal_F_000             182
+_pd_char_colour                  white
+_pd_char_particle_morphology     plate-like
+_pd_instr_location               ' ?'
+_pd_meas_2theta_range_inc        0.02
+_pd_meas_2theta_range_max        105
+_pd_meas_2theta_range_min        5
+_pd_meas_number_of_points        5001
+_pd_meas_scan_method             step
+_pd_proc_2theta_range_inc        0.02
+_pd_proc_2theta_range_max        105
+_pd_proc_2theta_range_min        5
+_pd_proc_ls_background_function  'Chebychev polynomial'
+_pd_proc_ls_profile_function     'fundamental parameters approach'
+_pd_proc_ls_prof_R_factor        0.037
+_pd_proc_ls_prof_wR_expected     0.016
+_pd_proc_ls_prof_wR_factor       0.048
+_pd_spec_mounting
+;
+packed powder glass capillary
+;
+_pd_spec_mount_mode              reflection
+_pd_spec_shape                   flat_sheet
+_pd_spec_size_axial              20
+_pd_spec_size_equat              10
+_pd_spec_size_thick              0.2
+_refine_ls_extinction_method     none
+_refine_ls_goodness_of_fit_all   2.90
+_refine_ls_hydrogen_treatment    constr
+_refine_ls_matrix_type           fullcycle
+_refine_ls_number_parameters     44
+_refine_ls_number_restraints     0
+_refine_ls_shift/su_max          .01
+_refine_ls_structure_factor_coef Inet
+_refine_ls_weighting_scheme      sigma
+_cod_data_source_file            cg5005374_si_003.cif
+_cod_data_source_block           bupropion_hydroiodide_form_i
+_cod_depositor_comments
+'Adding full bibliography for 4511229--4511234.cif.'
+_cod_original_cell_volume        3218.3(1)
+_cod_database_code               4511231
+loop_
+_symmetry_equiv_pos_as_xyz
+'-x, -y, -z'
+'-x, y, -z+1/2'
+'x, -y, z+1/2'
+'x, y, z'
+'-x+1/2, -y+1/2, -z'
+'-x+1/2, y+1/2, -z+1/2'
+'x+1/2, -y+1/2, z+1/2'
+'x+1/2, y+1/2, z'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_B_iso_or_equiv
+I I 8 0.09367 -0.16116 -0.56341 1 6.53(8)
+Cl Cl 8 0.38944 -0.01048 0.34224 1 6.53(8)
+C1 C 8 0.30231 -0.03145 0.28169 1 6.53(8)
+C2 C 8 0.23861 -0.11677 0.27065 1 6.53(8)
+C3 C 8 0.16727 -0.13376 0.22210 1 6.53(8)
+C4 C 8 0.15941 -0.06541 0.18462 1 6.53(8)
+C5 C 8 0.22361 0.01988 0.19558 1 6.53(8)
+C6 C 8 0.29492 0.03681 0.24416 1 6.53(8)
+C7 C 8 0.21585 0.09317 0.15603 1 6.53(8)
+C8 C 8 0.15198 0.07541 0.10121 1 6.53(8)
+C9 C 8 0.28088 0.03738 0.06811 1 6.53(8)
+O1 O 8 0.26052 0.16925 0.16775 1 6.53(8)
+N1 N 8 0.09279 0.16182 0.07851 1 6.53(8)
+C10 C 8 -0.06546 0.19092 0.09125 1 6.53(8)
+C11 C 8 -0.09495 0.29064 0.07548 1 6.53(8)
+C12 C 8 -0.18825 0.13033 0.06325 1 6.53(8)
+C13 C 8 -0.08096 0.18113 0.15002 1 6.53(8)
+H1 H 8 0.09723 0.15785 0.03921 1 6.53(8)
+H2 H 8 0.16656 0.21154 0.09152 1 6.53(8)
+H3 H 8 0.24410 -0.17141 0.30084 1 6.53(8)
+H4 H 8 0.11599 -0.20214 0.21337 1 6.53(8)
+H5 H 8 0.10147 -0.07898 0.14591 1 6.53(8)
+H6 H 8 0.34569 0.10527 0.25307 1 6.53(8)
+H7 H 8 0.05571 0.02463 0.10214 1 6.53(8)
+H8 H 8 0.27913 -0.03868 0.06904 1 6.53(8)
+H9 H 8 0.26159 0.06070 0.02708 1 6.53(8)
+H10 H 8 0.39684 0.06122 0.08359 1 6.53(8)
+H11 H 8 -0.22209 0.30403 0.07077 1 6.53(8)
+H12 H 8 -0.04401 0.33613 0.10646 1 6.53(8)
+H13 H 8 -0.04120 0.30607 0.03795 1 6.53(8)
+H14 H 8 -0.15850 0.05699 0.06904 1 6.53(8)
+H15 H 8 -0.30323 0.14463 0.07958 1 6.53(8)
+H16 H 8 -0.19526 0.14512 0.02082 1 6.53(8)
+H17 H 8 -0.20339 0.19306 0.16052 1 6.53(8)
+H18 H 8 -0.04489 0.11071 0.16180 1 6.53(8)
+H19 H 8 -0.00462 0.23156 0.17113 1 6.53(8)
+loop_
+_atom_type_symbol
+_atom_type_description
+_atom_type_scat_source
+C C 'International Tables for Crystallography (Vol. IV)'
+H H 'International Tables for Crystallography (Vol. IV)'
+Cl Cl 'International Tables for Crystallography (Vol. IV)'
+N N 'International Tables for Crystallography (Vol. IV)'
+I I 'International Tables for Crystallography (Vol. IV)'
+O O 'International Tables for Crystallography (Vol. IV)'
+loop_
+_diffrn_radiation_type
+'Cu K\a'
+loop_
+_pd_proc_wavelength
+1.540562
+1.544390
+loop_
+_cod_related_entry_id
+_cod_related_entry_database
+_cod_related_entry_code
+1 PubChem 168345171

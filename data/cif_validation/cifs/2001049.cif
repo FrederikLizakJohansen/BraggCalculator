@@ -1,0 +1,196 @@
+#------------------------------------------------------------------------------
+#$Date: 2025-08-19 01:52:38 +0300 (Tue, 19 Aug 2025) $
+#$Revision: 301791 $
+#$URL: file:///home/coder/svn-repositories/_RELOADED_COD/cod-reloaded/cif/2/00/10/2001049.cif $
+#------------------------------------------------------------------------------
+#
+# This file is available in the Crystallography Open Database (COD),
+# http://www.crystallography.net/. The original data for this entry
+# were provided by IUCr Journals, http://journals.iucr.org/.
+#
+# The file may be used within the scientific community so long as
+# proper attribution is given to the journal article from which the
+# data were obtained.
+#
+data_2001049
+loop_
+_publ_author_name
+'Peters, D. A.'
+'Beddoes, R. L.'
+'Joule, J. A.'
+_publ_section_title
+;
+ Structures of 3-methoxypyrazine 1-oxide (1<i>a</i>) and
+ 3-methoxy-5-methylpyrazine 1-oxide (1<i>b</i>)
+;
+_journal_issue                   2
+_journal_name_full               'Acta Crystallographica Section C'
+_journal_page_first              307
+_journal_page_last               311
+_journal_paper_doi               10.1107/S0108270191008624
+_journal_volume                  48
+_journal_year                    1992
+_chemical_formula_sum            'C5 H6 N2 O2'
+_chemical_formula_weight         126.1
+_space_group_IT_number           2
+_space_group_name_Hall           '-P 1'
+_space_group_name_H-M_alt        'P -1'
+_symmetry_cell_setting           triclinic
+_symmetry_space_group_name_Hall  '-P 1'
+_symmetry_space_group_name_H-M   'P -1'
+_cell_angle_alpha                96.991(6)
+_cell_angle_beta                 101.856(4)
+_cell_angle_gamma                101.361(7)
+_cell_formula_units_Z            8
+_cell_length_a                   12.0940(10)
+_cell_length_b                   14.6890(10)
+_cell_length_c                   7.0228(4)
+_cell_volume                     1179.83(15)
+_diffrn_radiation_type           Cu
+_diffrn_radiation_wavelength     1.54178
+_exptl_absorpt_coefficient_mu    0.911
+_exptl_crystal_density_diffrn    1.420
+_exptl_crystal_F_000             528
+_cod_data_source_file            he0025.cif
+_cod_data_source_block           he0025a
+_cod_original_cell_volume        1179.8(4)
+_cod_database_code               2001049
+loop_
+_space_group_symop_id
+_space_group_symop_operation_xyz
+1 x,y,z
+2 -x,-y,-z
+loop_
+_atom_site_label
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+O1A .4867(4) .6320(3) 1.1313(7)
+O1B .4251(4) -.1216(3) .1035(7)
+O1C .2304(4) .2735(3) .4542(7)
+O1D .9069(4) .2097(3) .1460(8)
+O2A .1856(4) .3695(3) .9071(7)
+O2B .6865(4) .1463(4) .4551(8)
+O2C .4271(4) .5831(3) .6146(7)
+O2D .7143(4) -.1004(3) .0090(7)
+N1A .3785(5) .5936(4) 1.0544(8)
+N1B .5160(5) -.0813(4) .2440(10)
+N1C .2326(6) .3615(4) .4518(9)
+N1D .9056(6) .1225(4) .1596(9)
+N2A .1442(5) .5143(4) .8841(8)
+N2B .7132(5) .0044(4) .5412(8)
+N2C .2347(6) .5509(4) .4443(8)
+N2D .9046(6) -.0644(4) .1775(9)
+C1A .1897(7) .6071(6) .9220(10)
+C1B .6706(7) -.0895(6) .4970(10)
+C1C .1398(7) .4805(6) .3660(10)
+C1D .9983(7) .0067(6) .2610(10)
+C2A .3024(7) .6495(4) 1.0030(10)
+C2B .5748(6) -.1334(5) .3530(10)
+C2C .1350(6) .3884(5) .3670(10)
+C2D 1.0038(6) .0991(5) .2530(10)
+C3A .3374(6) .5014(5) 1.0190(10)
+C3B .5547(7) .0130(5) .2800(10)
+C3C .3302(7) .4293(6) .5380(10)
+C3D .8097(6) .0554(5) .0760(10)
+C4A .2204(7) .4634(5) .9350(10)
+C4B .6532(6) .0527(5) .4290(10)
+C4C .3249(7) .5213(5) .5250(10)
+C4D .8137(7) -.0365(5) .0930(10)
+C5A .0649(7) .3262(6) .8170(10)
+C5B .7914(7) .1927(5) .5950(10)
+C5C .4314(7) .6805(5) .6010(10)
+C5D .7141(7) -.1973(5) .0200(10)
+H1A .1380 .6469 .8901
+H1B .7105 -.1278 .5723
+H1C .0709 .4974 .3045
+H1D 1.0656 -.0095 .3314
+H2A .3282 .7161 1.0236
+H2B .5496 -.2001 .3298
+H2C .0647 .3428 .3107
+H2D 1.0733 .1456 .3097
+H3A .3881 .4608 1.0518
+H3B .5153 .0515 .2048
+H3C .3991 .4139 .6038
+H3D .7413 .0706 .0066
+H51A .0178 .3480 .8973
+H52A .0446 .3425 .6900
+H53A .0532 .2597 .8059
+H51B .7863 .1791 .7226
+H52B .8547 .1710 .5594
+H53B .8039 .2587 .5980
+H51C .5064 .7173 .6668
+H52C .4157 .6876 .4661
+H53C .3750 .7009 .6612
+H51D .6394 -.2354 -.0431
+H52D .7700 -.2159 -.0445
+H53D .7329 -.2049 .1543
+loop_
+_geom_bond_atom_site_label_1
+_geom_bond_atom_site_label_2
+_geom_bond_distance
+O1A N1A 1.290(6)
+O1B N1B 1.300(6)
+O1C N1C 1.290(6)
+O1D N1D 1.294(6)
+O2A C4A 1.337(7)
+O2A C5A 1.445(8)
+O2B C4B 1.334(7)
+O2B C5B 1.425(9)
+O2C C4C 1.359(8)
+O2C C5C 1.437(8)
+O2D C4D 1.342(8)
+O2D C5D 1.434(7)
+N1A C2A 1.373(8)
+N1A C3A 1.322(7)
+N1B C2B 1.346(8)
+N1B C3B 1.346(8)
+N1C C2C 1.361(8)
+N1C C3C 1.359(8)
+N1D C2D 1.362(8)
+N1D C3D 1.338(8)
+N2A C1A 1.337(8)
+N2A C4A 1.318(7)
+N2B C1B 1.347(8)
+N2B C4B 1.325(8)
+N2C C1C 1.351(8)
+N2C C4C 1.301(8)
+N2D C1D 1.353(8)
+N2D C4D 1.304(7)
+C1A C2A 1.353(9)
+C1B C2B 1.359(9)
+C1C C2C 1.345(9)
+C1D C2D 1.355(9)
+C3A C4A 1.388(8)
+C3B C4B 1.385(9)
+C3C C4C 1.378(9)
+C3D C4D 1.380(8)
+C1A H1A 0.950
+C1B H1B 0.950
+C1C H1C 0.950
+C1D H1D 0.950
+C2A H2A 0.950
+C2B H2B 0.950
+C2C H2C 0.950
+C2D H2D 0.950
+C3A H3A 0.950
+C3B H3B 0.950
+C3C H3C 0.950
+C3D H3D 0.950
+C5A H51A 0.950
+C5A H52A 0.950
+C5A H53A 0.950
+C5B H51B 0.950
+C5B H52B 0.950
+C5B H53B 0.950
+C5C H51C 0.950
+C5C H52C 0.950
+C5C H53C 0.950
+C5D H51D 0.950
+C5D H52D 0.950
+C5D H53D 0.950
+loop_
+_cod_related_entry_id
+_cod_related_entry_database
+_cod_related_entry_code
+1 PubChem 139053612

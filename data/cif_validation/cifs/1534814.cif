@@ -1,0 +1,95 @@
+#------------------------------------------------------------------------------
+#$Date: 2016-02-13 21:28:24 +0200 (Sat, 13 Feb 2016) $
+#$Revision: 176429 $
+#$URL: file:///home/coder/svn-repositories/_RELOADED_COD/cod-reloaded/cif/1/53/48/1534814.cif $
+#------------------------------------------------------------------------------
+#
+# This file is available in the Crystallography Open Database (COD),
+# http://www.crystallography.net/
+#
+# All data on this site have been placed in the public domain by the
+# contributors.
+#
+data_1534814
+loop_
+_publ_author_name
+'Guillou, N.'
+'Gao, Q.-M.'
+'Nogues, M.'
+'Cheetham, A.K.'
+'Hervieu, M.'
+'Morris, R.E.'
+'Ferey, G.'
+_publ_section_title
+;
+ Zeolitic and magnetic properties of a 24-membered ring porous nickel(II)
+ phosphate, VSB-1
+;
+_journal_name_full               'C.R. Acad. Sci. Paris, T. 1, Serie II'
+_journal_page_first              387
+_journal_page_last               392
+_journal_volume                  2
+_journal_year                    1999
+_chemical_formula_sum            'F H8.66 Ni3 O12.65 P2.33'
+_chemical_name_systematic        '(Ni3 (H3 O) (P O4)2.33) (H F) (H2 O)2.33'
+_space_group_IT_number           183
+_symmetry_space_group_name_Hall  'P 6 -2'
+_symmetry_space_group_name_H-M   'P 6 m m'
+_cell_angle_alpha                90
+_cell_angle_beta                 90
+_cell_angle_gamma                120
+_cell_formula_units_Z            6
+_cell_length_a                   19.652
+_cell_length_b                   19.652
+_cell_length_c                   5.018
+_cell_volume                     1678.320
+_citation_journal_id_ASTM        CASCFN
+_cod_data_source_file            Guillou_CASCFN_1999_1018.cif
+_cod_data_source_block           H8.66F1Ni3O12.65P2.33
+_cod_original_cell_volume        1678.32
+_cod_original_formula_sum        'H8.66 F1 Ni3 O12.65 P2.33'
+_cod_database_code               1534814
+loop_
+_symmetry_equiv_pos_as_xyz
+x,y,z
+x-y,x,z
+-y,x-y,z
+-x,-y,z
+-x+y,-x,z
+y,-x+y,z
+y,x,z
+-x+y,y,z
+-x,-x+y,z
+-y,-x,z
+x-y,-y,z
+x,x-y,z
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_U_iso_or_equiv
+O13 O-2 0.7161 0.6636 0.1154 0.5 0.0
+O15 O-2 0 0 0.837 1 0.0
+O8 O-2 0.5816 0.2908 0.0383 1 0.0
+O4 O-2 0.5898 0.4102 0.6546 1 0.0
+P4 P+5 0.621 0.621 0.9505 0.5 0.0
+O5 O-2 0.7681 0.5362 0.6943 1 0.0
+O10 O-2 0.7014 0.7014 0.9598 0.5 0.0
+O11 O-2 0.5977 0.5977 0.22 0.5 0.0
+O2 O-2 0.6258 0.6258 0.3688 0.5 0.0
+P3 P+5 0.5865 0.5865 0.6246 0.5 0.0
+Ni1 Ni+2 0.66626 0.48917 0.918 1 0.0
+O1 O-2 0.6667 0.3333 0.4362 1 0.0
+O9 O-2 0.5 0.5 0.5637 1 0.0
+O14 O-2 0 0 0.488 1 0.0
+P1 P+5 0.78581 0.57162 0.4261 1 0.0
+O6 O-2 0.71 0.5493 0.2568 1 0.0
+Ni2 Ni+2 0.59431 0.50451 0.4469 0.5 0.0
+P2 P+5 0.6667 0.3333 0.1155 1 0.0
+O12 O-2 0.7526 0.7526 0.444 1 0.0
+F1 F-1 0.5658 0.4342 0.1289 1 0.0
+O3 O-2 0.831 0.662 0.4469 1 0.0
+O7 O-2 0.5707 0.644 0.7732 1 0.0

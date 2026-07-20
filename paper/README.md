@@ -45,6 +45,22 @@ python scripts/plot_pattern_comparison.py \
 The script exits with an error if the line positions, line intensities, or
 broadened profiles exceed their stated tolerances.
 
+## Frozen CIF corpus validation
+
+The larger oracle check uses 70 CC0 structures from the Crystallography Open
+Database: ten from every crystal system, 62 declared space groups, 3--992
+supplied sites, and 31 structures containing partial occupancy or disorder.
+The fixed selection rule does not inspect BraggCalculator agreement. Every COD
+revision and file digest is recorded in `data/cif_validation/manifest.json`.
+
+```bash
+python scripts/validate_cif_corpus.py \
+  --output paper/data/cif_validation_results.json
+```
+
+The command compares both X-ray and neutron line patterns, writes every result
+and CIF parser warning to JSON, and exits nonzero if any comparison fails.
+
 ## Scaling and multi-hardware benchmark
 
 The scaling benchmark contains two controlled series. “Supplied sites” means
@@ -72,10 +88,13 @@ The hardware label defaults to the detected CPU model. Use
 Every case is checked against pymatgen before timing, and the JSON retains all
 repeat samples together with summary values.
 
-Combine any number of returned runs into the scaling figure:
+Combine any number of returned runs into the scaling figure. The versioned
+paper figure currently compares the Intel CPU run with the CUDA run:
 
 ```bash
-python scripts/plot_scaling_benchmark.py machine_a.json machine_b.json
+python scripts/plot_scaling_benchmark.py \
+  paper/data/scaling_intel_core_ultra_5_225u.json \
+  paper/data/scaling_nvidia_rtx_a3000_laptop.json
 ```
 
 The primary publication outputs are editable vector PDF and SVG at Nature's
@@ -105,4 +124,7 @@ immediately before and after every timed block. “Cached” measures repeated G
 diffraction with a prepared topology. “End-to-end” includes CPU symmetry and
 HKL preprocessing, host-to-device transfers, and synchronized GPU execution.
 pymatgen remains on the same machine's CPU, which is recorded explicitly in
-the JSON and figure legend.
+the JSON. Consequently, the speedup panels compare each BraggCalculator run
+with pymatgen on that run's host; they are not direct CPU-versus-GPU ratios.
+The NaCl series becomes the same two-site, 410-HKL workload after reduction,
+so CUDA launch, transfer, and synchronization costs dominate its cached time.

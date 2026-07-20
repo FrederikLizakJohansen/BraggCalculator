@@ -1,0 +1,121 @@
+#------------------------------------------------------------------------------
+#$Date: 2024-08-07 20:09:39 +0300 (Wed, 07 Aug 2024) $
+#$Revision: 294031 $
+#$URL: file:///home/coder/svn-repositories/_RELOADED_COD/cod-reloaded/cif/9/01/26/9012653.cif $
+#------------------------------------------------------------------------------
+#
+# This file is available in the Crystallography Open Database (COD),
+# http://www.crystallography.net/. The original data for this entry
+# were provided the American Mineralogist Crystal Structure Database,
+# http://rruff.geo.arizona.edu/AMS/amcsd.php
+#
+# The file may be used within the scientific community so long as
+# proper attribution is given to the journal article from which the
+# data were obtained.
+#
+data_9012653
+loop_
+_publ_author_name
+'Rastsvetaeva, R. K.'
+'Bolotina, N. B.'
+'Sapozhnikov, A. N.'
+'Kashaev, A. A.'
+'Schoenleber, A.'
+'Chapuis, G.'
+_publ_section_title
+;
+ Average structure of cubic lazurite with a three-dimensional incommensurate
+ modulation
+;
+_journal_name_full               'Crystallography Reports'
+_journal_page_first              404
+_journal_page_last               407
+_journal_paper_doi               10.1134/1.1481924
+_journal_volume                  47
+_journal_year                    2002
+_chemical_compound_source
+'Malo-Bystrinskoe deposit, Lake Baikal region, Russia'
+_chemical_formula_sum            'Al3 Ca0.828 Cl0.048 Na3.172 O13.76 S1.022 Si3'
+_chemical_name_mineral           Lazurite
+_space_group_IT_number           195
+_symmetry_space_group_name_Hall  'P 2 2 3'
+_symmetry_space_group_name_H-M   'P 2 3'
+_cell_angle_alpha                90
+_cell_angle_beta                 90
+_cell_angle_gamma                90
+_cell_formula_units_Z            2
+_cell_length_a                   9.077
+_cell_length_b                   9.077
+_cell_length_c                   9.077
+_cell_volume                     747.872
+_database_code_amcsd             0012380
+_exptl_crystal_density_diffrn    2.336
+_cod_original_cell_volume        747.871
+_cod_original_formula_sum        'Na3.172 Ca.828 (Si3 Al3) S1.022 O13.76 Cl.048'
+_cod_database_code               9012653
+loop_
+_space_group_symop_operation_xyz
+x,y,z
+-z,-x,y
+-z,x,-y
+z,-x,-y
+z,x,y
+y,-z,-x
+-y,-z,x
+-y,z,-x
+y,z,x
+-x,y,-z
+x,-y,-z
+-x,-y,z
+loop_
+_atom_site_label
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_U_iso_or_equiv
+Na1 0.25850 0.25850 0.25850 0.44000 0.05573
+Na2 0.20190 0.20190 0.20190 0.24000 0.03926
+Na3 0.32530 0.32530 0.32530 0.32000 0.07219
+Na4 0.68720 0.68720 0.68720 0.37000 0.08359
+NaM 0.75470 0.75470 0.75470 0.21600 0.06459
+CaM 0.75470 0.75470 0.75470 0.14400 0.06459
+Ca 0.81500 0.81500 0.81500 0.27000 0.06333
+Si1 0.50000 0.24990 0.00000 0.50000 0.04053
+Al1 0.50000 0.24990 0.00000 0.50000 0.04053
+Si2 0.50000 0.00000 0.24990 0.50000 0.04559
+Al2 0.50000 0.00000 0.24990 0.50000 0.04559
+S1 0.00000 0.00000 0.00000 0.51000 0.11779
+S2 0.50000 0.50000 0.50000 0.37000 0.10259
+OS1 0.89960 0.89960 0.89960 0.51000 0.14438
+OS2 0.39300 0.39300 0.39300 0.37000 0.13172
+S3 0.15220 0.50000 0.50000 0.05600 0.24444
+Cl3 0.15220 0.50000 0.50000 0.00400 0.24444
+S4 0.25890 0.00000 0.00000 0.06600 0.11019
+Cl4 0.25890 0.00000 0.00000 0.00400 0.11019
+S5 0.26830 0.50000 0.50000 0.02600 0.13045
+Cl5 0.26830 0.50000 0.50000 0.00400 0.13045
+S6 0.14710 0.00000 0.00000 0.04600 0.14692
+Cl6 0.14710 0.00000 0.00000 0.00400 0.14692
+O1 0.35090 0.35120 0.01630 1.00000 0.09879
+O2*1 0.14660 0.14640 0.53550 0.68000 0.05446
+O2*2 0.15080 0.15210 0.45020 0.32000 0.04053
+loop_
+_cod_changelog_entry_id
+_cod_changelog_entry_author
+_cod_changelog_entry_date
+_cod_changelog_entry_text
+1
+;cod-tools version 3.10.1
+Id: cif_fix_AMCSD_atom_labels 10224 2024-08-07 11:09:31Z saulius
+;
+2024-08-07T19:40:07+03:00
+;Changed the following '_atom_site_label' values:
+the first duplicated label 'O2*'  converted to 'O2*1'
+duplicated label 'O2*' at index 25 converted to 'O2*2'
+;
+loop_
+_cod_related_entry_id
+_cod_related_entry_database
+_cod_related_entry_code
+1 AMCSD 0012380

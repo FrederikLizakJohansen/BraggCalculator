@@ -142,6 +142,18 @@ P1 cells:
 python scripts/validate_against_pymatgen.py
 ```
 
+The frozen publication corpus extends this check to 70 CC0 CIFs from the
+Crystallography Open Database, balanced across all seven crystal systems and
+covering 62 declared space groups:
+
+```bash
+python scripts/validate_cif_corpus.py \
+    --output paper/data/cif_validation_results.json
+```
+
+The manifest pins every COD revision and SHA-256 digest, and the result records
+all parser warnings and failures rather than dropping difficult cases.
+
 Run the reproducible performance comparison. The command fails if either the
 cached or end-to-end calculation is not faster for every case:
 
