@@ -41,6 +41,11 @@ def main() -> None:
         raise SystemExit("--limit must be positive")
 
     manifest, cases = load_corpus(args.manifest)
+    resolved_manifest = args.manifest.resolve()
+    try:
+        manifest_label = str(resolved_manifest.relative_to(ROOT))
+    except ValueError:
+        manifest_label = str(resolved_manifest)
     if args.limit is not None:
         cases = cases[: args.limit]
     modes = ("xray", "neutron") if args.mode == "both" else (args.mode,)
@@ -105,7 +110,7 @@ def main() -> None:
         },
         "corpus": {
             "name": manifest["name"],
-            "manifest": str(args.manifest),
+            "manifest": manifest_label,
             "manifest_sha256": sha256_file(args.manifest),
             "source": manifest["source"],
             "case_count": len(cases),
