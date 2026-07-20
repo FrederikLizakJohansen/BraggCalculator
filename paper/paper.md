@@ -18,6 +18,7 @@ affiliations:
     ror: 035b05819
 date: 20 July 2026
 bibliography: paper.bib
+repository: https://github.com/FrederikLizakJohansen/BraggCalculator
 ---
 
 # Summary
@@ -33,6 +34,17 @@ reflections, powder lines, or broadened profiles in scattering angle or
 momentum transfer. A NumPy backend provides a lightweight CPU path
 [@harris2020], while an optional PyTorch backend supports automatic
 differentiation and accelerator execution [@paszke2019].
+
+Install the released package from
+[PyPI](https://pypi.org/project/braggcalculator/) with:
+
+```bash
+python -m pip install braggcalculator
+```
+
+Source code, documentation, examples, and the reproducibility material for
+this paper are available in the
+[GitHub repository](https://github.com/FrederikLizakJohansen/BraggCalculator).
 
 The package deliberately solves a bounded problem: kinematic diffraction from
 an ideal periodic structure. It includes occupancies, isotropic displacement
