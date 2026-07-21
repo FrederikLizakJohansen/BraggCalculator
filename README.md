@@ -16,6 +16,10 @@ profiles. It does not model diffuse scattering, finite-particle shape, preferred
 orientation, microstrain, absorption, background, anomalous X-ray terms, or
 instrumental wavelength distributions.
 
+The accompanying paper describes the implementation, validation across the
+Crystallography Open Database, and CPU/GPU performance:
+[read the ChemRxiv preprint](https://chemrxiv.org/doi/abs/10.26434/chemrxiv.15006388/v1).
+
 ## Installation
 
 Install the latest release from [PyPI](https://pypi.org/project/braggcalculator/):
@@ -180,6 +184,15 @@ python demo/compare_with_pymatgen.py
 
 The script stops if either implementation departs from the stated numerical
 tolerances.
+
+## Related software
+
+BraggCalculator and
+[DebyeCalculator](https://github.com/FrederikLizakJohansen/DebyeCalculator)
+provide complementary scattering models: BraggCalculator uses reciprocal-space
+translational symmetry for periodic crystals, whereas DebyeCalculator evaluates
+the real-space Debye scattering equation for finite, disordered, or
+non-crystalline structures.
 
 ## Data and model references
 
