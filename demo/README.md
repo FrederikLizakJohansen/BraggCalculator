@@ -13,3 +13,10 @@ python demo/compare_with_pymatgen.py
 
 The default output is `demo/nacl_vs_pymatgen.png`. Use `--show` to open the
 figure interactively or `--output path/to/figure.pdf` to write a vector PDF.
+
+For a complete CIF-to-simulated-data workflow, open
+[`notebooks/artifact_simulation.ipynb`](../notebooks/artifact_simulation.ipynb).
+It starts from the same NaCl CIF, constructs each experimental-effect component,
+loads `example_background.xye`, and combines the effects with a reproducible
+seed. The `.xye` file is a synthetic tutorial trace, not measured reference
+data.

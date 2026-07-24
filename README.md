@@ -102,7 +102,9 @@ measured `.xy`/`.xye` backgrounds, correlated noise, detector gaps,
 saturation, quantization, and unindexed peaks. See the
 [artifact API](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md#synthetic-simulation-artifacts)
 for the component objects, units, sampled-range controls, and background
-library format.
+library format, and the
+[artifact gallery](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/paper/figures/artifact_gallery.png)
+for isolated examples of every effect family.
 
 ## Torch and autograd
 
@@ -219,6 +221,15 @@ python demo/compare_with_pymatgen.py
 
 The script stops if either implementation departs from the stated numerical
 tolerances.
+
+The executable
+[artifact-simulation notebook](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/notebooks/artifact_simulation.ipynb)
+continues from a CIF through an ideal pattern, individual artifact components,
+an imported `.xye` background, and a reproducible combined simulation:
+
+```bash
+jupyter notebook notebooks/artifact_simulation.ipynb
+```
 
 ## Related software
 

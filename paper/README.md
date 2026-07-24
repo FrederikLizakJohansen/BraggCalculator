@@ -14,8 +14,29 @@ pdflatex paper.tex
 pdflatex paper.tex
 ```
 
-The four manuscript figures are generated from versioned structures and records
+The five manuscript figures are generated from versioned structures and records
 of the software environment and numerical results in JSON.
+
+Generate the version-2 experimental-effect gallery:
+
+```bash
+python scripts/plot_artifact_gallery.py
+```
+
+This writes PDF, SVG, and 450 dpi PNG versions plus panel metrics in
+`paper/data/artifact_gallery.json`. The panels isolate calibration, profile,
+intensity, background, spurious-peak, noise, and detector effects before
+combining them. The input-style background in this figure is deterministic
+illustrative data, not a measured reference trace.
+
+Build and execute the end-to-end CIF tutorial:
+
+```bash
+python scripts/build_artifact_simulation_notebook.py
+jupyter nbconvert --to notebook --execute \
+  notebooks/artifact_simulation.ipynb \
+  --output artifact_simulation.ipynb --output-dir notebooks
+```
 
 The left column of the pattern
 comparison mirrors the unbroadened powder lines. The other columns apply the

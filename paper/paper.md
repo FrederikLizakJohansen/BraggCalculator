@@ -16,7 +16,8 @@ affiliations:
   - index: 1
     name: Department of Chemistry, University of Copenhagen, Denmark
     ror: 035b05819
-date: 20 July 2026
+date: 24 July 2026
+version: 2
 bibliography: paper.bib
 repository: https://github.com/FrederikLizakJohansen/BraggCalculator
 ---
@@ -46,14 +47,15 @@ Source code, documentation, examples, and the reproducibility material for
 this paper are available at:
 <https://github.com/FrederikLizakJohansen/BraggCalculator>.
 
-The package deliberately solves a bounded problem: kinematic diffraction from
-an ideal periodic structure. It includes occupancies, isotropic displacement
+The package uses a bounded kinematic diffraction core for an ideal periodic
+structure. It includes occupancies, isotropic displacement
 parameters, neutral-atom X-ray form factors, coherent neutron scattering
 lengths, powder Lorentz--polarization corrections, and area-normalized Gaussian
-profiles. It does not perform Rietveld refinement or include models for
-background, preferred orientation, microstrain, absorption, diffuse scattering,
-or finite particle shape. This explicit boundary keeps the numerical core
-small, testable, and suitable for repeated forward calculations.
+profiles. An optional layer adds independently configurable calibration,
+profile, intensity, background, noise, detector, and spurious-peak effects
+without changing that ideal core. The package does not perform Rietveld
+refinement or model absorption, diffuse scattering, anomalous X-ray terms,
+instrumental wavelength distributions, or finite particle shape.
 
 # Statement of need
 
@@ -175,6 +177,28 @@ Convolution with an area-normalized Gaussian turns the ideal lines into a
 finite-width profile while preserving integrated intensity. Physical
 coefficients and named wavelengths are read from the versioned pymatgen tables.
 
+The optional experimental-effect pipeline begins from the same ideal powder
+lines. Axis calibration includes zero and scale offsets and the conventional
+flat-specimen displacement correction for Bragg--Brentano geometry. Peak
+profiles can use fixed pseudo-Voigt widths or the
+Thompson--Cox--Hastings approximation with Caglioti angle dependence,
+coherent-domain-size and microstrain terms, and a controllable low-angle tail
+[@caglioti1958; @dinnebier2021]. Reflection intensities can include stochastic
+variation, dropout, and a modified March--Dollase preferred-orientation factor
+[@dollase1986]. Backgrounds can combine polynomials, amorphous pseudo-Voigt
+humps, and interpolated `.xy` or `.xye` traces; the latter retain their source,
+uncertainties, and file checksum. Subsequent stages add unindexed peaks,
+Poisson, independent, or correlated noise, and detector masks, saturation, and
+quantization. Each component accepts explicit values or sampled ranges, and a
+single seed reproduces the complete stochastic realization.
+
+These effects are intended for controlled simulation and data augmentation.
+They are not a fundamental-parameters description of a particular
+diffractometer, and their values are not estimated from observations. A
+measured background must use the same coordinate domain and cover the simulated
+range; the bundled library accepts only checksum-verified traces with declared
+provenance.
+
 Symmetry detection and integer reflection enumeration are discrete operations.
 Once the reflection set is prepared, the reflection geometry, structure factors,
 powder corrections, and profile operations remain in the selected numerical
@@ -194,6 +218,34 @@ large reflection-by-site workloads, broadened profiles, and repeated calls
 that amortize transfers and kernel launches. The benchmark reported below uses
 double precision to preserve numerical agreement, so gains also depend on GPU
 double-precision throughput.
+
+# Experimental-effect simulation
+
+\autoref{fig:artifacts} isolates the available effect families on one NaCl
+pattern. Each panel is normalized independently so that changes in line
+position, shape, relative intensity, baseline, and detector response remain
+visible on one scale. The background panel combines analytical terms,
+amorphous humps, and a deterministic illustrative input trace; it is not
+presented as measured reference data. The combined panel is one reproducible
+realization rather than a model of a named instrument.
+
+![Configurable experimental effects applied to the same NaCl Cu K$\alpha_1$
+pattern. The dashed gray curve is the ideal reference and the blue curve is the
+simulated result. Panels isolate (a) the ideal configured Gaussian profile,
+(b) axis calibration and specimen displacement, (c) angle-, size-, and
+strain-dependent peak shape, (d) preferred orientation and reflection-wise
+intensity changes, (e) analytical, amorphous, and imported-trace backgrounds,
+(f) unindexed peaks, (g) counting, independent, and correlated noise, and
+(h) detector gaps, saturation, and quantization. Panel (i) combines all effect
+families. Shaded intervals in (h) mark configured detector gaps. Curves are
+normalized independently for shape comparison.
+\label{fig:artifacts}](figures/artifact_gallery.pdf){width="100%"}
+
+An executable
+[CIF-to-pattern notebook](../notebooks/artifact_simulation.ipynb) follows the
+same workflow from structure loading through individual component construction,
+`.xye` background import, combined simulation, visualization, and an exact
+seed-reproducibility check.
 
 # Validation and performance
 
@@ -312,23 +364,17 @@ set; end-to-end timings include all preprocessing.
 `BraggCalculator` makes the same validated periodic diffraction model available
 through NumPy arrays and differentiable PyTorch tensors. The repository
 includes the structure generators, implementation comparisons, raw timing
-samples, environment metadata, and figure scripts used above. Continuous
+samples, figure scripts used above, and an executable CIF-to-pattern artifact
+tutorial. Continuous
 integration covers two Python versions, both diffraction modes, general and
-disordered structures, automatic differentiation, and the public result
-objects. A small public API, Apache-2.0 license, typed package marker, pymatgen
-and optional ASE inputs, and NumPy/PyTorch backends support reuse in established
-Python materials workflows. In particular, the differentiable path enables
-gradient-based fitting and machine-learning applications without reimplementing
-the diffraction equations in a tensor framework.
-
-# AI usage disclosure
-
-OpenAI GPT-5 assisted with code review and refactoring, validation, and figure
-workflow scaffolding.
-The author made the scientific and architectural decisions and reviewed,
-edited, and validated all retained outputs. Numerical claims are checked by
-executable tests against pymatgen and by the versioned benchmark data included
-in the repository.
+disordered structures, automatic differentiation, experimental-effect
+components, and the public result objects. A small public API, Apache-2.0
+license, typed package marker, pymatgen and optional ASE inputs, and
+NumPy/PyTorch backends support reuse in established Python materials workflows.
+The differentiable path enables gradient-based fitting and machine-learning
+applications without reimplementing the diffraction equations in a tensor
+framework, while the optional effects support reproducible synthetic training
+and robustness datasets.
 
 # Acknowledgements
 
