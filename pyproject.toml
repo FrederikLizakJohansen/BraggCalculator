@@ -41,7 +41,7 @@ pytest = "^8.4.1"
 pytest-cov = "^6.2.1"
 notebook = "^7.4.5"
 matplotlib = ">=3.10,<4"
-ruff = ">=0.12,<1"
+ruff = ">=0.15,<0.16"
 
 [build-system]
 requires = ["poetry-core"]
@@ -58,3 +58,6 @@ filterwarnings = [
 line-length = 100
 target-version = "py312"
 extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
