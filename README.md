@@ -12,8 +12,10 @@ The current scientific scope is monochromatic, kinematic powder diffraction.
 It includes neutral-atom X-ray form factors, coherent elemental neutron
 scattering lengths, occupancies, isotropic Debye-Waller factors, the standard
 powder Lorentz or Lorentz-polarization correction, and area-normalized Gaussian
-profiles. It does not model diffuse scattering, finite-particle shape, preferred
-orientation, microstrain, absorption, background, anomalous X-ray terms, or
+profiles. Optional experimental-effect models can add angle-dependent
+instrument and sample broadening, preferred orientation, background, counting
+noise, missing channels, and spurious peaks to simulated profiles. These
+models do not cover diffuse scattering, absorption, anomalous X-ray terms, or
 instrumental wavelength distributions.
 
 The accompanying paper describes the implementation, validation across the
@@ -68,6 +70,39 @@ The Q-space API uses inverse angstroms:
 q, intensity = calculator.line_pattern(domain="q")
 q_grid, profile_q = calculator.pattern(domain="q")
 ```
+
+Experimental effects are opt-in and independently configurable:
+
+```python
+from braggcalculator import (
+    BackgroundArtifacts,
+    NoiseArtifacts,
+    PeakProfileArtifacts,
+    SimulationArtifacts,
+)
+
+artifacts = SimulationArtifacts(
+    profile=PeakProfileArtifacts(
+        model="tch",
+        caglioti_u=0.002,
+        caglioti_w=0.004,
+        crystallite_size_nm=40.0,
+        microstrain=0.001,
+    ),
+    background=BackgroundArtifacts(constant=0.01),
+    noise=NoiseArtifacts(poisson_count_scale=10_000),
+    seed=7,
+)
+q_grid, augmented = calculator.pattern(domain="q", artifacts=artifacts)
+```
+
+`SimulationArtifacts` also supports calibration shifts, Bragg--Brentano
+specimen displacement, March--Dollase preferred orientation, amorphous humps,
+measured `.xy`/`.xye` backgrounds, correlated noise, detector gaps,
+saturation, quantization, and unindexed peaks. See the
+[artifact API](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md#synthetic-simulation-artifacts)
+for the component objects, units, sampled-range controls, and background
+library format.
 
 ## Torch and autograd
 

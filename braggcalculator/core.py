@@ -320,19 +320,40 @@ class BraggCalculator:
         self,
         domain: Literal["two_theta", "q"] = "two_theta",
         parameters: ParameterDict | None = None,
+        *,
+        artifacts: Any | None = None,
     ):
-        """Return an area-normalized, gridded powder profile."""
+        """Return a gridded powder profile, optionally with synthetic artifacts."""
         positions, intensities = self.iq(domain=domain, parameters=parameters)
         if domain == "two_theta":
             lower, upper = self.two_theta_range
             grid = self._regular_grid(lower, upper, self.two_theta_step)
-            values = render_profile(self.profile, self.backend, grid, positions, intensities)
         elif domain == "q":
             lower, upper = self.q_range
             grid = self._regular_grid(lower, upper, self.q_step)
-            values = render_profile_q(self.profile_q, self.backend, grid, positions, intensities)
         else:
             raise ValueError("domain must be 'two_theta' or 'q'")
+
+        if artifacts is not None:
+            from .artifacts import SimulationArtifacts
+
+            if not isinstance(artifacts, SimulationArtifacts):
+                raise TypeError("artifacts must be a SimulationArtifacts instance or None")
+            lattice, _, _, _ = self._parameter_values(parameters)
+            indices = self._domain_indices(domain)
+            values = artifacts.apply(
+                self,
+                domain,
+                grid,
+                positions,
+                intensities,
+                hkl=self._hkl["hkl"][indices],
+                lattice=lattice,
+            )
+        elif domain == "two_theta":
+            values = render_profile(self.profile, self.backend, grid, positions, intensities)
+        else:
+            values = render_profile_q(self.profile_q, self.backend, grid, positions, intensities)
         return grid, values
 
     def _regular_grid(self, lower: float, upper: float, step: float):

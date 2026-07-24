@@ -50,6 +50,12 @@ class NumpyBackend:
     def clip(self, x, a, b):
         return np.clip(x, a, b)
 
+    def where(self, condition, x, y):
+        return np.where(condition, x, y)
+
+    def round(self, x):
+        return np.round(x)
+
     def inverse(self, x):
         return np.linalg.inv(x)
 

@@ -52,6 +52,12 @@ class TorchBackend:
     def clip(self, x, a, b):
         return torch.clamp(x, a, b)
 
+    def where(self, condition, x, y):
+        return torch.where(condition, x, y)
+
+    def round(self, x):
+        return torch.round(x)
+
     def inverse(self, x):
         return torch.linalg.inv(x)
 
@@ -71,7 +77,7 @@ class TorchBackend:
         return torch.matmul(a, b)
 
     def linspace(self, a, b, n):
-        return torch.linspace(a, b, steps=n, device=self.device)
+        return torch.linspace(a, b, steps=n, device=self.device, dtype=self.dtype)
 
     def concat(self, xs, axis=0):
         return torch.cat(xs, dim=axis)
