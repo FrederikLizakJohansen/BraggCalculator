@@ -172,12 +172,158 @@ point. `seed` controls all random choices. A fixed seed repeats the same
 realization across calls and numerical backends; `seed=None` produces a new
 realization each time.
 
+### Batched Torch artifact simulation
+
+Install the optional Torch dependency for device-native batch augmentation:
+
+```bash
+python -m pip install "braggcalculator[torch]"
+```
+
+The batch API operates on cached powder lines rather than loaded calculator
+objects. This separates one-time crystallographic work from stochastic
+augmentation:
+
+```text
+CIF → BraggCalculator line calculation → cached padded powder lines
+                                            ↓
+                               batched Torch artifacts
+                                            ↓
+                              peak batch or dense profiles
+```
+
+Use `apply_peak_artifact_batch()` when a model consumes discrete peak
+positions and intensities:
+
+```python
+from braggcalculator import (
+    CalibrationArtifacts,
+    IntensityArtifacts,
+    SimulationArtifacts,
+    apply_peak_artifact_batch,
+)
+
+artifacts = SimulationArtifacts(
+    calibration=CalibrationArtifacts(
+        zero_shift=(-0.01, 0.01),
+        axis_scale=(0.995, 1.005),
+        peak_jitter_std=(0.0, 0.003),
+    ),
+    intensity=IntensityArtifacts(
+        scale=(0.8, 1.2),
+        peak_jitter=(0.9, 1.1),
+        peak_dropout_probability=0.05,
+    ),
+)
+
+q_augmented, intensity_augmented, augmented_mask = apply_peak_artifact_batch(
+    q_lines,                    # [batch, padded_peaks]
+    intensities,                # [batch, padded_peaks]
+    peak_mask=peak_mask,        # boolean [batch, padded_peaks]
+    artifacts=artifacts,
+    domain="q",
+    generator=device_generator,
+)
+```
+
+This function intentionally stops after position and intensity effects. A
+model that consumes only peak lists cannot observe a continuous background,
+rendered profile shape, channel noise, detector gaps, or spurious rendered
+peaks.
+
+Use `render_artifact_batch()` for dense or hybrid model inputs:
+
+```python
+from braggcalculator import (
+    BackgroundArtifacts,
+    NoiseArtifacts,
+    PeakProfileArtifacts,
+    SimulationArtifacts,
+    render_artifact_batch,
+)
+
+artifacts = SimulationArtifacts(
+    profile=PeakProfileArtifacts(
+        model="tch",
+        caglioti_u=(0.001, 0.004),
+        caglioti_w=(0.002, 0.006),
+        crystallite_size_nm=(20.0, 100.0),
+        microstrain=(0.0, 0.001),
+    ),
+    background=BackgroundArtifacts(constant=(0.0, 0.03)),
+    noise=NoiseArtifacts(
+        gaussian_std=(0.0, 0.003),
+        correlated_std=(0.0, 0.003),
+        correlation_length=(0.02, 0.1),
+        poisson_count_scale=(5_000, 20_000),
+    ),
+    normalize_signal=True,
+    final_normalize=True,
+    domain="q",
+)
+
+patterns = render_artifact_batch(
+    q_lines,
+    intensities,
+    peak_mask=peak_mask,
+    grid=q_grid,                 # [grid] or [batch, grid]
+    artifacts=artifacts,
+    wavelength=1.5406,
+    measured_background=background_on_q_grid,
+    generator=device_generator,
+)
+# patterns has shape [batch, grid]
+```
+
+The input contract is:
+
+| Argument | Shape | Required for |
+| --- | --- | --- |
+| `positions`, `intensities` | `[batch, padded_peaks]` | All calls |
+| `peak_mask` | Boolean `[batch, padded_peaks]` | Ragged reflection lists; omitted means all valid |
+| `grid` | `[grid]` or `[batch, grid]` | Dense rendering |
+| `hkl` | `[batch, padded_peaks, 3]` | Preferred orientation |
+| `lattice` | `[batch, 3, 3]` | Preferred orientation |
+| `wavelength` | Scalar or `[batch]` | Q-domain TCH and coherent-domain-size broadening |
+| `measured_background` | `[grid]` or `[batch, grid]` | Pre-interpolated measured background |
+
+Every tensor must share the position tensor's device; floating-point inputs
+must also share its dtype. The renderer preserves both, processes all samples
+without a Python batch loop, and chunks the reflection dimension according to
+`max_entries`. A pre-interpolated `measured_background` is recommended in a
+training loop because it avoids repeatedly transferring and interpolating a
+`BackgroundPattern`.
+
+`profile.model="calculator"` cannot inspect a calculator in this stateless
+API. Supply `profile_fwhm` and optional `profile_eta` as scalars, `[batch]`, or
+`[batch, padded_peaks]`, or select the explicit `"pseudo_voigt"` or `"tch"`
+model.
+
+For repeatable calls, either set `SimulationArtifacts.seed` or pass a
+device-local `torch.Generator`, but not both. A generator is the fast option
+for a training stream; its realization depends on batch order and shape.
+Independent per-sample generator loops are deliberately not hidden inside the
+API because they would serialize the GPU workload. Poisson sampling,
+quantization, masking, and dropout are discrete; the remaining continuous
+Torch operations retain autograd.
+
+Run the standalone throughput benchmark with, for example:
+
+```bash
+python benchmarks/benchmark_batched_artifacts.py \
+  --device cuda --batch-size 256 --peaks 512 --grid-points 2048
+
+python benchmarks/benchmark_batched_artifacts.py \
+  --device cuda --batch-size 256 --peaks 512 --peak-only
+```
+
 ### Artifact components
 
 `CalibrationArtifacts` provides a domain-native `zero_shift`, an `axis_scale`,
-and the conventional Bragg--Brentano specimen-displacement shift. The latter is
-only valid in the two-theta domain and requires the goniometer radius in
-millimetres.
+an independent zero-mean per-reflection `peak_jitter_std`, and the conventional
+Bragg--Brentano specimen-displacement shift. Position jitter is expressed in
+the selected domain's coordinate units. Specimen displacement is only valid in
+the two-theta domain and requires the goniometer radius in millimetres.
 
 `PeakProfileArtifacts` has three profile modes:
 
