@@ -8,8 +8,8 @@ authors:
     orcid: "https://orcid.org/0000-0002-8049-8624"
 repository-code: "https://github.com/FrederikLizakJohansen/BraggCalculator"
 license: Apache-2.0
-version: 0.2.1
-date-released: "2026-07-24"
+version: 0.3.0
+date-released: "2026-07-27"
 keywords:
   - crystallography
   - powder diffraction

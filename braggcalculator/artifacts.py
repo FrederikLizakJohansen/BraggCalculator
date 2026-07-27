@@ -87,12 +87,14 @@ class CalibrationArtifacts:
 
     zero_shift: ScalarRange = 0.0
     axis_scale: ScalarRange = 1.0
+    peak_jitter_std: ScalarRange = 0.0
     specimen_displacement_mm: ScalarRange = 0.0
     goniometer_radius_mm: float = 200.0
 
     def __post_init__(self) -> None:
         _validate_range("zero_shift", self.zero_shift)
         _validate_range("axis_scale", self.axis_scale, minimum=0.0, strict_minimum=True)
+        _validate_range("peak_jitter_std", self.peak_jitter_std, minimum=0.0)
         _validate_range("specimen_displacement_mm", self.specimen_displacement_mm)
         if not isfinite(self.goniometer_radius_mm) or self.goniometer_radius_mm <= 0:
             raise ValueError("goniometer_radius_mm must be positive and finite")
@@ -100,6 +102,12 @@ class CalibrationArtifacts:
     def apply(self, centers, domain: Domain, backend, rng: np.random.Generator):
         scaled = centers * _sample(self.axis_scale, rng)
         shifted = scaled + _sample(self.zero_shift, rng)
+        jitter_std = _sample(self.peak_jitter_std, rng)
+        if jitter_std:
+            shifted = shifted + backend.asarray(
+                rng.normal(0.0, jitter_std, int(centers.shape[0])),
+                dtype=backend.dtype,
+            )
         displacement = _sample(self.specimen_displacement_mm, rng)
         if displacement:
             if domain != "two_theta":

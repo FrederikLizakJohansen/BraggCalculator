@@ -106,6 +106,45 @@ library format, and the
 [artifact gallery](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/paper/figures/artifact_gallery.png)
 for isolated examples of every effect family.
 
+For ML workloads, ideal powder lines can be cached once and augmented as a
+complete Torch batch without rebuilding structures:
+
+```python
+from braggcalculator import (
+    PeakProfileArtifacts,
+    SimulationArtifacts,
+    apply_peak_artifact_batch,
+    render_artifact_batch,
+)
+
+artifacts = SimulationArtifacts(
+    profile=PeakProfileArtifacts(
+        model="pseudo_voigt", fwhm=(0.03, 0.08), eta=(0.2, 0.8)
+    )
+)
+
+# q_lines, intensities and peak_mask have shape [batch, padded_peaks].
+q_augmented, intensity_augmented, peak_mask = apply_peak_artifact_batch(
+    q_lines, intensities, peak_mask=peak_mask, artifacts=artifacts
+)
+
+# Full profiles and all dense artifacts require a dense or hybrid model input.
+patterns = render_artifact_batch(
+    q_lines,
+    intensities,
+    peak_mask=peak_mask,
+    grid=q_grid,
+    artifacts=artifacts,
+)
+```
+
+The peak-only function applies calibration and intensity effects. The dense
+renderer additionally applies profiles, backgrounds, noise, detector effects,
+and spurious peaks entirely with device-local Torch operations. See
+[batched artifact simulation](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md#batched-torch-artifact-simulation)
+for tensor shapes, metadata requirements, random generators, and measured
+background handling.
+
 ## Torch and autograd
 
 Symmetry detection and HKL enumeration are discrete preprocessing operations.
