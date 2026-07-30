@@ -1,4 +1,4 @@
-"""High-level generated-CIF refinement workflow."""
+"""High-level powder-diffraction refinement workflow."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ class RefinedParameter:
 
 @dataclass(frozen=True)
 class RefinementResult:
-    """Complete result from one generated-CIF refinement workflow."""
+    """Complete result from one structure refinement workflow."""
 
     dataset: DiffractionDataset
     starting_structure: Any
@@ -134,9 +134,9 @@ def load_refinement_dataset(
     )
 
 
-def refine_generated_cif(
+def refine_structure(
     pattern,
-    cif,
+    structure,
     *,
     wavelength: float | None = None,
     radiation: Literal["xray", "neutron"] = "xray",
@@ -150,7 +150,13 @@ def refine_generated_cif(
     species_assignment=None,
     device: str = "cpu",
 ) -> RefinementResult:
-    """Load observed PXRD and a generated CIF, then run the declared refinement."""
+    """Refine a structure against an observed constant-wavelength PXRD pattern.
+
+    ``structure`` accepts every structure input supported by
+    :func:`braggcalculator.io.to_pmg_structure`, including a CIF path, CIF
+    text, and a pymatgen ``Structure``. Pattern coordinates may be two-theta
+    degrees or Q in inverse angstroms.
+    """
     dataset = load_refinement_dataset(
         pattern,
         wavelength=wavelength,
@@ -162,9 +168,7 @@ def refine_generated_cif(
         mask=mask,
         metadata=metadata,
     )
-    if dataset.domain != "two_theta":
-        raise ValueError("generated-CIF refinement currently uses two-theta coordinates")
-    structure = to_pmg_structure(cif)
+    structure = to_pmg_structure(structure)
     selected_policy = RefinementPolicy.quick() if policy is None else policy
     if species_assignment is None:
         candidate = RefinementSession(

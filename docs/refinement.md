@@ -1,6 +1,6 @@
-# Refining a generated CIF against PXRD data
+# Refining a structure against PXRD data
 
-BraggCalculator can take an observed powder pattern and a generated CIF through
+BraggCalculator can take an observed powder pattern and a candidate structure through
 one complete refinement call. The workflow loads both inputs, calculates the
 candidate pattern, changes the selected parameters, and returns the refined
 structure with fit and uncertainty information.
@@ -24,11 +24,11 @@ python -m pip install -e ".[refinement]"
 An XYE file contains two-theta, intensity, and uncertainty:
 
 ```python
-from braggcalculator import RefinementPolicy, refine_generated_cif
+from braggcalculator import RefinementPolicy, refine_structure
 
-result = refine_generated_cif(
+result = refine_structure(
     pattern="observed.xye",
-    cif="generated-candidate.cif",
+    structure="candidate.cif",
     wavelength=1.5406,
     radiation="xray",
     policy=RefinementPolicy.quick(),
@@ -45,6 +45,35 @@ the third column stores \(w=1/\sigma^2\).
 
 `pattern` can also be a NumPy array with two or three columns. Separate
 `sigma=` and `weights=` arrays are available for two-column input.
+
+The structure input can be a CIF path, CIF text, or a pymatgen `Structure`.
+
+### Patterns stored on a Q axis
+
+Set `domain="q"` when the first pattern column contains Q in inverse angstroms:
+
+```python
+result = refine_structure(
+    pattern="observed-q.xye",
+    structure="candidate.cif",
+    domain="q",
+    wavelength=1.5406,
+    radiation="xray",
+)
+```
+
+BraggCalculator converts each Q value to two-theta with
+
+\[
+Q = \frac{4\pi\sin\theta}{\lambda}.
+\]
+
+The profile model uses the converted angles because common constant-wavelength
+instrument functions describe peak width and asymmetry as functions of
+two-theta. `result.coordinate` remains in Q, and the calculated profile and
+residual stay aligned with the supplied Q points. The conversion needs the
+wavelength. `radiation="xray"` or `"neutron"` selects the scattering factors;
+the coordinate equation is the same for both radiation types.
 
 ## Choosing parameters
 
@@ -129,7 +158,7 @@ The result reports diffraction loss and restraint contributions separately.
 
 ## Atom-site permutation
 
-A generated CIF may place the correct elements on the wrong crystallographic
+A candidate structure may place the correct elements on the wrong crystallographic
 sites. Element identity is a discrete choice. BraggCalculator therefore
 screens complete structures first and runs continuous refinement on the best
 assignments.
@@ -148,9 +177,9 @@ assignment = SpeciesAssignmentConfig(
     continuous_top_k=4,
 )
 
-result = refine_generated_cif(
+result = refine_structure(
     pattern="observed.xye",
-    cif="generated-candidate.cif",
+    structure="candidate.cif",
     wavelength=1.5406,
     policy=RefinementPolicy.cautious(refine_coordinates=True),
     species_assignment=assignment,
@@ -165,7 +194,7 @@ Inspect these sites before configuring a search:
 from braggcalculator import asymmetric_unit_sites
 from braggcalculator.io import to_pmg_structure
 
-sites = asymmetric_unit_sites(to_pmg_structure("generated-candidate.cif"))
+sites = asymmetric_unit_sites(to_pmg_structure("candidate.cif"))
 for site in sites:
     print(
         site.site_index,
@@ -293,13 +322,14 @@ CIF, screens the assignments, refines the best two, prints the ranking, and
 writes the best refined CIF:
 
 ```bash
-python demo/refine_generated_cif.py --output refined-demo.cif
+python demo/refine_structure.py --output refined-demo.cif
 ```
 
 ## Current scientific limits
 
-The focused session uses two-theta input. The uncertainty estimates describe
-the local model around the refined solution. Species screening keeps the
+Constant-wavelength Q input is converted to two-theta for the angular instrument
+model. The uncertainty estimates describe the local model around the refined
+solution. Species screening keeps the
 reflection topology and crystallographic symmetry inferred from each complete
 candidate. Powder diffraction may leave element assignments unresolved; the
 ranked ambiguity report carries that information into the result.

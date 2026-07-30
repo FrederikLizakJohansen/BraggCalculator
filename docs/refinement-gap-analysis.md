@@ -29,7 +29,7 @@ within the prepared reflection range.
 
 ## Gaps to close for 0.4.0
 
-1. The public workflow begins with several low-level objects. A generated CIF
+1. The public workflow begins with several low-level objects. A candidate CIF
    user needs one function that loads the pattern and CIF, applies a declared
    policy, and returns one structured result.
 2. `CandidateRefinementResult.structure` stores the starting structure. The
@@ -83,7 +83,7 @@ within the prepared reflection range.
 | `schemas/v1/*` | Service and project schemas | Keep on the extensive branch. |
 | `tutorial_data/*` | UI tutorial artifact | Keep on the extensive branch. |
 
-The focused branch will add `refinement.py` for the generated-CIF entry point
+The focused branch will add `refinement.py` for the structure-refinement entry point
 and `species_assignment.py` for the discrete asymmetric-unit search.
 
 ## Commit classification
@@ -125,7 +125,7 @@ and `species_assignment.py` for the discrete asymmetric-unit search.
 ## Planned public entry point
 
 ```python
-result = refine_generated_cif(
+result = refine_structure(
     pattern="observed.xye",
     cif="candidate.cif",
     wavelength=1.5406,

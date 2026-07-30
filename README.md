@@ -59,7 +59,7 @@ grid, profile = calculator.pattern()
 
 ## Refinement
 
-Version 0.4.0 adds generated-CIF refinement, structured fit results, and
+Version 0.4.0 adds structure refinement, structured fit results, and
 asymmetric-unit species-assignment screening. See the
 [0.4.0 release notes](RELEASE_NOTES.md) for the complete review summary.
 
@@ -69,14 +69,14 @@ Install the Torch refinement extra:
 python -m pip install "braggcalculator[refinement]"
 ```
 
-Refine an observed XYE pattern and a generated CIF through one entry point:
+Refine an observed XYE pattern and a candidate structure through one entry point:
 
 ```python
-from braggcalculator import RefinementPolicy, refine_generated_cif
+from braggcalculator import RefinementPolicy, refine_structure
 
-result = refine_generated_cif(
+result = refine_structure(
     pattern="observed.xye",
-    cif="generated-candidate.cif",
+    structure="candidate.cif",
     wavelength=1.5406,
     radiation="xray",
     policy=RefinementPolicy.cautious(refine_coordinates=True),
@@ -103,9 +103,9 @@ assignment = SpeciesAssignmentConfig(
     continuous_top_k=4,
 )
 
-result = refine_generated_cif(
+result = refine_structure(
     pattern="observed.xye",
-    cif="generated-candidate.cif",
+    structure="candidate.cif",
     wavelength=1.5406,
     policy=RefinementPolicy.cautious(refine_coordinates=True),
     species_assignment=assignment,

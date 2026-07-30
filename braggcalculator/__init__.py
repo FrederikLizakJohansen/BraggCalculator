@@ -48,7 +48,7 @@ from .refinement import (
     RefinedParameter,
     RefinementResult,
     load_refinement_dataset,
-    refine_generated_cif,
+    refine_structure,
 )
 from .restraints import (
     BondAngleRestraint,
@@ -125,7 +125,7 @@ __all__ = [
     "ProfileNuisanceParameterization",
     "recommend_parameter_groups",
     "RefinedParameter",
-    "refine_generated_cif",
+    "refine_structure",
     "RefinementResult",
     "RefinementPolicy",
     "RefinementSession",

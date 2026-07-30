@@ -1,4 +1,4 @@
-"""Run the generated-CIF refinement and species-assignment workflow."""
+"""Run structure refinement with species-assignment screening."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from braggcalculator import (
     RefinementPolicy,
     SpeciesAssignmentConfig,
     asymmetric_unit_sites,
-    refine_generated_cif,
+    refine_structure,
 )
 from braggcalculator.io import to_pmg_structure
 from braggcalculator.experimental_profile import (
@@ -91,7 +91,7 @@ def run(output: Path):
             ),
         ),
     )
-    result = refine_generated_cif(
+    result = refine_structure(
         pattern,
         candidate_path,
         wavelength=generator.wavelength,

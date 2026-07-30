@@ -80,9 +80,8 @@ class PhaseMixtureSession:
     """Refine several fixed structures as phases in one observed pattern."""
 
     def __init__(self, dataset: DiffractionDataset, phases, *, names=None, device="cpu"):
-        if dataset.domain != "two_theta":
-            raise NotImplementedError("phase mixtures currently require two_theta data")
-        self.dataset = dataset
+        self.input_dataset = dataset
+        self.dataset = dataset.convert_domain("two_theta")
         self.structures = tuple(to_pmg_structure(phase) for phase in phases)
         if len(self.structures) < 2:
             raise ValueError("a phase mixture requires at least two structures")
@@ -365,11 +364,16 @@ class PhaseMixtureSession:
             identifiability=identifiability,
             phase_detectability=detectability,
             informative_regions=_informative_regions(
-                self.dataset.coordinate, residual / self.dataset.sigma, count=5
+                self.input_dataset.coordinate, residual / self.dataset.sigma, count=5
             ),
             warnings=tuple(warnings),
             provenance={
                 "fraction_definition": "integrated profile area over fitted range",
+                "coordinate_system": {
+                    "input_domain": self.input_dataset.domain,
+                    "refinement_domain": self.dataset.domain,
+                    "wavelength_angstrom": self.dataset.wavelength,
+                },
                 "observation_uncertainty": {
                     "model": (
                         "full covariance"

@@ -1,7 +1,7 @@
 # API reference
 
-The [generated-CIF refinement guide](refinement.md) covers the high-level
-`refine_generated_cif()` workflow, refinement policies, parameter bounds,
+The [structure refinement guide](refinement.md) covers the high-level
+`refine_structure()` workflow, refinement policies, parameter bounds,
 species assignment, ambiguity reporting, and screening performance.
 
 The version 0.4.0 top-level API covers ideal and artifact-augmented simulation,

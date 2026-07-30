@@ -375,9 +375,8 @@ class RefinementSession:
     """Refine and compare plausible structures against one powder dataset."""
 
     def __init__(self, dataset: DiffractionDataset, models, *, names=None, device="cpu"):
-        if dataset.domain != "two_theta":
-            raise NotImplementedError("experimental sessions currently require two_theta data")
-        self.dataset = dataset
+        self.input_dataset = dataset
+        self.dataset = dataset.convert_domain("two_theta")
         self.structures = tuple(to_pmg_structure(model) for model in models)
         if not self.structures:
             raise ValueError("at least one candidate model is required")
@@ -1207,7 +1206,7 @@ class RefinementSession:
                 "Validate the refined structural parameters across restarts and held-out regions."
             )
         regions = _informative_regions(
-            self.dataset.coordinate, residual / self.dataset.sigma, count=5
+            self.input_dataset.coordinate, residual / self.dataset.sigma, count=5
         )
         identifiability = _local_identifiability(
             calculate,
@@ -1273,6 +1272,11 @@ class RefinementSession:
             warnings=tuple(warnings),
             provenance={
                 "dataset_sha256": self.dataset.source_sha256,
+                "coordinate_system": {
+                    "input_domain": self.input_dataset.domain,
+                    "refinement_domain": self.dataset.domain,
+                    "wavelength_angstrom": self.dataset.wavelength,
+                },
                 "observation_uncertainty": {
                     "model": (
                         "full covariance"
@@ -1433,7 +1437,7 @@ class RefinementSession:
             conclusion = (
                 f"{ranking[0]} has the lowest {metric}; inspect robustness and residual evidence."
             )
-        return SessionResult(self.dataset, candidates, ranking, pairwise, conclusion)
+        return SessionResult(self.input_dataset, candidates, ranking, pairwise, conclusion)
 
     def write_html(self, result: SessionResult, path) -> Path:
         output = Path(path)
@@ -1448,6 +1452,7 @@ def refined_structure_from_candidate(
     """Rebuild the final pymatgen structure from a refinement checkpoint."""
     from pymatgen.core import Structure
 
+    dataset = dataset.convert_domain("two_theta")
     policy = candidate.provenance["policy"]
     checkpoint = candidate.provenance["checkpoint"]["raw_groups"]
     calculator = BraggCalculator(

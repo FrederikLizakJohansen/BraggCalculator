@@ -588,8 +588,7 @@ def _structure_with_assignment(structure, sites, assignment, *, displacement_pol
 
 
 def _screening_score(dataset, structure, *, background_degree):
-    if dataset.domain != "two_theta":
-        raise ValueError("species screening currently uses two-theta coordinates")
+    dataset = dataset.convert_domain("two_theta")
     calculator = BraggCalculator(
         mode=dataset.radiation,
         wavelength=dataset.wavelength,

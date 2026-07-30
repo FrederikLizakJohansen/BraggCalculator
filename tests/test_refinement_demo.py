@@ -1,4 +1,4 @@
-from demo.refine_generated_cif import run
+from demo.refine_structure import run
 
 
 def test_compact_refinement_demo_recovers_assignment_and_writes_cif(tmp_path):

@@ -66,6 +66,15 @@ class DiffractionDataset:
             raise ValueError("radiation must be 'xray' or 'neutron'")
         if not np.isfinite(self.wavelength) or self.wavelength <= 0:
             raise ValueError("wavelength must be positive and finite")
+        if self.domain == "q":
+            if np.any(coordinate < 0):
+                raise ValueError("Q coordinates must be non-negative")
+            maximum_q = 4.0 * np.pi / self.wavelength
+            if np.any(coordinate > maximum_q * (1.0 + 1e-12)):
+                raise ValueError(
+                    "Q coordinate exceeds the elastic-scattering limit "
+                    f"4π/λ = {maximum_q:.8g} Å⁻¹"
+                )
         object.__setattr__(self, "coordinate", coordinate)
         object.__setattr__(self, "intensity", intensity)
         object.__setattr__(self, "sigma", sigma)
@@ -210,6 +219,54 @@ class DiffractionDataset:
                 if self.observation_covariance is not None
                 else None
             ),
+        )
+
+    def convert_domain(
+        self,
+        domain: Literal["two_theta", "q"],
+    ) -> "DiffractionDataset":
+        """Return the same observations on a two-theta or Q coordinate axis.
+
+        The conversion uses the elastic-scattering relation
+        ``Q = 4 pi sin(theta) / wavelength``. Intensities, uncertainties,
+        masks, and covariance values keep their point-by-point ordering.
+        """
+        if domain not in {"two_theta", "q"}:
+            raise ValueError("domain must be 'two_theta' or 'q'")
+        if domain == self.domain:
+            return self
+        if self.domain == "q":
+            argument = self.coordinate * self.wavelength / (4.0 * np.pi)
+            if np.any(self.coordinate < 0):
+                raise ValueError("Q coordinates must be non-negative")
+            if np.any(argument > 1.0 + 1e-12):
+                maximum_q = 4.0 * np.pi / self.wavelength
+                raise ValueError(
+                    "Q coordinate exceeds the elastic-scattering limit "
+                    f"4π/λ = {maximum_q:.8g} Å⁻¹"
+                )
+            coordinate = np.degrees(2.0 * np.arcsin(np.clip(argument, 0.0, 1.0)))
+        else:
+            if np.any((self.coordinate < 0) | (self.coordinate > 180)):
+                raise ValueError("two-theta coordinates must lie between 0 and 180 degrees")
+            coordinate = (
+                4.0
+                * np.pi
+                * np.sin(np.radians(self.coordinate) / 2.0)
+                / self.wavelength
+            )
+        metadata = dict(self.metadata)
+        metadata["coordinate_conversion"] = {
+            "input_domain": self.domain,
+            "output_domain": domain,
+            "wavelength_angstrom": self.wavelength,
+            "relation": "Q = 4 pi sin(theta) / wavelength",
+        }
+        return replace(
+            self,
+            coordinate=coordinate,
+            domain=domain,
+            metadata=metadata,
         )
 
     def exclude(self, ranges) -> "DiffractionDataset":

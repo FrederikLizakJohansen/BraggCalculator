@@ -12,7 +12,7 @@ from braggcalculator import (
     apply_species_assignment,
     asymmetric_unit_sites,
     enumerate_species_assignments,
-    refine_generated_cif,
+    refine_structure,
     refine_species_assignments,
 )
 from braggcalculator.io import to_pmg_structure
@@ -246,10 +246,16 @@ def test_homometric_two_site_swap_is_reported_as_ambiguous():
 def test_observed_to_ranked_refined_cif_workflow(tmp_path):
     target, swapped = _structures()
     dataset = _dataset(target)
-    pattern = np.column_stack(
-        (dataset.coordinate, dataset.intensity, dataset.sigma)
+    q = (
+        4.0
+        * np.pi
+        * np.sin(np.radians(dataset.coordinate) / 2.0)
+        / dataset.wavelength
     )
-    cif = tmp_path / "generated.cif"
+    pattern = np.column_stack(
+        (q, dataset.intensity, dataset.sigma)
+    )
+    cif = tmp_path / "candidate.cif"
     CifWriter(swapped, symprec=None).write_file(cif)
     parsed_sites = asymmetric_unit_sites(to_pmg_structure(cif))
     fixed = next(
@@ -258,10 +264,11 @@ def test_observed_to_ranked_refined_cif_workflow(tmp_path):
         if site.original_species[0][0] == "Cs"
     )
 
-    result = refine_generated_cif(
+    result = refine_structure(
         pattern,
         cif,
         wavelength=dataset.wavelength,
+        domain="q",
         policy=_screening_policy(),
         species_assignment=SpeciesAssignmentConfig(
             search="complete",
@@ -275,3 +282,5 @@ def test_observed_to_ranked_refined_cif_workflow(tmp_path):
     assert assignments.candidates[0].continuous_result is not None
     assert result.refined_cif == assignments.candidates[0].refined_cif
     assert assignments.evaluated_count == 2
+    assert result.dataset.domain == "q"
+    np.testing.assert_allclose(result.coordinate, q)

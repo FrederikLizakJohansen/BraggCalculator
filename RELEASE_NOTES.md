@@ -4,8 +4,10 @@ Release date: 30 July 2026
 
 ## Refinement workflow
 
-- `refine_generated_cif()` loads observed XY/XYE data and a candidate CIF,
+- `refine_structure()` loads observed XY/XYE data and a candidate structure,
   runs a declared staged refinement, and returns one structured result.
+- Two-theta and Q pattern coordinates are accepted. Q data use the supplied
+  wavelength for an exact constant-wavelength coordinate conversion.
 - `RefinementResult` carries the refined structure and CIF, calculated profile,
   residual, objective trace, convergence evidence, parameter values and
   physical bounds, fit statistics, identifiability diagnostics, warnings, and
@@ -38,8 +40,9 @@ Release date: 30 July 2026
 
 ## Scientific scope
 
-The focused refinement session accepts two-theta data. Local covariance and
-identifiability describe the declared forward model near the refined solution.
-The species-assignment result reports a group of indistinguishable candidates
-when the supplied PXRD pattern does not select one assignment within the
-configured tolerance.
+The focused refinement session accepts two-theta and constant-wavelength Q
+data. Q coordinates are converted with the supplied wavelength for the angular
+instrument model. Local covariance and identifiability describe the declared
+forward model near the refined solution. The species-assignment result reports
+a group of indistinguishable candidates when the supplied PXRD pattern does
+not select one assignment within the configured tolerance.

@@ -33,7 +33,11 @@ def _unit_profile(structure, grid, wavelength):
     return profile / (np.sum(profile) * np.median(np.diff(grid)))
 
 
-def test_fixed_structure_phase_mixture_recovers_profile_area_fractions_and_report(tmp_path):
+@pytest.mark.parametrize("domain", ["two_theta", "q"])
+def test_fixed_structure_phase_mixture_recovers_profile_area_fractions_and_report(
+    tmp_path,
+    domain,
+):
     pytest.importorskip("torch")
     wavelength = 1.5406
     grid = np.arange(20.0, 90.0001, 0.06)
@@ -51,7 +55,7 @@ def test_fixed_structure_phase_mixture_recovers_profile_area_fractions_and_repor
         domain="two_theta",
         wavelength=wavelength,
         metadata={"kind": "synthetic two-phase profile-area fraction recovery"},
-    )
+    ).convert_domain(domain)
     policy = PhaseMixturePolicy(
         initial_fractions=(0.5, 0.5),
         refine_profile=False,
@@ -72,6 +76,7 @@ def test_fixed_structure_phase_mixture_recovers_profile_area_fractions_and_repor
     assert result.phase_fractions["CsCl"] == pytest.approx(target[1], abs=5e-4)
     assert result.r_wp < 2e-3
     assert result.provenance["fraction_definition"] == "integrated profile area over fitted range"
+    assert result.provenance["coordinate_system"]["input_domain"] == domain
     assert any("not quantitative mass fractions" in warning for warning in result.warnings)
     report = session.write_html(result, tmp_path / "mixture.html")
     assert "Profile-area fraction" in report.read_text(encoding="utf-8")

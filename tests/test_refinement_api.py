@@ -9,7 +9,7 @@ from braggcalculator import (
     OptimizationStage,
     RefinementPolicy,
     load_refinement_dataset,
-    refine_generated_cif,
+    refine_structure,
 )
 
 
@@ -35,7 +35,7 @@ def _synthetic_pattern(structure):
     return calculator, np.column_stack((coordinate, intensity, np.ones(len(coordinate))))
 
 
-def test_generated_cif_entry_point_returns_complete_structured_result(tmp_path):
+def test_structure_entry_point_returns_complete_structured_result(tmp_path):
     structure = Structure(
         Lattice.cubic(4.1),
         ["Cs", "Cl"],
@@ -45,7 +45,7 @@ def test_generated_cif_entry_point_returns_complete_structured_result(tmp_path):
     cif = tmp_path / "candidate.cif"
     CifWriter(structure, symprec=None).write_file(cif)
 
-    result = refine_generated_cif(
+    result = refine_structure(
         pattern,
         cif,
         wavelength=calculator.wavelength,
@@ -96,24 +96,70 @@ def test_dataset_loader_accepts_sigma_weights_and_checked_dataset():
         (np.array([[10.0, 1.0], [11.0, np.nan], [12.0, 3.0]]), "intensity must be finite"),
     ],
 )
-def test_generated_cif_workflow_rejects_invalid_experimental_arrays(pattern, message):
+def test_structure_workflow_rejects_invalid_experimental_arrays(pattern, message):
     with pytest.raises(ValueError, match=message):
         load_refinement_dataset(pattern, wavelength=1.54)
 
 
-def test_generated_cif_workflow_rejects_invalid_cif_and_q_session(tmp_path):
+def test_structure_workflow_rejects_invalid_cif(tmp_path):
     pattern = np.array([[10.0, 1.0], [11.0, 2.0], [12.0, 3.0]])
     invalid = tmp_path / "invalid.cif"
     invalid.write_text("this is not a CIF", encoding="utf-8")
     with pytest.raises((ValueError, KeyError, IndexError)):
-        refine_generated_cif(pattern, invalid, wavelength=1.54, policy=_short_policy())
+        refine_structure(pattern, invalid, wavelength=1.54, policy=_short_policy())
 
-    structure = Structure(Lattice.cubic(4.0), ["Si"], [[0, 0, 0]])
-    with pytest.raises(ValueError, match="two-theta"):
-        refine_generated_cif(
-            pattern,
-            structure,
-            wavelength=1.54,
-            domain="q",
-            policy=_short_policy(),
-        )
+
+@pytest.mark.parametrize("radiation", ["xray", "neutron"])
+def test_q_input_matches_two_theta_refinement_and_preserves_output_axis(radiation):
+    structure = Structure(
+        Lattice.cubic(4.1),
+        ["Cs", "Cl"],
+        [[0, 0, 0], [0.5, 0.5, 0.5]],
+    )
+    calculator, two_theta_pattern = _synthetic_pattern(structure)
+    wavelength = float(calculator.wavelength)
+    q = (
+        4.0
+        * np.pi
+        * np.sin(np.radians(two_theta_pattern[:, 0]) / 2.0)
+        / wavelength
+    )
+    q_pattern = two_theta_pattern.copy()
+    q_pattern[:, 0] = q
+
+    angular = refine_structure(
+        two_theta_pattern,
+        structure,
+        wavelength=wavelength,
+        radiation=radiation,
+        policy=_short_policy(),
+    )
+    reciprocal = refine_structure(
+        q_pattern,
+        structure,
+        wavelength=wavelength,
+        radiation=radiation,
+        domain="q",
+        policy=_short_policy(),
+    )
+
+    assert reciprocal.dataset.domain == "q"
+    np.testing.assert_allclose(reciprocal.coordinate, q)
+    np.testing.assert_allclose(reciprocal.calculated, angular.calculated, rtol=1e-10, atol=1e-10)
+    np.testing.assert_allclose(
+        reciprocal.objective_history,
+        angular.objective_history,
+        rtol=1e-10,
+        atol=1e-10,
+    )
+    assert reciprocal.provenance["coordinate_system"] == {
+        "input_domain": "q",
+        "refinement_domain": "two_theta",
+        "wavelength_angstrom": wavelength,
+    }
+
+
+def test_q_input_checks_elastic_scattering_range():
+    pattern = np.array([[1.0, 1.0], [2.0, 2.0], [9.0, 3.0]])
+    with pytest.raises(ValueError, match="elastic-scattering limit"):
+        load_refinement_dataset(pattern, wavelength=1.54, domain="q")
