@@ -13,8 +13,8 @@ def test_release_version_is_consistent():
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     bibliography = (ROOT / "paper/paper.bib").read_text(encoding="utf-8")
 
-    assert braggcalculator.__version__ == "0.4.0"
+    assert braggcalculator.__version__ == "0.4.1"
     assert project["tool"]["poetry"]["version"] == braggcalculator.__version__
-    assert re.search(r"^version: 0\.4\.0$", citation, flags=re.MULTILINE)
+    assert re.search(r"^version: 0\.4\.1$", citation, flags=re.MULTILINE)
     assert 'date-released: "2026-07-30"' in citation
-    assert "version = {0.4.0}" in bibliography
+    assert "version = {0.4.1}" in bibliography

@@ -57,66 +57,6 @@ two_theta, integrated_intensity = calculator.line_pattern(scaled=True)
 grid, profile = calculator.pattern()
 ```
 
-## Refinement
-
-Version 0.4.0 adds structure refinement, structured fit results, and
-asymmetric-unit species-assignment screening. See the
-[0.4.0 release notes](RELEASE_NOTES.md) for the complete review summary.
-
-Install the Torch refinement extra:
-
-```bash
-python -m pip install "braggcalculator[refinement]"
-```
-
-Refine an observed XYE pattern and a candidate structure through one entry point:
-
-```python
-from braggcalculator import RefinementPolicy, refine_structure
-
-result = refine_structure(
-    pattern="observed.xye",
-    structure="candidate.cif",
-    wavelength=1.5406,
-    radiation="xray",
-    policy=RefinementPolicy.cautious(refine_coordinates=True),
-)
-
-print(result.fit_statistics["r_wp"])
-result.write_cif("refined.cif")
-```
-
-The result includes the refined structure, calculated profile, residual,
-objective history, convergence record, parameter values and bounds,
-identifiability diagnostics, warnings, and provenance.
-
-A discrete species-assignment stage can screen element swaps across independent
-crystallographic sites:
-
-```python
-from braggcalculator import SpeciesAssignmentConfig
-
-assignment = SpeciesAssignmentConfig(
-    search="auto",
-    fixed_sites=(2,),
-    max_candidates=128,
-    continuous_top_k=4,
-)
-
-result = refine_structure(
-    pattern="observed.xye",
-    structure="candidate.cif",
-    wavelength=1.5406,
-    policy=RefinementPolicy.cautious(refine_coordinates=True),
-    species_assignment=assignment,
-)
-```
-
-The search keeps composition fixed by default, checks Wyckoff multiplicities,
-and marks assignments with experimentally indistinguishable refined scores.
-See the [refinement guide](docs/refinement.md) for parameter selection, site
-rules, result interpretation, and performance guidance.
-
 `line_pattern()` returns the conventional merged powder lines. `pattern()`
 returns an area-normalized Gaussian profile on a regular grid.
 `reflection_table()` provides the corresponding HKLs, d-spacings, Q values,
@@ -205,6 +145,66 @@ and spurious peaks entirely with device-local Torch operations. See
 [batched artifact simulation](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md#batched-torch-artifact-simulation)
 for tensor shapes, metadata requirements, random generators, and measured
 background handling.
+
+## Refinement
+
+BraggCalculator 0.4 adds structure refinement, structured fit results, and
+asymmetric-unit species-assignment screening. See the
+[0.4.1 release notes](RELEASE_NOTES.md) for the current release summary.
+
+Install the Torch refinement extra:
+
+```bash
+python -m pip install "braggcalculator[refinement]"
+```
+
+Refine an observed XYE pattern and a candidate structure through one entry point:
+
+```python
+from braggcalculator import RefinementPolicy, refine_structure
+
+result = refine_structure(
+    pattern="observed.xye",
+    structure="candidate.cif",
+    wavelength=1.5406,
+    radiation="xray",
+    policy=RefinementPolicy.cautious(refine_coordinates=True),
+)
+
+print(result.fit_statistics["r_wp"])
+result.write_cif("refined.cif")
+```
+
+The result includes the refined structure, calculated profile, residual,
+objective history, convergence record, parameter values and bounds,
+identifiability diagnostics, warnings, and provenance.
+
+A discrete species-assignment stage can screen element swaps across independent
+crystallographic sites:
+
+```python
+from braggcalculator import SpeciesAssignmentConfig
+
+assignment = SpeciesAssignmentConfig(
+    search="auto",
+    fixed_sites=(2,),
+    max_candidates=128,
+    continuous_top_k=4,
+)
+
+result = refine_structure(
+    pattern="observed.xye",
+    structure="candidate.cif",
+    wavelength=1.5406,
+    policy=RefinementPolicy.cautious(refine_coordinates=True),
+    species_assignment=assignment,
+)
+```
+
+The search keeps composition fixed by default, checks Wyckoff multiplicities,
+and marks assignments with experimentally indistinguishable refined scores.
+See the [refinement guide](docs/refinement.md) for parameter selection, site
+rules, result interpretation, and performance guidance.
 
 ## Torch and autograd
 
