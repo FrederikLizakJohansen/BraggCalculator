@@ -33,6 +33,7 @@ ase = {version = ">=3.23,<4", optional = true}
 
 [tool.poetry.extras]
 torch = ["torch"]
+refinement = ["torch"]
 ase = ["ase"]
 all = ["torch", "ase"]
 

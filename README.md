@@ -56,6 +56,62 @@ two_theta, integrated_intensity = calculator.line_pattern(scaled=True)
 grid, profile = calculator.pattern()
 ```
 
+## Refinement
+
+Install the Torch refinement extra:
+
+```bash
+python -m pip install "braggcalculator[refinement]"
+```
+
+Refine an observed XYE pattern and a generated CIF through one entry point:
+
+```python
+from braggcalculator import RefinementPolicy, refine_generated_cif
+
+result = refine_generated_cif(
+    pattern="observed.xye",
+    cif="generated-candidate.cif",
+    wavelength=1.5406,
+    radiation="xray",
+    policy=RefinementPolicy.cautious(refine_coordinates=True),
+)
+
+print(result.fit_statistics["r_wp"])
+result.write_cif("refined.cif")
+```
+
+The result includes the refined structure, calculated profile, residual,
+objective history, convergence record, parameter values and bounds,
+identifiability diagnostics, warnings, and provenance.
+
+A discrete species-assignment stage can screen element swaps across independent
+crystallographic sites:
+
+```python
+from braggcalculator import SpeciesAssignmentConfig
+
+assignment = SpeciesAssignmentConfig(
+    search="auto",
+    fixed_sites=(2,),
+    max_candidates=128,
+    continuous_top_k=4,
+)
+
+result = refine_generated_cif(
+    pattern="observed.xye",
+    cif="generated-candidate.cif",
+    wavelength=1.5406,
+    policy=RefinementPolicy.cautious(refine_coordinates=True),
+    species_assignment=assignment,
+)
+```
+
+The search keeps composition fixed by default, checks Wyckoff multiplicities,
+and marks assignments with experimentally indistinguishable refined scores.
+See the [refinement guide](docs/refinement.md) for parameter selection, site
+rules, result interpretation, and performance guidance.
+
 `line_pattern()` returns the conventional merged powder lines. `pattern()`
 returns an area-normalized Gaussian profile on a regular grid.
 `reflection_table()` provides the corresponding HKLs, d-spacings, Q values,
