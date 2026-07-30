@@ -10,7 +10,8 @@ FWHM_TO_SIGMA = 1.0 / (2.0 * sqrt(2.0 * log(2.0)))
 
 
 def _render_gaussian(grid, centers, amplitudes, sigma, backend, max_entries):
-    if sigma <= 0:
+    sigma_value = float(sigma.detach().cpu()) if hasattr(sigma, "detach") else float(sigma)
+    if sigma_value <= 0:
         raise ValueError("Gaussian FWHM must be positive")
     if max_entries <= 0:
         raise ValueError("max_entries must be positive")
@@ -35,8 +36,9 @@ class GaussianProfile:
     fwhm_deg: float = 0.1
     max_entries: int = 4_194_304
 
-    def render(self, grid, centers, amplitudes, backend):
-        sigma = self.fwhm_deg * FWHM_TO_SIGMA
+    def render(self, grid, centers, amplitudes, backend, *, fwhm=None):
+        width = self.fwhm_deg if fwhm is None else fwhm
+        sigma = width * FWHM_TO_SIGMA
         return _render_gaussian(grid, centers, amplitudes, sigma, backend, self.max_entries)
 
 
@@ -47,6 +49,7 @@ class GaussianProfileQ:
     fwhm_q: float = 0.02
     max_entries: int = 4_194_304
 
-    def render(self, grid_q, centers_q, amplitudes, backend):
-        sigma = self.fwhm_q * FWHM_TO_SIGMA
+    def render(self, grid_q, centers_q, amplitudes, backend, *, fwhm=None):
+        width = self.fwhm_q if fwhm is None else fwhm
+        sigma = width * FWHM_TO_SIGMA
         return _render_gaussian(grid_q, centers_q, amplitudes, sigma, backend, self.max_entries)

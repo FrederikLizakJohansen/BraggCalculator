@@ -13,26 +13,109 @@ from .artifacts import (
     SpuriousPeakArtifacts,
 )
 from .core import BraggCalculator
+from .dataset import DiffractionDataset
+from .experiment import ProfileNuisanceParameterization
 from .batched_artifacts import apply_peak_artifact_batch, render_artifact_batch
-from .results import ReflectionTable
+from .mixture import PhaseMixturePolicy, PhaseMixtureResult, PhaseMixtureSession
+from .optimization import (
+    GaussNewtonResult,
+    OptimizationStage,
+    ReleaseDecision,
+    StageOutcome,
+    StagedOptimizationResult,
+    damped_gauss_newton,
+    recommend_parameter_groups,
+    staged_adam,
+    staged_optimize,
+)
+from .parameters import (
+    AnisotropicDisplacementOrbitSpec,
+    IsotropicDisplacementOrbitSpec,
+    OccupancyOrbitSpec,
+    OrbitCoordinateSpec,
+    RigidBodyParameterization,
+    RigidBodySpec,
+    SimplexPhaseFractionParameterization,
+    SymmetryAnisotropicDisplacementParameterization,
+    SymmetryCoordinateParameterization,
+    SymmetryIsotropicDisplacementParameterization,
+    SymmetryLatticeParameterization,
+    SymmetryOccupancyParameterization,
+    lattice_parameters,
+)
+from .radiation import nist_copper_ka_spectrum
+from .restraints import (
+    BondAngleRestraint,
+    BondLengthRestraint,
+    CompositionRestraint,
+    MinimumDistanceRestraint,
+    StructuralRestraintSet,
+)
+from .results import JacobianDiagnostics, ReflectionTable
+from .sensitivity import ParameterPath, analyze_jacobian, torch_profile_jacobian
+from .session import CandidateRefinementResult, RefinementPolicy, RefinementSession, SessionResult
+from .uncertainty import BootstrapResult, parametric_bootstrap
 from ._version import __version__
 
 __all__ = [
     "AmorphousHump",
+    "AnisotropicDisplacementOrbitSpec",
     "apply_peak_artifact_batch",
+    "analyze_jacobian",
     "BackgroundArtifacts",
     "BackgroundLibrary",
     "BackgroundPattern",
+    "BondAngleRestraint",
+    "BondLengthRestraint",
+    "BootstrapResult",
     "BraggCalculator",
     "CalibrationArtifacts",
+    "CandidateRefinementResult",
+    "CompositionRestraint",
+    "damped_gauss_newton",
     "DetectorArtifacts",
+    "DiffractionDataset",
+    "GaussNewtonResult",
     "IntensityArtifacts",
+    "IsotropicDisplacementOrbitSpec",
+    "JacobianDiagnostics",
+    "lattice_parameters",
+    "MinimumDistanceRestraint",
+    "nist_copper_ka_spectrum",
     "NoiseArtifacts",
+    "OccupancyOrbitSpec",
+    "OptimizationStage",
+    "OrbitCoordinateSpec",
+    "ParameterPath",
+    "parametric_bootstrap",
     "PeakProfileArtifacts",
+    "PhaseMixturePolicy",
+    "PhaseMixtureResult",
+    "PhaseMixtureSession",
     "PreferredOrientation",
+    "ProfileNuisanceParameterization",
+    "recommend_parameter_groups",
+    "RefinementPolicy",
+    "RefinementSession",
+    "ReleaseDecision",
     "ReflectionTable",
     "render_artifact_batch",
+    "RigidBodyParameterization",
+    "RigidBodySpec",
+    "SessionResult",
+    "SimplexPhaseFractionParameterization",
     "SimulationArtifacts",
     "SpuriousPeakArtifacts",
+    "StageOutcome",
+    "staged_adam",
+    "staged_optimize",
+    "StagedOptimizationResult",
+    "StructuralRestraintSet",
+    "SymmetryAnisotropicDisplacementParameterization",
+    "SymmetryCoordinateParameterization",
+    "SymmetryIsotropicDisplacementParameterization",
+    "SymmetryLatticeParameterization",
+    "SymmetryOccupancyParameterization",
+    "torch_profile_jacobian",
     "__version__",
 ]

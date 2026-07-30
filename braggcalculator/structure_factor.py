@@ -35,7 +35,7 @@ def reflection_geometry(backend: Any, hkl, lattice, wavelength: float):
     return g, two_theta
 
 
-def compute_F2(
+def compute_F(
     mode: Literal["xray", "neutron"],
     backend: Any,
     hkl,
@@ -46,14 +46,17 @@ def compute_F2(
     occ,
     B,
     *,
+    lattice=None,
+    U_cart=None,
     neutron_scattering_lengths: Mapping[str | int, float | str] | None = None,
     phase_chunk_entries: int = 4_194_304,
 ):
-    """Compute ``|F(hkl)|^2`` using integrated site occupancies.
+    """Compute complex ``F(hkl)`` using integrated site occupancies.
 
-    ``B`` is the isotropic Debye-Waller ``B`` value in square angstroms, so
-    the amplitude correction is ``exp(-B * s**2)`` with
-    ``s = sin(theta) / wavelength``.
+    ``B`` is the isotropic Debye-Waller value in square angstroms. When
+    ``U_cart`` is supplied it replaces ``B`` and uses the Cartesian convention
+    ``exp(-0.5 * G.T @ U_cart @ G)`` with reciprocal vector ``G`` in inverse
+    angstroms.
     """
     if mode not in {"xray", "neutron"}:
         raise ValueError("mode must be 'xray' or 'neutron'")
@@ -65,6 +68,11 @@ def compute_F2(
     frac = bk.asarray(frac, dtype=bk.dtype)
     occ = bk.asarray(occ, dtype=bk.dtype)
     B = bk.asarray(B, dtype=bk.dtype)
+    if U_cart is not None:
+        if lattice is None:
+            raise ValueError("lattice is required when U_cart is supplied")
+        lattice = bk.asarray(lattice, dtype=bk.dtype)
+        U_cart = bk.asarray(U_cart, dtype=bk.dtype)
     two_theta = bk.asarray(two_theta, dtype=bk.dtype)
 
     atom_count = int(frac.shape[0])
@@ -96,13 +104,54 @@ def compute_F2(
 
         phase = 2.0 * bk.pi() * bk.matmul(hkl_part, frac.T)
         phase_factor = bk.cos(phase) + 1j * bk.sin(phase)
-        dw = 1.0 if zero_b else bk.exp(-B[None, :] * (s[:, None] ** 2))
+        if U_cart is not None:
+            reciprocal = 2.0 * bk.pi() * bk.matmul(hkl_part, bk.inverse(lattice.T))
+            exponent = -0.5 * bk.einsum("hi,aij,hj->ha", reciprocal, U_cart, reciprocal)
+            dw = bk.exp(exponent)
+        else:
+            dw = 1.0 if zero_b else bk.exp(-B[None, :] * (s[:, None] ** 2))
         amplitude = bk.sum(
             scattering * occ[None, :] * phase_factor * dw,
             axis=1,
         )
-        outputs.append(bk.real(amplitude * bk.conj(amplitude)))
+        outputs.append(amplitude)
 
     if not outputs:
-        return bk.zeros((0,), dtype=bk.dtype)
+        complex_dtype = bk.complex128 if bk.dtype == bk.float64 else bk.complex64
+        return bk.zeros((0,), dtype=complex_dtype)
     return outputs[0] if len(outputs) == 1 else bk.concat(outputs, axis=0)
+
+
+def compute_F2(
+    mode: Literal["xray", "neutron"],
+    backend: Any,
+    hkl,
+    two_theta,
+    wavelength,
+    Z,
+    frac,
+    occ,
+    B,
+    *,
+    lattice=None,
+    U_cart=None,
+    neutron_scattering_lengths: Mapping[str | int, float | str] | None = None,
+    phase_chunk_entries: int = 4_194_304,
+):
+    """Compute ``|F(hkl)|^2`` from the shared complex-amplitude kernel."""
+    amplitude = compute_F(
+        mode=mode,
+        backend=backend,
+        hkl=hkl,
+        two_theta=two_theta,
+        wavelength=wavelength,
+        Z=Z,
+        frac=frac,
+        occ=occ,
+        B=B,
+        lattice=lattice,
+        U_cart=U_cart,
+        neutron_scattering_lengths=neutron_scattering_lengths,
+        phase_chunk_entries=phase_chunk_entries,
+    )
+    return backend.real(amplitude * backend.conj(amplitude))

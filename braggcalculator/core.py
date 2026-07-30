@@ -14,7 +14,7 @@ from .io import to_pmg_structure
 from .profiles import GaussianProfile, GaussianProfileQ
 from .results import ReflectionTable
 from .renderer import apply_lp_and_multiplicity, render_profile, render_profile_q
-from .structure_factor import compute_F2, reflection_geometry
+from .structure_factor import compute_F, compute_F2, reflection_geometry
 from .symmetry import SymmetryEngine
 
 
@@ -117,13 +117,16 @@ class BraggCalculator:
 
         if self.debye_waller_factors:
             b_values = self._symm["B"].copy()
+            u_values = self._symm["U_cart"].copy()
             for index, symbol in enumerate(self._symm["symbols"]):
                 if symbol in self.debye_waller_factors:
                     value = float(self.debye_waller_factors[symbol])
                     if value < 0 or not np.isfinite(value):
                         raise ValueError(f"invalid Debye-Waller B value for {symbol}: {value}")
                     b_values[index] = value
+                    u_values[index] = np.eye(3) * value / (8.0 * np.pi**2)
             self._symm["B"] = b_values
+            self._symm["U_cart"] = u_values
 
         self._hkl = HKLEnumerator(self.wavelength, self.qmax).enumerate(
             self._symm["lattice"], self._symm["pointgroup_symbol"]
@@ -140,11 +143,14 @@ class BraggCalculator:
     ) -> dict[str, Any]:
         """Return backend arrays suitable for the ``parameters=`` argument.
 
-        Valid differentiable names are ``lattice``, ``frac_coords``,
-        ``occupancies`` and ``b_iso``.  Species and the HKL list are discrete.
+        Valid differentiable names are ``lattice``, ``frac_coords`` and
+        ``occupancies``, plus ``b_iso`` for isotropic structures or ``u_cart``
+        when the loaded structure contains anisotropic displacement tensors.
+        Species and the HKL list are discrete.
         """
         self._ensure_loaded()
-        names = {"lattice", "frac_coords", "occupancies", "b_iso"}
+        displacement_name = "u_cart" if self._symm["has_anisotropic_displacement"] else "b_iso"
+        names = {"lattice", "frac_coords", "occupancies", displacement_name}
         if isinstance(requires_grad, bool):
             grad_names = names if requires_grad else set()
         else:
@@ -157,7 +163,7 @@ class BraggCalculator:
             "lattice": self._symm["lattice"],
             "frac_coords": self._symm["frac_coords"],
             "occupancies": self._symm["occ"],
-            "b_iso": self._symm["B"],
+            displacement_name: self._symm["U_cart" if displacement_name == "u_cart" else "B"],
         }
         result = {}
         for name, value in values.items():
@@ -167,26 +173,115 @@ class BraggCalculator:
             result[name] = array
         return result
 
+    def symmetry_coordinate_parameterization(self, *, symmetry_tolerance: float | None = None):
+        """Return independent displacements that preserve prepared Wyckoff orbits."""
+        from .parameters import SymmetryCoordinateParameterization
+
+        return SymmetryCoordinateParameterization.from_calculator(
+            self, symmetry_tolerance=symmetry_tolerance
+        )
+
+    def symmetry_lattice_parameterization(self, *, symmetry_tolerance: float = 1e-8):
+        """Return independent log-strain modes invariant under the point group."""
+        from .parameters import SymmetryLatticeParameterization
+
+        return SymmetryLatticeParameterization.from_calculator(
+            self, symmetry_tolerance=symmetry_tolerance
+        )
+
+    def symmetry_occupancy_parameterization(
+        self,
+        *,
+        mode: str = "composition",
+        probability_floor: float = 1e-6,
+    ):
+        """Return orbit-shared composition or vacancy occupancy simplexes."""
+        from .parameters import SymmetryOccupancyParameterization
+
+        return SymmetryOccupancyParameterization.from_calculator(
+            self, mode=mode, probability_floor=probability_floor
+        )
+
+    def symmetry_b_iso_parameterization(
+        self,
+        *,
+        b_min: float = 0.0,
+        default_if_zero: float = 0.5,
+    ):
+        """Return positive orbit-shared isotropic displacement parameters."""
+        from .parameters import SymmetryIsotropicDisplacementParameterization
+
+        return SymmetryIsotropicDisplacementParameterization.from_calculator(
+            self, b_min=b_min, default_if_zero=default_if_zero
+        )
+
+    def symmetry_u_aniso_parameterization(
+        self,
+        *,
+        default_u_iso: float = 0.006,
+        mode_scale: float = 0.25,
+        symmetry_tolerance: float = 1e-8,
+    ):
+        """Return positive-definite, site-symmetry-compatible Cartesian U tensors."""
+        from .parameters import SymmetryAnisotropicDisplacementParameterization
+
+        return SymmetryAnisotropicDisplacementParameterization.from_calculator(
+            self,
+            default_u_iso=default_u_iso,
+            mode_scale=mode_scale,
+            symmetry_tolerance=symmetry_tolerance,
+        )
+
+    def rigid_body_parameterization(
+        self,
+        bodies,
+        *,
+        translation_scale: float = 0.1,
+        rotation_scale_degrees: float = 5.0,
+    ):
+        """Return declared Cartesian rigid-body translation/rotation modes."""
+        from .parameters import RigidBodyParameterization
+
+        return RigidBodyParameterization.from_calculator(
+            self,
+            bodies,
+            translation_scale=translation_scale,
+            rotation_scale_degrees=rotation_scale_degrees,
+        )
+
     def _parameter_values(self, parameters: ParameterDict | None):
         parameters = {} if parameters is None else parameters
-        allowed = {"lattice", "frac_coords", "occupancies", "b_iso"}
+        allowed = {"lattice", "frac_coords", "occupancies", "b_iso", "u_cart"}
         unknown = set(parameters) - allowed
         if unknown:
             raise ValueError(f"unknown parameters: {sorted(unknown)}")
+        if "u_cart" in parameters:
+            u_cart = parameters["u_cart"]
+        elif "b_iso" in parameters:
+            u_cart = None
+        elif self._symm["has_anisotropic_displacement"]:
+            u_cart = self._symm["U_cart"]
+        else:
+            u_cart = None
         values = (
             parameters.get("lattice", self._symm["lattice"]),
             parameters.get("frac_coords", self._symm["frac_coords"]),
             parameters.get("occupancies", self._symm["occ"]),
             parameters.get("b_iso", self._symm["B"]),
+            u_cart,
         )
-        lattice, frac, occ, b_iso = values
+        lattice, frac, occ, b_iso, u_cart = values
         atom_count = len(self._symm["Z"])
         expected = ((3, 3), (atom_count, 3), (atom_count,), (atom_count,))
         names = ("lattice", "frac_coords", "occupancies", "b_iso")
         for name, value, shape in zip(names, values, expected):
             if tuple(value.shape) != shape:
                 raise ValueError(f"{name} must have shape {shape}, got {tuple(value.shape)}")
-        return lattice, frac, occ, b_iso
+        if u_cart is not None and tuple(u_cart.shape) != (atom_count, 3, 3):
+            raise ValueError(
+                f"u_cart must have shape ({atom_count}, 3, 3), got {tuple(u_cart.shape)}"
+            )
+        return lattice, frac, occ, b_iso, u_cart
 
     def _domain_indices(self, domain: Literal["two_theta", "q"]):
         if domain == "two_theta":
@@ -206,12 +301,37 @@ class BraggCalculator:
     def fq(self, parameters: ParameterDict | None = None, *, indices=None):
         """Return per-reciprocal-point ``|F|^2`` without powder corrections."""
         self._ensure_loaded()
-        lattice, frac, occ, b_iso = self._parameter_values(parameters)
+        lattice, frac, occ, b_iso, u_cart = self._parameter_values(parameters)
         hkl = self._hkl["hkl"] if indices is None else self._hkl["hkl"][indices]
         _, two_theta = self._geometry(lattice, indices)
-        return self._compute_f2(hkl, two_theta, frac, occ, b_iso)
+        return self._compute_f2(hkl, two_theta, lattice, frac, occ, b_iso, u_cart)
 
-    def _compute_f2(self, hkl, two_theta, frac, occ, b_iso):
+    def structure_factors(self, parameters: ParameterDict | None = None, *, indices=None):
+        """Return complex structure factors for the fixed reciprocal topology."""
+        self._ensure_loaded()
+        lattice, frac, occ, b_iso, u_cart = self._parameter_values(parameters)
+        hkl = self._hkl["hkl"] if indices is None else self._hkl["hkl"][indices]
+        _, two_theta = self._geometry(lattice, indices)
+        return self._compute_f(hkl, two_theta, lattice, frac, occ, b_iso, u_cart)
+
+    def _compute_f(self, hkl, two_theta, lattice, frac, occ, b_iso, u_cart):
+        return compute_F(
+            mode=self.mode,
+            backend=self.backend,
+            hkl=hkl,
+            two_theta=two_theta,
+            wavelength=self.wavelength,
+            Z=self._symm["Z"],
+            frac=frac,
+            occ=occ,
+            B=b_iso,
+            lattice=lattice,
+            U_cart=u_cart,
+            neutron_scattering_lengths=self.neutron_scattering_lengths,
+            phase_chunk_entries=self.phase_chunk_entries,
+        )
+
+    def _compute_f2(self, hkl, two_theta, lattice, frac, occ, b_iso, u_cart):
         return compute_F2(
             mode=self.mode,
             backend=self.backend,
@@ -222,6 +342,8 @@ class BraggCalculator:
             frac=frac,
             occ=occ,
             B=b_iso,
+            lattice=lattice,
+            U_cart=u_cart,
             neutron_scattering_lengths=self.neutron_scattering_lengths,
             phase_chunk_entries=self.phase_chunk_entries,
         )
@@ -232,7 +354,7 @@ class BraggCalculator:
         parameters: ParameterDict | None = None,
     ):
         """Return individual reciprocal-point positions and corrected intensities."""
-        indices, g, two_theta, _, intensity = self._individual_data(domain, parameters)
+        indices, g, two_theta, _, _, intensity = self._individual_data(domain, parameters)
         del indices
         if domain == "two_theta":
             positions = self.backend.degrees(two_theta)
@@ -240,16 +362,93 @@ class BraggCalculator:
             positions = 2.0 * self.backend.pi() * g
         return positions, intensity
 
+    def iq_components(
+        self,
+        wavelengths,
+        domain: Literal["two_theta", "q"] = "two_theta",
+        parameters: ParameterDict | None = None,
+    ):
+        """Return several emission components while sharing one structure factor.
+
+        For elastic diffraction, ``sin(theta) / wavelength`` and therefore the
+        scattering vector are fixed by the reciprocal lattice. X-ray form
+        factors and Debye--Waller terms can consequently be evaluated once;
+        only the Bragg angle and angle-dependent powder correction differ
+        between emission lines.
+        """
+        self._ensure_loaded()
+        values = tuple(float(item) for item in wavelengths)
+        if not values or any(not np.isfinite(item) or item <= 0 for item in values):
+            raise ValueError("wavelengths must contain positive finite values")
+        indices = self._domain_indices(domain)
+        lattice, frac, occ, b_iso, u_cart = self._parameter_values(parameters)
+        g, reference_two_theta = self._geometry(lattice, indices)
+        hkl = self._hkl["hkl"][indices]
+        f2 = self._compute_f2(hkl, reference_two_theta, lattice, frac, occ, b_iso, u_cart)
+        q = 2.0 * self.backend.pi() * g
+        result = []
+        for wavelength in values:
+            two_theta = self.backend.two_theta_from_q(q, wavelength)
+            intensity = apply_lp_and_multiplicity(
+                self.mode, self.backend, f2, two_theta, multiplicity=None
+            )
+            position = self.backend.degrees(two_theta) if domain == "two_theta" else q
+            result.append((position, intensity))
+        return tuple(result)
+
+    def line_components(
+        self,
+        wavelengths,
+        domain: Literal["two_theta", "q"] = "two_theta",
+        parameters: ParameterDict | None = None,
+    ):
+        """Return emission components with coincident reciprocal points merged.
+
+        This path is appropriate when supplied lattice parameters preserve the
+        prepared metric symmetry, as the session-level symmetry lattice
+        parameterization does. Intensities remain differentiable and are
+        summed without applying a reporting threshold.
+        """
+        patterns = self.iq_components(wavelengths, domain=domain, parameters=parameters)
+        indices = self._domain_indices(domain)
+        nominal = (
+            np.degrees(self._hkl["two_theta"][indices])
+            if domain == "two_theta"
+            else self._hkl["q"][indices]
+        )
+        if len(nominal) == 0:
+            return patterns
+        tolerance = 1e-5 if domain == "two_theta" else 1e-7
+        starts = np.r_[0, np.flatnonzero(np.diff(nominal) > tolerance) + 1]
+        group_ids = np.cumsum(np.r_[0, (np.diff(nominal) > tolerance).astype(np.int64)])
+        backend_starts = self.backend.asarray(starts, dtype=self.backend.int64)
+        return tuple(
+            (
+                positions[backend_starts],
+                self.backend.scatter_sum(intensities, group_ids, len(starts)),
+            )
+            for positions, intensities in patterns
+        )
+
     def _individual_data(self, domain, parameters):
         self._ensure_loaded()
         indices = self._domain_indices(domain)
-        lattice, frac, occ, b_iso = self._parameter_values(parameters)
+        lattice, frac, occ, b_iso, u_cart = self._parameter_values(parameters)
         g, two_theta = self._geometry(lattice, indices)
-        f2 = self._compute_f2(self._hkl["hkl"][indices], two_theta, frac, occ, b_iso)
+        structure_factor = self._compute_f(
+            self._hkl["hkl"][indices],
+            two_theta,
+            lattice,
+            frac,
+            occ,
+            b_iso,
+            u_cart,
+        )
+        f2 = self.backend.real(structure_factor * self.backend.conj(structure_factor))
         intensity = apply_lp_and_multiplicity(
             self.mode, self.backend, f2, two_theta, multiplicity=None
         )
-        return indices, g, two_theta, f2, intensity
+        return indices, g, two_theta, structure_factor, f2, intensity
 
     def reflection_table(
         self,
@@ -257,12 +456,15 @@ class BraggCalculator:
         parameters: ParameterDict | None = None,
     ) -> ReflectionTable:
         """Return indexed per-reflection geometry and intensities."""
-        indices, g, two_theta, f2, intensity = self._individual_data(domain, parameters)
+        indices, g, two_theta, structure_factor, f2, intensity = self._individual_data(
+            domain, parameters
+        )
         return ReflectionTable(
             hkl=self._hkl["hkl"][indices].copy(),
             d_spacing=1.0 / g,
             q=2.0 * self.backend.pi() * g,
             two_theta=self.backend.degrees(two_theta),
+            structure_factor=structure_factor,
             f_squared=f2,
             intensity=intensity,
         )
@@ -320,11 +522,23 @@ class BraggCalculator:
         self,
         domain: Literal["two_theta", "q"] = "two_theta",
         parameters: ParameterDict | None = None,
+        experiment_parameters: ParameterDict | None = None,
         *,
         artifacts: Any | None = None,
     ):
-        """Return a gridded powder profile, optionally with synthetic artifacts."""
+        """Return a gridded profile with optional refinable controls and artifacts."""
         positions, intensities = self.iq(domain=domain, parameters=parameters)
+        nuisance = {} if experiment_parameters is None else dict(experiment_parameters)
+        allowed = {"scale", "zero_shift", "fwhm", "background"}
+        unknown = set(nuisance) - allowed
+        if unknown:
+            raise ValueError(f"unknown experiment parameters: {sorted(unknown)}")
+        scale = nuisance.get("scale", 1.0)
+        zero_shift = nuisance.get("zero_shift", 0.0)
+        fwhm = nuisance.get("fwhm")
+        background = nuisance.get("background", 0.0)
+        positions = positions + zero_shift
+        intensities = intensities * scale
         if domain == "two_theta":
             lower, upper = self.two_theta_range
             grid = self._regular_grid(lower, upper, self.two_theta_step)
@@ -339,7 +553,7 @@ class BraggCalculator:
 
             if not isinstance(artifacts, SimulationArtifacts):
                 raise TypeError("artifacts must be a SimulationArtifacts instance or None")
-            lattice, _, _, _ = self._parameter_values(parameters)
+            lattice = self._parameter_values(parameters)[0]
             indices = self._domain_indices(domain)
             values = artifacts.apply(
                 self,
@@ -351,10 +565,14 @@ class BraggCalculator:
                 lattice=lattice,
             )
         elif domain == "two_theta":
-            values = render_profile(self.profile, self.backend, grid, positions, intensities)
+            values = render_profile(
+                self.profile, self.backend, grid, positions, intensities, fwhm=fwhm
+            )
         else:
-            values = render_profile_q(self.profile_q, self.backend, grid, positions, intensities)
-        return grid, values
+            values = render_profile_q(
+                self.profile_q, self.backend, grid, positions, intensities, fwhm=fwhm
+            )
+        return grid, values + background
 
     def _regular_grid(self, lower: float, upper: float, step: float):
         intervals = int(np.floor((upper - lower) / step + 8 * np.finfo(float).eps))

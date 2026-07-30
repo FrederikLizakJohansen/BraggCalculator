@@ -26,6 +26,33 @@ def _site_b_iso(site) -> float:
     return 0.0
 
 
+def _site_u_cart(site) -> np.ndarray | None:
+    """Read a Cartesian anisotropic U tensor in square angstrom when present."""
+    properties = site.properties
+    value = None
+    scale = 1.0
+    for key in ("U_cart", "u_cart", "U_aniso", "u_aniso"):
+        if key in properties and properties[key] is not None:
+            value = properties[key]
+            break
+    if value is None:
+        for key in ("B_cart", "b_cart", "B_aniso", "b_aniso"):
+            if key in properties and properties[key] is not None:
+                value = properties[key]
+                scale = 1.0 / (8.0 * np.pi**2)
+                break
+    if value is None:
+        return None
+    tensor = scale * np.asarray(value, dtype=np.float64)
+    if tensor.shape != (3, 3):
+        raise ValueError("anisotropic displacement tensors must have shape (3, 3)")
+    if not np.all(np.isfinite(tensor)) or not np.allclose(tensor, tensor.T, atol=1e-10):
+        raise ValueError("anisotropic displacement tensors must be finite and symmetric")
+    if np.linalg.eigvalsh(tensor).min() < -1e-10:
+        raise ValueError("anisotropic displacement tensors must be positive semidefinite")
+    return 0.5 * (tensor + tensor.T)
+
+
 class SymmetryEngine:
     """Prepare one internally consistent primitive cell.
 
@@ -80,15 +107,25 @@ class SymmetryEngine:
         symbols = []
         occupancies = []
         b_iso = []
+        u_cart = []
         site_indices = []
+        has_anisotropic_displacement = False
         for site_index, site in enumerate(structure):
             site_b = _site_b_iso(site)
+            site_u = _site_u_cart(site)
+            has_anisotropic_displacement = has_anisotropic_displacement or site_u is not None
+            effective_u = (
+                site_u
+                if site_u is not None
+                else np.eye(3, dtype=np.float64) * site_b / (8.0 * np.pi**2)
+            )
             for species, occupancy in site.species.items():
                 frac.append(site.frac_coords)
                 atomic_numbers.append(species.Z)
                 symbols.append(species.symbol)
                 occupancies.append(float(occupancy))
                 b_iso.append(site_b)
+                u_cart.append(effective_u)
                 site_indices.append(site_index)
 
         return {
@@ -96,12 +133,19 @@ class SymmetryEngine:
             "lattice": np.asarray(structure.lattice.matrix, dtype=float),
             "spacegroup_symbol": dataset.international,
             "spacegroup_number": int(dataset.number),
+            "crystal_system": SpacegroupAnalyzer(
+                structure,
+                symprec=self.symprec,
+                angle_tolerance=self.angle_tolerance,
+            ).get_crystal_system(),
             "pointgroup_symbol": dataset.pointgroup,
             "frac_coords": np.asarray(frac, dtype=float),
             "Z": np.asarray(atomic_numbers, dtype=int),
             "symbols": tuple(symbols),
             "occ": np.asarray(occupancies, dtype=float),
             "B": np.asarray(b_iso, dtype=float),
+            "U_cart": np.asarray(u_cart, dtype=float),
+            "has_anisotropic_displacement": has_anisotropic_displacement,
             "site_indices": np.asarray(site_indices, dtype=int),
             "orbit_indices": orbits,
             "equiv_all": equiv,

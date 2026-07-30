@@ -32,6 +32,17 @@ class NumpyBackend:
     def exp(self, x):
         return np.exp(x)
 
+    def log(self, x):
+        return np.log(x)
+
+    def softplus(self, x):
+        return np.logaddexp(0.0, x)
+
+    def softmax(self, x, axis=-1):
+        shifted = x - np.max(x, axis=axis, keepdims=True)
+        weights = np.exp(shifted)
+        return weights / np.sum(weights, axis=axis, keepdims=True)
+
     def pi(self):
         return np.pi
 
@@ -41,8 +52,17 @@ class NumpyBackend:
     def cos(self, x):
         return np.cos(x)
 
+    def sigmoid(self, x):
+        return 1.0 / (1.0 + np.exp(-x))
+
+    def sinh(self, x):
+        return np.sinh(x)
+
     def arcsin(self, x):
         return np.arcsin(x)
+
+    def arccos(self, x):
+        return np.arccos(x)
 
     def sqrt(self, x):
         return np.sqrt(x)
@@ -59,6 +79,23 @@ class NumpyBackend:
     def inverse(self, x):
         return np.linalg.inv(x)
 
+    def matrix_exp(self, x):
+        """Matrix exponential for a real symmetric matrix."""
+        eigenvalues, eigenvectors = np.linalg.eigh(x)
+        return (eigenvectors * np.exp(eigenvalues)) @ eigenvectors.T
+
+    def rotation_matrix(self, skew):
+        """Return the exponential of a 3 by 3 skew-symmetric matrix."""
+        vector = np.array([skew[2, 1], skew[0, 2], skew[1, 0]])
+        angle = np.linalg.norm(vector)
+        if angle < 1e-12:
+            return np.eye(3, dtype=self.dtype) + skew + 0.5 * (skew @ skew)
+        return (
+            np.eye(3, dtype=self.dtype)
+            + (np.sin(angle) / angle) * skew
+            + ((1.0 - np.cos(angle)) / angle**2) * (skew @ skew)
+        )
+
     def einsum(self, s, *ops):
         return np.einsum(s, *ops)
 
@@ -70,6 +107,9 @@ class NumpyBackend:
 
     def concat(self, xs, axis=0):
         return np.concatenate(xs, axis=axis)
+
+    def stack(self, xs, axis=0):
+        return np.stack(xs, axis=axis)
 
     def conj(self, x):
         return np.conj(x)
