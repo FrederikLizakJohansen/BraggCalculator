@@ -34,6 +34,7 @@ Optional dependencies are available as extras:
 
 ```bash
 python -m pip install "braggcalculator[torch]"  # Torch/autograd/CUDA backend
+python -m pip install "braggcalculator[refinement]"  # PXRD refinement workflow
 python -m pip install "braggcalculator[ase]"    # ASE structure input
 python -m pip install "braggcalculator[all]"    # All optional dependencies
 ```
@@ -57,6 +58,10 @@ grid, profile = calculator.pattern()
 ```
 
 ## Refinement
+
+Version 0.4.0 adds generated-CIF refinement, structured fit results, and
+asymmetric-unit species-assignment screening. See the
+[0.4.0 release notes](RELEASE_NOTES.md) for the complete review summary.
 
 Install the Torch refinement extra:
 

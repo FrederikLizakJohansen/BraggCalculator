@@ -4,11 +4,11 @@ The [generated-CIF refinement guide](refinement.md) covers the high-level
 `refine_generated_cif()` workflow, refinement policies, parameter bounds,
 species assignment, ambiguity reporting, and screening performance.
 
-The top-level API covers ideal and artifact-augmented simulation, continuous
-refinement, species-assignment screening, uncertainty diagnostics, and the
-NumPy and optional PyTorch backends. Angles supplied as configuration are in
-degrees, lengths are in angstroms, and reciprocal quantities are in inverse
-angstroms.
+The version 0.4.0 top-level API covers ideal and artifact-augmented simulation,
+continuous refinement, species-assignment screening, uncertainty diagnostics,
+and the NumPy and optional PyTorch backends. Angles supplied as configuration
+are in degrees, lengths are in angstroms, and reciprocal quantities are in
+inverse angstroms.
 
 ## `BraggCalculator`
 
