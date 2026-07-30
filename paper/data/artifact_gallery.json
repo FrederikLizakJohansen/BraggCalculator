@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "cif": "demo/NaCl.cif",
+  "domain": "two_theta",
+  "range_degrees": [
+    10.0,
+    80.0
+  ],
+  "step_degrees": 0.019999999999999574,
+  "seed": 11,
+  "panels": [
+    {
+      "title": "Ideal reference",
+      "details": "configured Gaussian profile",
+      "maximum": 1.0,
+      "mean": 0.0035460268417167127,
+      "rms_difference_from_ideal": 0.0
+    },
+    {
+      "title": "Calibration",
+      "details": "zero + scale + displacement",
+      "maximum": 1.0,
+      "mean": 0.0035744234667341784,
+      "rms_difference_from_ideal": 0.058424820762470166
+    },
+    {
+      "title": "Peak profile",
+      "details": "TCH + size + strain + tail",
+      "maximum": 1.0,
+      "mean": 0.026256794586869844,
+      "rms_difference_from_ideal": 0.07639445010006302
+    },
+    {
+      "title": "Intensities",
+      "details": "texture + jitter + dropout",
+      "maximum": 1.0,
+      "mean": 0.004484180076202958,
+      "rms_difference_from_ideal": 0.012200300382686572
+    },
+    {
+      "title": "Background",
+      "details": "analytic + hump + input trace",
+      "maximum": 1.0,
+      "mean": 0.09551415245389626,
+      "rms_difference_from_ideal": 0.09945871682760547
+    },
+    {
+      "title": "Spurious peaks",
+      "details": "unindexed pseudo-Voigt lines",
+      "maximum": 1.0,
+      "mean": 0.004754626786919959,
+      "rms_difference_from_ideal": 0.008173166657024304
+    },
+    {
+      "title": "Noise",
+      "details": "Poisson + white + correlated",
+      "maximum": 1.0,
+      "mean": 0.017558914750755248,
+      "rms_difference_from_ideal": 0.017322245784019127
+    },
+    {
+      "title": "Detector",
+      "details": "gaps + saturation + quantization",
+      "maximum": 1.0,
+      "mean": 0.005181376749500143,
+      "rms_difference_from_ideal": 0.017653164896561643
+    },
+    {
+      "title": "Combined",
+      "details": "representative joint realization",
+      "maximum": 1.0,
+      "mean": 0.060935697761381157,
+      "rms_difference_from_ideal": 0.10008166065953912
+    }
+  ]
+}

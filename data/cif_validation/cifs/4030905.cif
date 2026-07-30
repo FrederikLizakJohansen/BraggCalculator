@@ -1,0 +1,381 @@
+#------------------------------------------------------------------------------
+#$Date: 2016-02-16 22:30:59 +0200 (Tue, 16 Feb 2016) $
+#$Revision: 176467 $
+#$URL: file:///home/coder/svn-repositories/_RELOADED_COD/cod-reloaded/cif/4/03/09/4030905.cif $
+#------------------------------------------------------------------------------
+#
+# This file is available in the Crystallography Open Database (COD),
+# http://www.crystallography.net/
+#
+# All data on this site have been placed in the public domain by the
+# contributors.
+#
+data_4030905
+loop_
+_publ_author_name
+'Lorenzo-Luis, P. A.'
+'Martin-Zarza, P.'
+'Gili, P.'
+'Saez Puche, R.'
+'Jimenez-Jimenez, J.'
+'Rodriguez-Castellon, E.'
+'Ruiz-Perez, C.'
+'Gonzalez-Platas, J.'
+'Solans, X.'
+_publ_section_title
+;
+ Synthesis and characterization of the molybdotellurates :
+ [M(H2O)6]3.[TeMo6O24] : M = Ni(II) and Co(II)
+;
+_journal_name_full
+'European Journal of Solid State and Inorganic Chemistry'
+_journal_page_first              1259
+_journal_page_last               1271
+_journal_volume                  34
+_journal_year                    1997
+_chemical_formula_sum            'Co3 H36 Mo6 O42 Te'
+_chemical_formula_weight         1588.39
+_space_group_IT_number           167
+_symmetry_cell_setting           trigonal
+_symmetry_Int_Tables_number      167
+_symmetry_space_group_name_Hall  '-R 3 2"c'
+_symmetry_space_group_name_H-M   'R -3 c :H'
+_cell_angle_alpha                90
+_cell_angle_beta                 90
+_cell_angle_gamma                120
+_cell_formula_units_Z            6
+_cell_length_a                   17.902(4)
+_cell_length_b                   17.902(4)
+_cell_length_c                   19.686(3)
+_cell_volume                     5463.8(19)
+_diffrn_ambient_temperature      293
+_diffrn_radiation_probe          x-ray
+_diffrn_radiation_type           CuK\a
+_diffrn_radiation_wavelength     1.5418
+_exptl_crystal_density_diffrn    2.80
+_exptl_crystal_F_000             4326
+_pd_proc_ls_prof_wR_factor       0.0406
+_refine_ls_number_parameters     41
+_refine_ls_number_reflns         314
+_refine_ls_R_I_factor            0.0744
+_cod_data_source_file            EJSSIC-1997-34-1259-1271-2.cif
+_cod_data_source_block           Co3Mo6
+_cod_depositor_comments
+;
+Rietveld refinements, Fullprof software
+;
+_cod_original_cell_volume        5464(3)
+_cod_original_sg_symbol_H-M      'R -3 c'
+_cod_original_formula_sum        'H36 Co3 Mo6 O42 Te'
+_cod_database_code               4030905
+loop_
+_symmetry_equiv_pos_site_id
+_symmetry_equiv_pos_as_xyz
+1 x,y,z
+2 -y,x-y,z
+3 -x+y,-x,z
+4 y,x,1/2-z
+5 -x,-x+y,1/2-z
+6 x-y,-y,1/2-z
+7 -x,-y,-z
+8 y,-x+y,-z
+9 x-y,x,-z
+10 -y,-x,1/2+z
+11 x,x-y,1/2+z
+12 -x+y,y,1/2+z
+13 1/3+x,2/3+y,2/3+z
+14 1/3-y,2/3+x-y,2/3+z
+15 1/3-x+y,2/3-x,2/3+z
+16 1/3+y,2/3+x,1/6-z
+17 1/3-x,2/3-x+y,1/6-z
+18 1/3+x-y,2/3-y,1/6-z
+19 1/3-x,2/3-y,2/3-z
+20 1/3+y,2/3-x+y,2/3-z
+21 1/3+x-y,2/3+x,2/3-z
+22 1/3-y,2/3-x,1/6+z
+23 1/3+x,2/3+x-y,1/6+z
+24 1/3-x+y,2/3+y,1/6+z
+25 2/3+x,1/3+y,1/3+z
+26 2/3-y,1/3+x-y,1/3+z
+27 2/3-x+y,1/3-x,1/3+z
+28 2/3+y,1/3+x,5/6-z
+29 2/3-x,1/3-x+y,5/6-z
+30 2/3+x-y,1/3-y,5/6-z
+31 2/3-x,1/3-y,1/3-z
+32 2/3+y,1/3-x+y,1/3-z
+33 2/3+x-y,1/3+x,1/3-z
+34 2/3-y,1/3-x,5/6+z
+35 2/3+x,1/3+x-y,5/6+z
+36 2/3-x+y,1/3+y,5/6+z
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_thermal_displace_type
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_U_iso_or_equiv
+_atom_site_calc_flag
+_atom_site_refinement_flags
+_atom_site_disorder_assembly
+_atom_site_disorder_group
+Te Te Uiso 0.00000 0.00000 0.50000 1.000 0.032(5) . . . .
+Mo Mo Uiso 0.1702(4) -0.0268(4) 0.5022(5) 1.000 0.0469(13) . . . .
+O1 O Uiso 0.103(2) 0.044(3) 0.557(2) 1.000 0.036(5) . . . .
+O2 O Uiso 0.084(3) -0.134(3) 0.542(3) 1.000 0.036(5) . . . .
+O3 O Uiso 0.235(3) 0.003(3) 0.567(3) 1.000 0.036(5) . . . .
+O4 O Uiso 0.210(3) -0.085(3) 0.455(3) 1.000 0.036(5) . . . .
+Co Co Uiso 0.00000 -0.1750(11) 0.75000 1.000 0.044(5) . . . .
+O5 O Uiso 0.052(3) -0.055(3) 0.809(2) 1.000 0.036(5) . . . .
+O6 O Uiso -0.105(3) -0.218(3) 0.805(3) 1.000 0.036(5) . . . .
+O7 O Uiso 0.053(3) -0.235(3) 0.810(3) 1.000 0.036(5) . . . .
+loop_
+_atom_type_symbol
+_atom_type_description
+_atom_type_scat_dispersion_real
+_atom_type_scat_dispersion_imag
+_atom_type_scat_source
+Co Co -2.3653 3.6143 ' International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+Mo Mo -0.0483 2.7339 ' International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+O O 0.0492 0.0322 ' International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+Te Te -0.1759 6.3531 ' International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+loop_
+_geom_angle_atom_site_label_1
+_geom_angle_atom_site_label_2
+_geom_angle_atom_site_label_3
+_geom_angle
+_geom_angle_site_symmetry_1
+_geom_angle_site_symmetry_2
+_geom_angle_site_symmetry_3
+_geom_angle_publ_flag
+Mo Te O1 45.7(13) . . . yes
+Mo Te Mo 119.98(19) . . 2_555 yes
+Mo Te O1 135.9(17) . . 2_555 yes
+Mo Te Mo 120.0(2) . . 3_555 yes
+Mo Te O1 88(2) . . 3_555 yes
+Mo Te Mo 180.00 . . 7_556 yes
+Mo Te O1 134.4(13) . . 7_556 yes
+Mo Te Mo 60.02(19) . . 8_556 yes
+Mo Te O1 44.1(16) . . 8_556 yes
+Mo Te Mo 60.0(2) . . 9_556 yes
+Mo Te O1 92(2) . . 9_556 yes
+Mo Te O1 87.6(13) 2_555 . . yes
+O1 Te O1 90(2) . . 2_555 yes
+Mo Te O1 135.9(13) 3_555 . . yes
+O1 Te O1 90(2) . . 3_555 yes
+Mo Te O1 134.4(13) 7_556 . . yes
+O1 Te O1 180.00 . . 7_556 yes
+Mo Te O1 92.4(13) 8_556 . . yes
+O1 Te O1 90(2) . . 8_556 yes
+Mo Te O1 44.1(13) 9_556 . . yes
+O1 Te O1 90(2) . . 9_556 yes
+Mo Te O1 45.7(16) 2_555 . 2_555 yes
+Mo Te Mo 120.0(2) 2_555 . 3_555 yes
+Mo Te O1 135.9(16) 2_555 . 3_555 yes
+Mo Te Mo 60.02(19) 2_555 . 7_556 yes
+Mo Te O1 92.4(14) 2_555 . 7_556 yes
+Mo Te Mo 180.00 2_555 . 8_556 yes
+Mo Te O1 134.4(17) 2_555 . 8_556 yes
+Mo Te Mo 60.0(2) 2_555 . 9_556 yes
+Mo Te O1 44.1(16) 2_555 . 9_556 yes
+Mo Te O1 87.6(18) 3_555 . 2_555 yes
+O1 Te O1 90(2) 2_555 . 3_555 yes
+Mo Te O1 44.1(17) 7_556 . 2_555 yes
+O1 Te O1 90(2) 2_555 . 7_556 yes
+Mo Te O1 134.4(16) 8_556 . 2_555 yes
+O1 Te O1 180.00 2_555 . 8_556 yes
+Mo Te O1 92.4(18) 9_556 . 2_555 yes
+O1 Te O1 90(2) 2_555 . 9_556 yes
+Mo Te O1 45.7(18) 3_555 . 3_555 yes
+Mo Te Mo 60.0(2) 3_555 . 7_556 yes
+Mo Te O1 44.1(13) 3_555 . 7_556 yes
+Mo Te Mo 60.0(2) 3_555 . 8_556 yes
+Mo Te O1 92.4(19) 3_555 . 8_556 yes
+Mo Te Mo 180.00 3_555 . 9_556 yes
+Mo Te O1 134.4(18) 3_555 . 9_556 yes
+Mo Te O1 92(2) 7_556 . 3_555 yes
+O1 Te O1 90(2) 3_555 . 7_556 yes
+Mo Te O1 44.1(16) 8_556 . 3_555 yes
+O1 Te O1 90(2) 3_555 . 8_556 yes
+Mo Te O1 134.4(18) 9_556 . 3_555 yes
+O1 Te O1 180.00 3_555 . 9_556 yes
+Mo Te O1 45.7(13) 7_556 . 7_556 yes
+Mo Te Mo 119.98(19) 7_556 . 8_556 yes
+Mo Te O1 135.9(16) 7_556 . 8_556 yes
+Mo Te Mo 120.0(2) 7_556 . 9_556 yes
+Mo Te O1 88(2) 7_556 . 9_556 yes
+Mo Te O1 87.6(14) 8_556 . 7_556 yes
+O1 Te O1 90(2) 7_556 . 8_556 yes
+Mo Te O1 135.9(13) 9_556 . 7_556 yes
+O1 Te O1 90(2) 7_556 . 9_556 yes
+Mo Te O1 45.7(17) 8_556 . 8_556 yes
+Mo Te Mo 120.0(2) 8_556 . 9_556 yes
+Mo Te O1 135.9(16) 8_556 . 9_556 yes
+Mo Te O1 87.6(19) 9_556 . 8_556 yes
+O1 Te O1 90(2) 8_556 . 9_556 yes
+Mo Te O1 45.7(18) 9_556 . 9_556 yes
+Te Mo O1 35.7(10) . . . yes
+Te Mo O2 79.2(18) . . . yes
+Te Mo O3 121(2) . . . yes
+Te Mo O4 137.8(19) . . . yes
+Te Mo O1 35.5(13) . . 8_556 yes
+Te Mo O2 79(2) . . 9_556 yes
+O1 Mo O2 89(2) . . . yes
+O1 Mo O3 86(2) . . . yes
+O1 Mo O4 174(2) . . . yes
+O1 Mo O1 71.1(17) . . 8_556 yes
+O1 Mo O2 75(2) . . 9_556 yes
+O2 Mo O3 95(3) . . . yes
+O2 Mo O4 89(2) . . . yes
+O1 Mo O2 76(2) 8_556 . . yes
+O2 Mo O2 158(3) . . 9_556 yes
+O3 Mo O4 100(3) . . . yes
+O1 Mo O3 156(2) 8_556 . . yes
+O2 Mo O3 98(3) 9_556 . . yes
+O1 Mo O4 102(2) 8_556 . . yes
+O2 Mo O4 105(3) 9_556 . . yes
+O1 Mo O2 85(3) 8_556 . 9_556 yes
+O7 Co O7 86(2) . . 5_556 yes
+O5 Co O6 87(2) 5_556 . 5_556 yes
+O5 Co O7 97(2) 5_556 . 5_556 yes
+O6 Co O7 95(2) 5_556 . 5_556 yes
+O5 Co O6 87(2) . . . yes
+O5 Co O7 97.1(19) . . . yes
+O5 Co O5 80(2) . . 5_556 yes
+O5 Co O6 86(2) . . 5_556 yes
+O5 Co O7 177.1(18) . . 5_556 yes
+O6 Co O7 95(2) . . . yes
+O5 Co O6 86(2) 5_556 . . yes
+O6 Co O6 170(2) . . 5_556 yes
+O6 Co O7 93(2) . . 5_556 yes
+O5 Co O7 177(2) 5_556 . . yes
+O6 Co O7 93(2) 5_556 . . yes
+Te O1 Mo 98.6(17) . . . yes
+Te O1 Mo 100.4(17) . . 9_556 yes
+Mo O1 Mo 88.7(15) . . 9_556 yes
+Mo O2 Mo 118(3) . . 8_556 yes
+loop_
+_geom_bond_atom_site_label_1
+_geom_bond_atom_site_label_2
+_geom_bond_distance
+_geom_bond_site_symmetry_1
+_geom_bond_site_symmetry_2
+_geom_bond_publ_flag
+Te Mo 3.313(8) . . yes
+Te O1 1.96(4) . . yes
+Te Mo 3.313(9) . 2_555 yes
+Te O1 1.96(6) . 2_555 yes
+Te Mo 3.313(8) . 3_555 yes
+Te O1 1.96(3) . 3_555 yes
+Te Mo 3.313(8) . 7_556 yes
+Te O1 1.96(4) . 7_556 yes
+Te Mo 3.313(9) . 8_556 yes
+Te O1 1.96(6) . 8_556 yes
+Te Mo 3.313(8) . 9_556 yes
+Te O1 1.96(3) . 9_556 yes
+Mo O1 2.40(4) . . yes
+Mo O2 1.93(5) . . yes
+Mo O3 1.62(6) . . yes
+Mo O4 1.79(6) . . yes
+Mo O1 2.34(6) . 8_556 yes
+Mo O2 1.93(5) . 9_556 yes
+Co O5 2.20(5) . . yes
+Co O6 1.96(6) . . yes
+Co O7 2.11(6) . . yes
+Co O5 2.20(6) . 5_556 yes
+Co O6 1.96(6) . 5_556 yes
+Co O7 2.11(6) . 5_556 yes
+loop_
+_geom_torsion_atom_site_label_1
+_geom_torsion_atom_site_label_2
+_geom_torsion_atom_site_label_3
+_geom_torsion_atom_site_label_4
+_geom_torsion
+_geom_torsion_site_symmetry_1
+_geom_torsion_site_symmetry_2
+_geom_torsion_site_symmetry_3
+_geom_torsion_site_symmetry_4
+_geom_torsion_publ_flag
+O1 Te Mo O2 103(2) . . . . no
+O1 Te Mo O3 14(3) . . . . no
+O1 Te Mo O4 180(3) . . . . no
+O1 Te Mo O1 -175(3) . . . 8_556 no
+O1 Te Mo O2 -79(2) . . . 9_556 no
+Mo Te Mo O1 50.8(18) 2_555 . . . no
+Mo Te Mo O2 154.1(17) 2_555 . . . no
+Mo Te Mo O3 64(2) 2_555 . . . no
+Mo Te Mo O4 -129(3) 2_555 . . . no
+O1 Te Mo O1 -5(3) 2_555 . . . no
+O1 Te Mo O2 99(3) 2_555 . . . no
+O1 Te Mo O3 9(3) 2_555 . . . no
+O1 Te Mo O4 175(3) 2_555 . . . no
+Mo Te Mo O1 -126.6(18) 3_555 . . . no
+Mo Te Mo O2 -23.3(18) 3_555 . . . no
+Mo Te Mo O3 -113(2) 3_555 . . . no
+Mo Te Mo O4 53(3) 3_555 . . . no
+O1 Te Mo O1 -93(2) 3_555 . . . no
+O1 Te Mo O2 10(2) 3_555 . . . no
+O1 Te Mo O3 -79(2) 3_555 . . . no
+O1 Te Mo O4 87(3) 3_555 . . . no
+O1 Te Mo O1 180(3) 7_556 . . . no
+O1 Te Mo O2 -77(3) 7_556 . . . no
+O1 Te Mo O3 -166(3) 7_556 . . . no
+O1 Te Mo O4 0(3) 7_556 . . . no
+Mo Te Mo O1 -129.2(18) 8_556 . . . no
+Mo Te Mo O2 -25.9(17) 8_556 . . . no
+Mo Te Mo O3 -116(2) 8_556 . . . no
+Mo Te Mo O4 51(3) 8_556 . . . no
+O1 Te Mo O1 175(3) 8_556 . . . no
+O1 Te Mo O2 -82(3) 8_556 . . . no
+O1 Te Mo O3 -171(3) 8_556 . . . no
+O1 Te Mo O4 -5(4) 8_556 . . . no
+Mo Te Mo O1 53.4(18) 9_556 . . . no
+Mo Te Mo O2 156.7(18) 9_556 . . . no
+Mo Te Mo O3 67(2) 9_556 . . . no
+Mo Te Mo O4 -127(3) 9_556 . . . no
+O1 Te Mo O1 87(2) 9_556 . . . no
+O1 Te Mo O2 -170(2) 9_556 . . . no
+O1 Te Mo O3 101(2) 9_556 . . . no
+O1 Te Mo O4 -93(3) 9_556 . . . no
+Mo Te O1 Mo 90.3(17) . . . 9_556 no
+Mo Te O1 Mo -137.8(13) 2_555 . . . no
+O1 Te O1 Mo 177(2) 2_555 . . . no
+Mo Te O1 Mo 89.7(17) 3_555 . . . no
+O1 Te O1 Mo 86(2) 3_555 . . . no
+Mo Te O1 Mo 180.0(3) 7_556 . . . no
+Mo Te O1 Mo 42.2(13) 8_556 . . . no
+O1 Te O1 Mo -3(2) 8_556 . . . no
+Mo Te O1 Mo -90.3(17) 9_556 . . . no
+O1 Te O1 Mo -94(2) 9_556 . . . no
+Mo Te Mo O2 25.9(18) . . 8_556 . no
+O1 Te Mo O2 -8(2) . . 8_556 . no
+O1 Te O1 Mo 3(2) . . 8_556 . no
+Mo Te Mo O1 -55.6(18) . . 9_556 . no
+Te Mo O1 Mo -100.3(18) . . . 9_556 no
+O2 Mo O1 Te -73(2) . . . . no
+O2 Mo O1 Mo -173(2) . . . 9_556 no
+O3 Mo O1 Te -168(2) . . . . no
+O3 Mo O1 Mo 91(2) . . . 9_556 no
+O1 Mo O1 Te 3.0(18) 8_556 . . . no
+O1 Mo O1 Mo -97.4(18) 8_556 . . 9_556 no
+O2 Mo O1 Te 92(2) 9_556 . . . no
+O2 Mo O1 Mo -8(2) 9_556 . . 9_556 no
+Te Mo O2 Mo 48(3) . . . 8_556 no
+O1 Mo O2 Mo 82(3) . . . 8_556 no
+O3 Mo O2 Mo 169(3) . . . 8_556 no
+O4 Mo O2 Mo -92(3) . . . 8_556 no
+O1 Mo O2 Mo 11(3) 8_556 . . 8_556 no
+O2 Mo O2 Mo 41(8) 9_556 . . 8_556 no
+O1 Mo O1 Te -3.0(19) . . 8_556 . no
+O1 Mo O1 Mo -101.5(17) . . 8_556 8_556 no
+O2 Mo O1 Te 91(3) . . 8_556 . no
+O2 Mo O1 Mo -8(2) . . 8_556 8_556 no
+O3 Mo O1 Te 19(7) . . 8_556 . no
+O3 Mo O1 Mo -80(6) . . 8_556 8_556 no
+O4 Mo O1 Te 177(2) . . 8_556 . no
+O4 Mo O1 Mo 78(2) . . 8_556 8_556 no
+O1 Mo O2 Mo 11(3) . . 9_556 9_556 no
+O2 Mo O2 Mo 54(8) . . 9_556 9_556 no
+O3 Mo O2 Mo -73(4) . . 9_556 9_556 no
+O4 Mo O2 Mo -176(3) . . 9_556 9_556 no

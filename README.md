@@ -12,9 +12,15 @@ The current scientific scope is monochromatic, kinematic powder diffraction.
 It includes neutral-atom X-ray form factors, coherent elemental neutron
 scattering lengths, occupancies, isotropic Debye-Waller factors, the standard
 powder Lorentz or Lorentz-polarization correction, and area-normalized Gaussian
-profiles. It does not model diffuse scattering, finite-particle shape, preferred
-orientation, microstrain, absorption, background, anomalous X-ray terms, or
+profiles. Optional experimental-effect models can add angle-dependent
+instrument and sample broadening, preferred orientation, background, counting
+noise, missing channels, and spurious peaks to simulated profiles. These
+models do not cover diffuse scattering, absorption, anomalous X-ray terms, or
 instrumental wavelength distributions.
+
+The accompanying paper describes the implementation, validation across the
+Crystallography Open Database, and CPU/GPU performance:
+[read the ChemRxiv preprint](https://chemrxiv.org/doi/abs/10.26434/chemrxiv.15006388/v1).
 
 ## Installation
 
@@ -64,6 +70,80 @@ The Q-space API uses inverse angstroms:
 q, intensity = calculator.line_pattern(domain="q")
 q_grid, profile_q = calculator.pattern(domain="q")
 ```
+
+Experimental effects are opt-in and independently configurable:
+
+```python
+from braggcalculator import (
+    BackgroundArtifacts,
+    NoiseArtifacts,
+    PeakProfileArtifacts,
+    SimulationArtifacts,
+)
+
+artifacts = SimulationArtifacts(
+    profile=PeakProfileArtifacts(
+        model="tch",
+        caglioti_u=0.002,
+        caglioti_w=0.004,
+        crystallite_size_nm=40.0,
+        microstrain=0.001,
+    ),
+    background=BackgroundArtifacts(constant=0.01),
+    noise=NoiseArtifacts(poisson_count_scale=10_000),
+    seed=7,
+)
+q_grid, augmented = calculator.pattern(domain="q", artifacts=artifacts)
+```
+
+`SimulationArtifacts` also supports calibration shifts, Bragg--Brentano
+specimen displacement, March--Dollase preferred orientation, amorphous humps,
+measured `.xy`/`.xye` backgrounds, correlated noise, detector gaps,
+saturation, quantization, and unindexed peaks. See the
+[artifact API](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md#synthetic-simulation-artifacts)
+for the component objects, units, sampled-range controls, and background
+library format, and the
+[artifact gallery](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/paper/figures/artifact_gallery.png)
+for isolated examples of every effect family.
+
+For ML workloads, ideal powder lines can be cached once and augmented as a
+complete Torch batch without rebuilding structures:
+
+```python
+from braggcalculator import (
+    PeakProfileArtifacts,
+    SimulationArtifacts,
+    apply_peak_artifact_batch,
+    render_artifact_batch,
+)
+
+artifacts = SimulationArtifacts(
+    profile=PeakProfileArtifacts(
+        model="pseudo_voigt", fwhm=(0.03, 0.08), eta=(0.2, 0.8)
+    )
+)
+
+# q_lines, intensities and peak_mask have shape [batch, padded_peaks].
+q_augmented, intensity_augmented, peak_mask = apply_peak_artifact_batch(
+    q_lines, intensities, peak_mask=peak_mask, artifacts=artifacts
+)
+
+# Full profiles and all dense artifacts require a dense or hybrid model input.
+patterns = render_artifact_batch(
+    q_lines,
+    intensities,
+    peak_mask=peak_mask,
+    grid=q_grid,
+    artifacts=artifacts,
+)
+```
+
+The peak-only function applies calibration and intensity effects. The dense
+renderer additionally applies profiles, backgrounds, noise, detector effects,
+and spurious peaks entirely with device-local Torch operations. See
+[batched artifact simulation](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/docs/api.md#batched-torch-artifact-simulation)
+for tensor shapes, metadata requirements, random generators, and measured
+background handling.
 
 ## Torch and autograd
 
@@ -141,6 +221,18 @@ P1 cells:
 ```bash
 python scripts/validate_against_pymatgen.py
 ```
+
+The frozen publication corpus extends this check to 70 CC0 CIFs from the
+Crystallography Open Database, balanced across all seven crystal systems and
+covering 62 declared space groups:
+
+```bash
+python scripts/validate_cif_corpus.py \
+    --output paper/data/cif_validation_results.json
+```
+
+The manifest pins every COD revision and SHA-256 digest, and the result records
+all parser warnings and failures rather than dropping difficult cases.
 
 Run the reproducible performance comparison. The command fails if either the
 cached or end-to-end calculation is not faster for every case:
@@ -270,6 +362,24 @@ reflection-weighting declarations with four powder-profile similarity
 baselines, tests representation invariance and regenerates the manuscript
 figures and tables under `paper/diagnostics/`. Numerical gates pass; external
 crystallographer review remains explicitly pending.
+
+The executable
+[artifact-simulation notebook](https://github.com/FrederikLizakJohansen/BraggCalculator/blob/main/notebooks/artifact_simulation.ipynb)
+continues from a CIF through an ideal pattern, individual artifact components,
+an imported `.xye` background, and a reproducible combined simulation:
+
+```bash
+jupyter notebook notebooks/artifact_simulation.ipynb
+```
+
+## Related software
+
+BraggCalculator and
+[DebyeCalculator](https://github.com/FrederikLizakJohansen/DebyeCalculator)
+provide complementary scattering models: BraggCalculator uses reciprocal-space
+translational symmetry for periodic crystals, whereas DebyeCalculator evaluates
+the real-space Debye scattering equation for finite, disordered, or
+non-crystalline structures.
 
 ## Data and model references
 

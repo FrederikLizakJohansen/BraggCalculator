@@ -228,7 +228,7 @@ def main() -> None:
             def synchronize() -> None:
                 torch.cuda.synchronize(torch_device)
 
-            execution_label = f"{properties.name} GPU; oracle on {model} CPU"
+            execution_label = f"{properties.name}; oracle on {model} CPU"
         else:
             execution_label = f"PyTorch {device}; oracle on {model} CPU"
 

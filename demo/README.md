@@ -227,3 +227,10 @@ provenance; adjacent JSON, CSV, CIF and audit artifacts are directly linked.
 The example is intentionally non-discriminating: the lower-Rwp model is not
 presented as structurally proven. Continuation restores raw parameter values but
 starts a fresh optimizer, so each run remains a separate trace segment.
+
+For a complete CIF-to-simulated-data workflow, open
+[`notebooks/artifact_simulation.ipynb`](../notebooks/artifact_simulation.ipynb).
+It starts from the same NaCl CIF, constructs each experimental-effect component,
+loads `example_background.xye`, and combines the effects with a reproducible
+seed. The `.xye` file is a synthetic tutorial trace, not measured reference
+data.

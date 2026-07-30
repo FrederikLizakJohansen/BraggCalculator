@@ -1,0 +1,218 @@
+#------------------------------------------------------------------------------
+#$Date: 2025-08-18 16:30:32 +0300 (Mon, 18 Aug 2025) $
+#$Revision: 301775 $
+#$URL: file:///home/coder/svn-repositories/_RELOADED_COD/cod-reloaded/cif/1/50/43/1504381.cif $
+#------------------------------------------------------------------------------
+#
+# This file is available in the Crystallography Open Database (COD),
+# http://www.crystallography.net/
+#
+# All data on this site have been placed in the public domain by the
+# contributors.
+#
+data_1504381
+loop_
+_publ_author_name
+'Podsiad\/lo, Marcin'
+'Katrusiak, Andrzej'
+_publ_section_title
+;
+ Competing patterns of weak directional forces in pressure-frozen CH2ClI
+ and CH2I2.
+;
+_journal_issue                   17
+_journal_name_full               'The journal of physical chemistry. B'
+_journal_page_first              5355
+_journal_page_last               5362
+_journal_paper_doi               10.1021/jp8006574
+_journal_volume                  112
+_journal_year                    2008
+_chemical_formula_moiety         'C1 H2 I2'
+_chemical_formula_sum            'C H2 I2'
+_chemical_formula_weight         267.83
+_chemical_melting_point          279
+_chemical_name_common            diiodomethane
+_chemical_name_systematic
+; 
+diiodomethane, polymorph II
+;
+_space_group_IT_number           42
+_symmetry_cell_setting           orthorhombic
+_symmetry_space_group_name_Hall  'F 2 -2'
+_symmetry_space_group_name_H-M   'F m m 2'
+_atom_sites_solution_hydrogens   geom
+_atom_sites_solution_primary     direct
+_atom_sites_solution_secondary   difmap
+_audit_creation_method           SHELXL-97
+_cell_angle_alpha                90.00
+_cell_angle_beta                 90.00
+_cell_angle_gamma                90.00
+_cell_formula_units_Z            4
+_cell_length_a                   7.1819(14)
+_cell_length_b                   12.912(3)
+_cell_length_c                   4.6930(9)
+_cell_measurement_reflns_used    873
+_cell_measurement_temperature    295(2)
+_cell_measurement_theta_max      29.66
+_cell_measurement_theta_min      5.43
+_cell_volume                     435.19(16)
+_computing_cell_refinement       'CrysAlisRED (Oxford Diffraction, 2004)'
+_computing_data_collection       'CrysAlisCCD (Oxford Diffraction, 2004)'
+_computing_data_reduction
+'CrysAlisRED (Oxford Diffraction, 2004); REDSHABS (Katrusiak, A.  2003)'
+_computing_molecular_graphics    'SHELXTL (Sheldrick, 1990)'
+_computing_publication_material  'SHELXL--97 (Sheldrick, 1997)'
+_computing_structure_refinement  'SHELXL--97 (Sheldrick, 1997)'
+_computing_structure_solution    'SHELXS--97 (Sheldrick, 1997)'
+_diffrn_ambient_environment      'diamond-anvil cell'
+_diffrn_ambient_pressure         620000
+_diffrn_ambient_temperature      295(2)
+_diffrn_measured_fraction_theta_full 0.458
+_diffrn_measured_fraction_theta_max 0.458
+_diffrn_measurement_device_type  'KM-4 CCD'
+_diffrn_measurement_method       '\f- and \w-scans'
+_diffrn_radiation_monochromator  graphite
+_diffrn_radiation_source         'fine-focus sealed tube'
+_diffrn_radiation_type           MoK\a
+_diffrn_radiation_wavelength     0.71073
+_diffrn_reflns_av_R_equivalents  0.0296
+_diffrn_reflns_av_sigmaI/netI    0.0120
+_diffrn_reflns_limit_h_max       10
+_diffrn_reflns_limit_h_min       -9
+_diffrn_reflns_limit_k_max       8
+_diffrn_reflns_limit_k_min       -8
+_diffrn_reflns_limit_l_max       6
+_diffrn_reflns_limit_l_min       -6
+_diffrn_reflns_number            919
+_diffrn_reflns_theta_full        29.66
+_diffrn_reflns_theta_max         29.66
+_diffrn_reflns_theta_min         5.43
+_diffrn_standards_decay_%        0
+_diffrn_standards_interval_count 0
+_diffrn_standards_number         0
+_exptl_absorpt_coefficient_mu    14.221
+_exptl_absorpt_correction_T_max  0.20
+_exptl_absorpt_correction_T_min  0.09
+_exptl_absorpt_correction_type   numerical
+_exptl_absorpt_process_details
+; 
+ Correction for absorption of the diamond-anvil cell and the sample 
+ were made using program REDSHABS (Katrusiak, A. (2003) REDSHABS. Adam
+ Mickiewicz University Pozna\'n; Katrusiak, A. (2004) Z. Kristallogr.
+ 219, 461-467).
+;
+_exptl_crystal_colour            colourless
+_exptl_crystal_density_diffrn    4.088
+_exptl_crystal_density_method    'not measured'
+_exptl_crystal_description       cylinder
+_exptl_crystal_F_000             456
+_exptl_crystal_size_max          0.42
+_exptl_crystal_size_mid          0.42
+_exptl_crystal_size_min          0.20
+_refine_diff_density_max         0.307
+_refine_diff_density_min         -0.611
+_refine_diff_density_rms         0.090
+_refine_ls_abs_structure_details 'Flack H D (1983), Acta Cryst. A39, 876-881'
+_refine_ls_abs_structure_Flack   -0.1(4)
+_refine_ls_extinction_coef       0.0097(5)
+_refine_ls_extinction_expression Fc^*^=kFc[1+0.001xFc^2^\l^3^/sin(2\q)]^-1/4^
+_refine_ls_extinction_method     SHELXL
+_refine_ls_goodness_of_fit_ref   1.155
+_refine_ls_hydrogen_treatment    mixed
+_refine_ls_matrix_type           full
+_refine_ls_number_parameters     14
+_refine_ls_number_reflns         154
+_refine_ls_number_restraints     3
+_refine_ls_restrained_S_all      1.143
+_refine_ls_R_factor_all          0.0161
+_refine_ls_R_factor_gt           0.0154
+_refine_ls_shift/su_max          0.329
+_refine_ls_shift/su_mean         0.043
+_refine_ls_structure_factor_coef Fsqd
+_refine_ls_weighting_details
+'calc w=1/[\s^2^(Fo^2^)+(0.0193P)^2^+1.1292P] where P=(Fo^2^+2Fc^2^)/3'
+_refine_ls_weighting_scheme      calc
+_refine_ls_wR_factor_gt          0.0369
+_refine_ls_wR_factor_ref         0.0372
+_reflns_number_gt                150
+_reflns_number_total             154
+_reflns_threshold_expression     >2sigma(I)
+_cod_data_source_file            jp8006574-file003.cif
+_cod_data_source_block           djm_0.62GPa
+_cod_original_cell_volume        435.19(15)
+_cod_database_code               1504381
+loop_
+_symmetry_equiv_pos_as_xyz
+'x, y, z'
+'-x, -y, z'
+'x, -y, z'
+'-x, y, z'
+'x, y+1/2, z+1/2'
+'-x, -y+1/2, z+1/2'
+'x, -y+1/2, z+1/2'
+'-x, y+1/2, z+1/2'
+'x+1/2, y, z+1/2'
+'-x+1/2, -y, z+1/2'
+'x+1/2, -y, z+1/2'
+'-x+1/2, y, z+1/2'
+'x+1/2, y+1/2, z'
+'-x+1/2, -y+1/2, z'
+'x+1/2, -y+1/2, z'
+'-x+1/2, y+1/2, z'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_U_iso_or_equiv
+_atom_site_adp_type
+_atom_site_occupancy
+_atom_site_symmetry_multiplicity
+_atom_site_calc_flag
+_atom_site_refinement_flags
+I1 I 0.0000 0.13681(3) 0.24405(9) 0.0387(4) Uani 1 2 d SD
+C1 C 0.0000 0.0000 -0.00448(10) 0.052(8) Uani 1 4 d SD
+H1 H 0.11241(15) 0.0000 -0.1338(2) 0.067 Uiso 1 2 d SD
+loop_
+_atom_site_aniso_label
+_atom_site_aniso_U_11
+_atom_site_aniso_U_22
+_atom_site_aniso_U_33
+_atom_site_aniso_U_23
+_atom_site_aniso_U_13
+_atom_site_aniso_U_12
+I1 0.0522(4) 0.0214(10) 0.0423(4) 0.000(3) 0.000 0.000
+C1 0.058(7) 0.08(3) 0.021(6) 0.000 0.000 0.000
+loop_
+_atom_type_symbol
+_atom_type_description
+_atom_type_scat_dispersion_real
+_atom_type_scat_dispersion_imag
+_atom_type_scat_source
+C C 0.0033 0.0016 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+H H 0.0000 0.0000 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+I I -0.4742 1.8119 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+loop_
+_geom_angle_atom_site_label_1
+_geom_angle_atom_site_label_2
+_geom_angle_atom_site_label_3
+_geom_angle
+_geom_angle_site_symmetry_1
+_geom_angle_site_symmetry_3
+I1 C1 I1 113.13(4) . 2
+I1 C1 H1 109.33(4) . .
+I1 C1 H1 109.33(4) 2 .
+loop_
+_geom_bond_atom_site_label_1
+_geom_bond_atom_site_label_2
+_geom_bond_distance
+_geom_bond_site_symmetry_2
+I1 C1 2.1169(7) .
+C1 I1 2.1169(7) 2
+C1 H1 1.01000(15) .
+loop_
+_cod_related_entry_id
+_cod_related_entry_database
+_cod_related_entry_code
+1 PubChem 6346
