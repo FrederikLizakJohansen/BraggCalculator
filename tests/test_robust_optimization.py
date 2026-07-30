@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 
 from braggcalculator import (
@@ -84,3 +85,13 @@ def test_adaptive_release_requires_signal_support_and_independence():
     assert "sensitivity" in by_name["adp"].reason
     assert not by_name["duplicate"].accepted
     assert "correlated" in by_name["duplicate"].reason
+
+
+def test_nonfinite_objective_reports_the_active_stage():
+    value = torch.tensor(1.0, dtype=torch.float64, requires_grad=True)
+    with pytest.raises(ValueError, match="unstable stage"):
+        staged_optimize(
+            lambda: value * torch.tensor(float("nan")),
+            {"value": value},
+            [OptimizationStage("unstable stage", ("value",), 2, 0.1)],
+        )

@@ -1441,6 +1441,88 @@ class RefinementSession:
         return output
 
 
+def refined_structure_from_candidate(
+    candidate: CandidateRefinementResult,
+    dataset: DiffractionDataset,
+):
+    """Rebuild the final pymatgen structure from a refinement checkpoint."""
+    from pymatgen.core import Structure
+
+    policy = candidate.provenance["policy"]
+    checkpoint = candidate.provenance["checkpoint"]["raw_groups"]
+    calculator = BraggCalculator(
+        mode=dataset.radiation,
+        wavelength=dataset.wavelength,
+        two_theta_range=(float(dataset.coordinate[0]), float(dataset.coordinate[-1])),
+        primitive=False,
+    ).load(candidate.structure)
+    backend = calculator.backend
+    parameters = calculator.tensor_parameters()
+    raw = {name: np.asarray(value, dtype=np.float64) for name, value in checkpoint.items()}
+    lattice_model = calculator.symmetry_lattice_parameterization()
+    if "lattice" in raw:
+        parameters["lattice"] = lattice_model.expand(raw["lattice"], backend)
+    coordinate_model = calculator.symmetry_coordinate_parameterization()
+    if "coordinates" in raw:
+        parameters["frac_coords"] = coordinate_model.expand(raw["coordinates"], backend)
+    if "rigid_bodies" in raw:
+        rigid = calculator.rigid_body_parameterization(
+            policy["rigid_bodies"],
+            translation_scale=policy["rigid_translation_scale"],
+            rotation_scale_degrees=policy["rigid_rotation_scale_degrees"],
+        )
+        parameters["frac_coords"] = rigid.expand(
+            raw["rigid_bodies"], backend, lattice=parameters["lattice"]
+        )
+    if "occupancies" in raw:
+        occupancy = calculator.symmetry_occupancy_parameterization(
+            mode=policy["occupancy_mode"]
+        )
+        parameters["occupancies"] = occupancy.expand(raw["occupancies"], backend)
+    if "b_iso" in raw:
+        model = calculator.symmetry_b_iso_parameterization(
+            default_if_zero=policy["default_b_iso"]
+        )
+        parameters["b_iso"] = model.expand(raw["b_iso"], backend)
+        parameters.pop("u_cart", None)
+    if "u_aniso" in raw:
+        model = calculator.symmetry_u_aniso_parameterization(
+            default_u_iso=policy["default_u_iso"]
+        )
+        parameters["u_cart"] = model.expand(raw["u_aniso"], backend)
+    arrays = {name: np.asarray(value) for name, value in parameters.items()}
+    site_indices = calculator._symm["site_indices"]
+    symbols = calculator._symm["symbols"]
+    species, coordinates, b_values, u_values = [], [], [], []
+    for site_index in range(len(calculator._symm["structure"])):
+        contributions = np.flatnonzero(site_indices == site_index)
+        species.append(
+            {
+                symbols[index]: float(arrays["occupancies"][index])
+                for index in contributions
+                if arrays["occupancies"][index] > 1e-10
+            }
+        )
+        representative = int(contributions[0])
+        coordinates.append(arrays["frac_coords"][representative] % 1.0)
+        if "b_iso" in arrays:
+            b_values.append(float(arrays["b_iso"][representative]))
+        if "u_cart" in arrays:
+            u_values.append(arrays["u_cart"][representative].tolist())
+    properties = {}
+    if b_values:
+        properties["B_iso"] = b_values
+    if u_values:
+        properties["U_cart"] = u_values
+    return Structure(
+        arrays["lattice"],
+        species,
+        coordinates,
+        site_properties=properties,
+        coords_are_cartesian=False,
+    )
+
+
 def _poisson_deviance_torch(observed, calculated):
     """Pointwise Poisson deviance for positive expected counts."""
     import torch

@@ -44,6 +44,12 @@ from .parameters import (
     lattice_parameters,
 )
 from .radiation import nist_copper_ka_spectrum
+from .refinement import (
+    RefinedParameter,
+    RefinementResult,
+    load_refinement_dataset,
+    refine_generated_cif,
+)
 from .restraints import (
     BondAngleRestraint,
     BondLengthRestraint,
@@ -53,7 +59,25 @@ from .restraints import (
 )
 from .results import JacobianDiagnostics, ReflectionTable
 from .sensitivity import ParameterPath, analyze_jacobian, torch_profile_jacobian
-from .session import CandidateRefinementResult, RefinementPolicy, RefinementSession, SessionResult
+from .session import (
+    CandidateRefinementResult,
+    RefinementPolicy,
+    RefinementSession,
+    SessionResult,
+    refined_structure_from_candidate,
+)
+from .species_assignment import (
+    AsymmetricUnitSite,
+    SiteAssignment,
+    SpeciesAssignmentCandidate,
+    SpeciesAssignmentConfig,
+    SpeciesAssignmentEnumeration,
+    SpeciesAssignmentResult,
+    apply_species_assignment,
+    asymmetric_unit_sites,
+    enumerate_species_assignments,
+    refine_species_assignments,
+)
 from .uncertainty import BootstrapResult, parametric_bootstrap
 from ._version import __version__
 
@@ -61,7 +85,10 @@ __all__ = [
     "AmorphousHump",
     "AnisotropicDisplacementOrbitSpec",
     "apply_peak_artifact_batch",
+    "apply_species_assignment",
     "analyze_jacobian",
+    "AsymmetricUnitSite",
+    "asymmetric_unit_sites",
     "BackgroundArtifacts",
     "BackgroundLibrary",
     "BackgroundPattern",
@@ -75,11 +102,13 @@ __all__ = [
     "damped_gauss_newton",
     "DetectorArtifacts",
     "DiffractionDataset",
+    "enumerate_species_assignments",
     "GaussNewtonResult",
     "IntensityArtifacts",
     "IsotropicDisplacementOrbitSpec",
     "JacobianDiagnostics",
     "lattice_parameters",
+    "load_refinement_dataset",
     "MinimumDistanceRestraint",
     "nist_copper_ka_spectrum",
     "NoiseArtifacts",
@@ -95,17 +124,27 @@ __all__ = [
     "PreferredOrientation",
     "ProfileNuisanceParameterization",
     "recommend_parameter_groups",
+    "RefinedParameter",
+    "refine_generated_cif",
+    "RefinementResult",
     "RefinementPolicy",
     "RefinementSession",
+    "refined_structure_from_candidate",
+    "refine_species_assignments",
     "ReleaseDecision",
     "ReflectionTable",
     "render_artifact_batch",
     "RigidBodyParameterization",
     "RigidBodySpec",
     "SessionResult",
+    "SiteAssignment",
     "SimplexPhaseFractionParameterization",
     "SimulationArtifacts",
     "SpuriousPeakArtifacts",
+    "SpeciesAssignmentCandidate",
+    "SpeciesAssignmentConfig",
+    "SpeciesAssignmentEnumeration",
+    "SpeciesAssignmentResult",
     "StageOutcome",
     "staged_adam",
     "staged_optimize",
