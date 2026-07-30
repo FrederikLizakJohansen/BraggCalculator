@@ -1,9 +1,14 @@
 # API reference
 
-The public API consists of `BraggCalculator`, `ReflectionTable`,
-`SimulationArtifacts`, and the NumPy and optional PyTorch backends. Angles
-supplied as configuration are in degrees, lengths are in angstroms, and
-reciprocal quantities are in inverse angstroms.
+The [structure refinement guide](refinement.md) covers the high-level
+`refine_structure()` workflow, refinement policies, parameter bounds,
+species assignment, ambiguity reporting, and screening performance.
+
+The version 0.4.0 top-level API covers ideal and artifact-augmented simulation,
+continuous refinement, species-assignment screening, uncertainty diagnostics,
+and the NumPy and optional PyTorch backends. Angles supplied as configuration
+are in degrees, lengths are in angstroms, and reciprocal quantities are in
+inverse angstroms.
 
 ## `BraggCalculator`
 

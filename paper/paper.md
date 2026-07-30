@@ -60,7 +60,7 @@ instrumental wavelength distributions, or finite particle shape.
 # Statement of need
 
 A single powder pattern is inexpensive to calculate, but research applications
-increasingly require many evaluations: screening generated structures,
+increasingly require many evaluations: screening candidate structures,
 optimizing a structure against an observed pattern, constructing differentiable
 losses, or augmenting training data. In these settings, Python-level work per
 reflection and repeated symmetry analysis become significant. A useful forward

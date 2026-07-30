@@ -34,6 +34,15 @@ class TorchBackend:
     def exp(self, x):
         return torch.exp(x)
 
+    def log(self, x):
+        return torch.log(x)
+
+    def softplus(self, x):
+        return torch.nn.functional.softplus(x)
+
+    def softmax(self, x, axis=-1):
+        return torch.softmax(x, dim=axis)
+
     def pi(self):
         return torch.pi
 
@@ -43,8 +52,17 @@ class TorchBackend:
     def cos(self, x):
         return torch.cos(x)
 
+    def sigmoid(self, x):
+        return torch.sigmoid(x)
+
+    def sinh(self, x):
+        return torch.sinh(x)
+
     def arcsin(self, x):
         return torch.arcsin(x)
+
+    def arccos(self, x):
+        return torch.arccos(x)
 
     def sqrt(self, x):
         return torch.sqrt(x)
@@ -60,6 +78,12 @@ class TorchBackend:
 
     def inverse(self, x):
         return torch.linalg.inv(x)
+
+    def matrix_exp(self, x):
+        return torch.matrix_exp(x)
+
+    def rotation_matrix(self, skew):
+        return torch.matrix_exp(skew)
 
     def abs(self, x):
         return torch.abs(x)
@@ -81,6 +105,9 @@ class TorchBackend:
 
     def concat(self, xs, axis=0):
         return torch.cat(xs, dim=axis)
+
+    def stack(self, xs, axis=0):
+        return torch.stack(xs, dim=axis)
 
     def sum(self, x, axis=None):
         return torch.sum(x, dim=axis)
